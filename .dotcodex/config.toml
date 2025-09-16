@@ -1,7 +1,7 @@
 model = "gpt-5-codex"
 model_provider = "openai-chat-completions"
 sandbox_mode = "danger-full-access"
-model_reasoning_effort = "high"
+model_reasoning_effort = "low"
 
 [model_providers.openai-chat-completions]
 name = "OpenAI GPT-5"
