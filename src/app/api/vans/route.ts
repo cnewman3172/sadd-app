@@ -1,6 +1,8 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { verifyToken } from '@/lib/auth';
+import { publish } from '@/lib/events';
+import { logAudit } from '@/lib/audit';
 
 export const runtime = 'nodejs';
 
@@ -16,5 +18,7 @@ export async function POST(req: Request){
   const { name, capacity=8 } = await req.json();
   if (!name) return NextResponse.json({ error:'name required' }, { status: 400 });
   const van = await prisma.van.create({ data: { name, capacity: Number(capacity)||8 } });
+  publish('vans:update', { id: van.id });
+  logAudit('van_create', payload.uid, van.id, { name, capacity });
   return NextResponse.json(van);
 }

@@ -23,6 +23,7 @@ export default function Executives(){
             <a className="underline" href="#analytics">Analytics</a>
             <a className="underline" href="#users">Users</a>
             <a className="underline" href="/executives/vans">Fleet</a>
+            <a className="underline" href="/executives/audit">Audit Log</a>
           </nav>
         </aside>
       </div>

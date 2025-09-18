@@ -1,6 +1,8 @@
 import { NextResponse } from 'next/server';
 import { verifyToken } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
+import { publish } from '@/lib/events';
+import { logAudit } from '@/lib/audit';
 
 export async function POST(req: Request){
   const token = (req.headers.get('cookie')||'').split('; ').find(c=>c.startsWith('sadd_token='))?.split('=')[1];
@@ -19,5 +21,7 @@ export async function POST(req: Request){
     passengers: Number(passengers) || 1,
     notes,
   }});
+  publish('ride:update', { id: ride.id, status: ride.status, code: ride.rideCode });
+  logAudit('ride_create', payload.uid, ride.id, { pickupAddr, dropAddr, passengers });
   return NextResponse.json(ride);
 }

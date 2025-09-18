@@ -1,6 +1,8 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { verifyToken } from '@/lib/auth';
+import { publish } from '@/lib/events';
+import { logAudit } from '@/lib/audit';
 
 export const runtime = 'nodejs';
 
@@ -23,5 +25,7 @@ export async function PUT(req: Request, { params }: { params: { id: string } }){
     }
   }
   const ride = await prisma.ride.update({ where: { id: params.id }, data });
+  publish('ride:update', { id: ride.id, status: ride.status, code: ride.rideCode, vanId: ride.vanId });
+  logAudit('ride_update', payload.uid, ride.id, data);
   return NextResponse.json(ride);
 }

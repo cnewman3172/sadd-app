@@ -1,6 +1,8 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { verifyToken } from '@/lib/auth';
+import { publish } from '@/lib/events';
+import { logAudit } from '@/lib/audit';
 
 export const runtime = 'nodejs';
 
@@ -14,6 +16,7 @@ export async function POST(req: Request){
   // ensure only one TC per van; clear any previous TC relationships for this user
   await prisma.van.updateMany({ where:{ activeTcId: payload.uid }, data:{ activeTcId: null, status: 'OFFLINE', passengers: 0 } });
   const van = await prisma.van.update({ where:{ id: vanId }, data:{ activeTcId: payload.uid, status: 'ACTIVE' } });
+  publish('vans:update', { id: van.id });
+  logAudit('driver_online', payload.uid, van.id);
   return NextResponse.json(van);
 }
-

@@ -1,6 +1,8 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { verifyToken } from '@/lib/auth';
+import { publish } from '@/lib/events';
+import { logAudit } from '@/lib/audit';
 
 export const runtime = 'nodejs';
 
@@ -16,6 +18,8 @@ export async function PUT(req: Request, { params }: { params: { id: string } }){
     activeTcId, 
     name,
   }});
+  publish('vans:update', { id: van.id });
+  logAudit('van_update', payload.uid, van.id, { status, capacity, passengers, activeTcId, name });
   return NextResponse.json(van);
 }
 
@@ -24,5 +28,7 @@ export async function DELETE(req: Request, { params }: { params: { id: string } 
   const payload = verifyToken(token);
   if (!payload || (payload.role !== 'ADMIN' && payload.role !== 'COORDINATOR')) return NextResponse.json({ error:'forbidden' }, { status: 403 });
   await prisma.van.delete({ where: { id: params.id } });
+  publish('vans:update', { id: params.id, deleted: true });
+  logAudit('van_delete', payload.uid, params.id);
   return NextResponse.json({ ok:true });
 }
