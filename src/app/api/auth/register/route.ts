@@ -8,6 +8,6 @@ export async function POST(req: Request){
     const user = await registerUser({ email, password, firstName, lastName, rank, unit, phone });
     return NextResponse.json({ id: user.id });
   }catch(e:any){
-    return NextResponse.json({ error: e.message }, { status: 400 });
+    return NextResponse.json({ error: e.message || 'Registration failed' }, { status: 400 });
   }
 }

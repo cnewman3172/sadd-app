@@ -4,27 +4,38 @@ import { useState } from 'react';
 export default function Login() {
   const [mode, setMode] = useState<'login'|'register'>('login');
   const [form, setForm] = useState<any>({});
+  const [error, setError] = useState<string | null>(null);
 
   async function submitLogin(e: React.FormEvent) {
     e.preventDefault();
-    const res = await fetch('/api/auth/login', { method: 'POST', body: JSON.stringify(form) });
+    setError(null);
+    const res = await fetch('/api/auth/login', { method: 'POST', headers:{ 'Content-Type':'application/json' }, body: JSON.stringify(form) });
     if (res.ok) {
       const data = await res.json();
       const role = data.role as string;
       const dest: Record<string,string> = { ADMIN: '/executives', COORDINATOR: '/dashboard', TC: '/driving', RIDER: '/request' };
       window.location.href = dest[role] || '/';
+    } else {
+      const data = await res.json().catch(()=>({ error: 'Login failed' }));
+      setError(data.error || 'Login failed');
     }
   }
 
   async function submitRegister(e: React.FormEvent) {
     e.preventDefault();
-    const res = await fetch('/api/auth/register', { method: 'POST', body: JSON.stringify(form) });
+    setError(null);
+    const res = await fetch('/api/auth/register', { method: 'POST', headers:{ 'Content-Type':'application/json' }, body: JSON.stringify(form) });
     if (res.ok) setMode('login');
+    else {
+      const data = await res.json().catch(()=>({ error: 'Registration failed' }));
+      setError(data.error || 'Registration failed');
+    }
   }
 
   return (
     <div className="min-h-[70vh] grid place-items-center p-6">
       <div className="w-full max-w-md rounded-2xl p-6 bg-white/60 dark:bg-white/10 backdrop-blur border border-white/20">
+        {error && <div className="mb-3 text-sm text-red-600">{error}</div>}
         {mode === 'login' ? (
           <form onSubmit={submitLogin} className="space-y-3">
             <h1 className="text-xl font-semibold">Login</h1>
