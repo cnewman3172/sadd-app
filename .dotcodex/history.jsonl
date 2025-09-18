@@ -12,3 +12,4 @@
 {"session_id":"05a27400-6e11-40cc-9596-5d7e36c4d83f","ts":1758235248,"text":"Alright my plan is to download this and add it onto a flash drive and run it from the flashdrive on my server. What all do I need to do to make it load etc."}
 {"session_id":"05a27400-6e11-40cc-9596-5d7e36c4d83f","ts":1758235589,"text":"lets use docker. I dont have Postgres, also I want cloudfalre tunnel"}
 {"session_id":"05a27400-6e11-40cc-9596-5d7e36c4d83f","ts":1758235877,"text":"Im concered the database will be overwrote if I have to update the website is this a concern? Will the database need to be ran in another docker container or how should I update the project since we couldn't get GITHUB to work?"}
+{"session_id":"05a27400-6e11-40cc-9596-5d7e36c4d83f","ts":1758236008,"text":"Hm i think I want to just do a Github push and then have the watch oush updates. Can you help me setuop the github pushes once more and see if we can get it to work this time?"}

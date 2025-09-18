@@ -199,3 +199,7 @@
 [2m2025-09-18T22:46:27.388622Z[0m [32m INFO[0m ERR: No such file or directory (os error 2)
 [2m2025-09-18T22:46:34.853576Z[0m [32m INFO[0m FunctionCall: shell({"command":["bash","-lc","sed -n '1,200p' ops/README_DEPLOY.md"]})
 [2m2025-09-18T22:46:41.591328Z[0m [32m INFO[0m FunctionCall: shell({"command":["bash","-lc","sed -n '1,200p' ops/switch_to_ghcr.sh"]})
+[2m2025-09-18T22:53:32.665361Z[0m [32m INFO[0m FunctionCall: shell({"command":["bash","-lc","rg -n \"ghcr|github actions|workflow|container registry|docker build\" -S || true && ls -la .github || true && ls -la .github/workflows || true"]})
+[2m2025-09-18T22:53:35.377511Z[0m [32m INFO[0m FunctionCall: shell({"command":["bash","-lc","sed -n '1,200p' .github/workflows/deploy.yml"]})
+[2m2025-09-18T22:53:37.705577Z[0m [32m INFO[0m FunctionCall: shell({"command":["bash","-lc","sed -n '1,200p' docker-compose.ghcr.yml"]})
+[2m2025-09-18T22:53:57.161063Z[0m [32m INFO[0m FunctionCall: shell({"command":["bash","-lc","sed -n '1,200p' .env.example"]})
