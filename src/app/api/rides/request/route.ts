@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
-import { verifyToken } from '@/src/lib/auth';
-import { prisma } from '@/src/lib/prisma';
+import { verifyToken } from '@/lib/auth';
+import { prisma } from '@/lib/prisma';
 
 export async function POST(req: Request){
   const token = (req.headers.get('cookie')||'').split('; ').find(c=>c.startsWith('sadd_token='))?.split('=')[1];
@@ -21,4 +21,3 @@ export async function POST(req: Request){
   }});
   return NextResponse.json(ride);
 }
-

@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
-import { prisma } from '@/src/lib/prisma';
-import { verifyToken } from '@/src/lib/auth';
+import { prisma } from '@/lib/prisma';
+import { verifyToken } from '@/lib/auth';
 
 export async function POST(req: Request){
   const token = (req.headers.get('cookie')||'').split('; ').find(c=>c.startsWith('sadd_token='))?.split('=')[1];
@@ -10,4 +10,3 @@ export async function POST(req: Request){
   const toggled = await prisma.setting.update({ where:{ id:1 }, data:{ active: !s.active } });
   return NextResponse.json(toggled);
 }
-

@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import bcrypt from 'bcryptjs';
-import { prisma } from '@/src/lib/prisma';
-import { verifyToken } from '@/src/lib/auth';
+import { prisma } from '@/lib/prisma';
+import { verifyToken } from '@/lib/auth';
 
 export async function POST(req: Request){
   const token = (req.headers.get('cookie')||'').split('; ').find(c=>c.startsWith('sadd_token='))?.split('=')[1];
@@ -16,4 +16,3 @@ export async function POST(req: Request){
   await prisma.user.update({ where: { id: user.id }, data: { password: hash } });
   return NextResponse.json({ ok:true });
 }
-

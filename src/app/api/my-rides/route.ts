@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
-import { verifyToken } from '@/src/lib/auth';
-import { prisma } from '@/src/lib/prisma';
+import { verifyToken } from '@/lib/auth';
+import { prisma } from '@/lib/prisma';
 
 export async function GET(req: Request){
   const url = new URL(req.url);
@@ -11,4 +11,3 @@ export async function GET(req: Request){
   const rides = await prisma.ride.findMany({ where: { riderId: payload.uid }, orderBy: { requestedAt: 'desc' }, take: limit });
   return NextResponse.json(rides);
 }
-
