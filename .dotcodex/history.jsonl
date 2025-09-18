@@ -5,3 +5,4 @@
 {"session_id":"e8c05a25-2780-4e7a-8f9f-aba4a366a1bc","ts":1758231035,"text":"Alright forget the github thing continue building out the app so that I can download the exact code and just run it on my server. Ill mainually upload the files to the server anytime theres and update from you."}
 {"session_id":"e8c05a25-2780-4e7a-8f9f-aba4a366a1bc","ts":1758231810,"text":"Yes continue with the next portion you need to complete."}
 {"session_id":"e8c05a25-2780-4e7a-8f9f-aba4a366a1bc","ts":1758232308,"text":"Yes add real time updates, eta, and an audit log."}
+{"session_id":"e8c05a25-2780-4e7a-8f9f-aba4a366a1bc","ts":1758232601,"text":"DO all all next steps except the redis as it will only be on one server."}
