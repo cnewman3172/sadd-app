@@ -197,3 +197,5 @@
 [2m2025-09-18T22:41:27.515564Z[0m [32m INFO[0m FunctionCall: shell({"command":["bash","-lc","ls -la ops && sed -n '1,200p' ops/install.sh"]})
 [2m2025-09-18T22:46:14.382870Z[0m [32m INFO[0m ERR: No such file or directory (os error 2)
 [2m2025-09-18T22:46:27.388622Z[0m [32m INFO[0m ERR: No such file or directory (os error 2)
+[2m2025-09-18T22:46:34.853576Z[0m [32m INFO[0m FunctionCall: shell({"command":["bash","-lc","sed -n '1,200p' ops/README_DEPLOY.md"]})
+[2m2025-09-18T22:46:41.591328Z[0m [32m INFO[0m FunctionCall: shell({"command":["bash","-lc","sed -n '1,200p' ops/switch_to_ghcr.sh"]})
