@@ -1,0 +1,38 @@
+# Dependencies
+node_modules/
+
+# Next.js
+.next/
+out/
+.vercel/
+.turbo/
+
+# Env & local config
+.env
+.env.*
+!.env.example
+
+# Logs
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# OS
+.DS_Store
+
+# Coverage / build artifacts
+coverage/
+dist/
+
+# Prisma
+prisma/*.db*
+prisma/dev.db*
+
+# Editor
+.vscode/
+.idea/
+
+# Codex CLI local files
+.dotcodex/
+
