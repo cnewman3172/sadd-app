@@ -1,0 +1,53 @@
+version: '3.8'
+services:
+  web:
+    build: .
+    container_name: sadd_web
+    ports:
+      - "3000:3000"
+    environment:
+      - DATABASE_URL=${DATABASE_URL}
+      - JWT_SECRET=${JWT_SECRET}
+      - NEXT_PUBLIC_APP_URL=${NEXT_PUBLIC_APP_URL}
+      - VAPID_PUBLIC_KEY=${VAPID_PUBLIC_KEY}
+      - VAPID_PRIVATE_KEY=${VAPID_PRIVATE_KEY}
+      - OSRM_URL=${OSRM_URL}
+      - NOMINATIM_URL=${NOMINATIM_URL}
+    depends_on:
+      - db
+    restart: unless-stopped
+
+  db:
+    image: postgres:16-alpine
+    container_name: sadd_db
+    environment:
+      - POSTGRES_DB=sadd
+      - POSTGRES_USER=sadd
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+    volumes:
+      - sadd-db:/var/lib/postgresql/data
+    restart: unless-stopped
+
+  cloudflared:
+    image: cloudflare/cloudflared:latest
+    container_name: sadd_tunnel
+    command: tunnel run
+    environment:
+      - TUNNEL_TOKEN=${CF_TUNNEL_TOKEN}
+    depends_on:
+      - web
+    restart: unless-stopped
+
+  watchtower:
+    image: containrrr/watchtower
+    container_name: sadd_watchtower
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+    environment:
+      - WATCHTOWER_CLEANUP=true
+      - WATCHTOWER_SCHEDULE=0 0/5 * * * *
+    restart: unless-stopped
+
+volumes:
+  sadd-db:
+
