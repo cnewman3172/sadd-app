@@ -20,6 +20,18 @@ export default function Dashboard(){
   }
 
   useEffect(()=>{ refresh(); const id = setInterval(refresh, 5000); return ()=>clearInterval(id); },[]);
+  useEffect(()=>{
+    const es = new EventSource('/api/stream');
+    es.addEventListener('ride:update', ()=> refresh());
+    es.addEventListener('vans:update', ()=> refresh());
+    es.addEventListener('vans:location', (e)=>{
+      try{
+        const d = JSON.parse((e as MessageEvent).data);
+        setVans((prev:any[])=> prev.map(v=> v.id===d.id ? { ...v, currentLat:d.lat, currentLng:d.lng } : v));
+      }catch{}
+    });
+    return ()=>{ es.close(); };
+  },[]);
 
   const pending = useMemo(()=> rides.filter((r:Ride)=>r.status==='PENDING'),[rides]);
   const active = useMemo(()=> rides.filter((r:Ride)=>['ASSIGNED','EN_ROUTE','PICKED_UP'].includes(r.status)),[rides]);
@@ -78,7 +90,7 @@ export default function Dashboard(){
           </div>
         </Card>
         <Card title="Live Operations Map">
-          <Map height={500} markers={[]} />
+          <Map height={500} markers={vans.filter((v:any)=>v.currentLat&&v.currentLng).map((v:any)=>({ lat:v.currentLat, lng:v.currentLng, color:'green' }))} />
         </Card>
       </div>
     </div>

@@ -1,5 +1,5 @@
 "use client";
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 
 type Van = any;
 type Ride = any;
@@ -19,20 +19,45 @@ export default function Driving(){
     setCurrentVan(r.van);
     setTasks(r.tasks||[]);
   }
-  useEffect(()=>{ refreshVans(); refreshTasks(); const id=setInterval(refreshTasks, 5000); return ()=>clearInterval(id); },[]);
+  useEffect(()=>{ 
+    refreshVans(); 
+    refreshTasks(); 
+    const es = new EventSource('/api/stream');
+    es.addEventListener('ride:update', ()=> refreshTasks());
+    es.addEventListener('vans:update', ()=> { refreshVans(); refreshTasks(); });
+    return ()=>{ es.close(); };
+  },[]);
 
   async function goOnline(){
     if (!selected) return alert('Select a van');
     const res = await fetch('/api/driver/go-online', { method:'POST', body: JSON.stringify({ vanId: selected }) });
-    if (res.ok) { setSelected(''); refreshTasks(); }
+    if (res.ok) { setSelected(''); refreshTasks(); startPings(); }
   }
   async function goOffline(){
     const res = await fetch('/api/driver/go-offline', { method:'POST' });
-    if (res.ok) refreshTasks();
+    if (res.ok) { stopPings(); refreshTasks(); }
   }
   async function setStatus(id:string, status:string){
     await fetch(`/api/rides/${id}`, { method:'PUT', body: JSON.stringify({ status }) });
     refreshTasks();
+  }
+
+  // location pings when online
+  const watchId = useRef<number | null>(null);
+  function startPings(){
+    if (typeof navigator === 'undefined' || !navigator.geolocation) return;
+    if (watchId.current !== null) return;
+    watchId.current = navigator.geolocation.watchPosition((pos)=>{
+      const { latitude, longitude } = pos.coords;
+      fetch('/api/driver/ping', { method:'POST', body: JSON.stringify({ lat: latitude, lng: longitude }) });
+    }, ()=>{}, { enableHighAccuracy:true, maximumAge:5000, timeout:10000 });
+  }
+  function stopPings(){
+    if (typeof navigator === 'undefined' || !navigator.geolocation) return;
+    if (watchId.current !== null){
+      navigator.geolocation.clearWatch(watchId.current);
+      watchId.current = null;
+    }
   }
 
   return (
