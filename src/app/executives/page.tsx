@@ -22,7 +22,7 @@ export default function Executives(){
             <a className="underline" href="#dashboard">Dashboard</a>
             <a className="underline" href="#analytics">Analytics</a>
             <a className="underline" href="#users">Users</a>
-            <a className="underline" href="#fleet">Fleet</a>
+            <a className="underline" href="/executives/vans">Fleet</a>
           </nav>
         </aside>
       </div>
@@ -38,4 +38,3 @@ function Metric({title, value}:{title:string; value:string}){
     </div>
   );
 }
-
