@@ -16,7 +16,7 @@ export function publish(event: string, data: any){
   }
 }
 
-export function sseResponse(){
+export function sseResponse(init?: Array<{ event: string; data: any }>){
   const ts = new TransformStream<string, Uint8Array>({
     transform(chunk, controller){
       controller.enqueue(new TextEncoder().encode(chunk));
@@ -24,8 +24,11 @@ export function sseResponse(){
   });
   const writer = ts.writable.getWriter();
   clients.add(writer);
-  // initial comment + ping every 15s
+  // initial events
   writeSSE(writer, 'hello', { ok: true });
+  if (init && init.length){
+    for (const e of init){ writeSSE(writer, e.event, e.data); }
+  }
   const ping = setInterval(()=>{ writeSSE(writer, 'ping', Date.now()); }, 15000);
   const stream = ts.readable;
   const headers = new Headers({
@@ -41,4 +44,3 @@ export function sseResponse(){
   setTimeout(()=>{ try{ writer.close(); }catch{} clients.delete(writer); clearInterval(ping); }, 21600000);
   return response;
 }
-

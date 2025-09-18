@@ -9,6 +9,7 @@ export default function Driving(){
   const [currentVan, setCurrentVan] = useState<Van|null>(null);
   const [tasks, setTasks] = useState<Ride[]>([]);
   const [selected, setSelected] = useState('');
+  const [sseStatus, setSseStatus] = useState<'connecting'|'online'|'offline'>('connecting');
 
   async function refreshVans(){
     const v = await fetch('/api/vans').then(r=>r.json());
@@ -23,8 +24,11 @@ export default function Driving(){
     refreshVans(); 
     refreshTasks(); 
     const es = new EventSource('/api/stream');
+    setSseStatus('connecting');
+    es.addEventListener('hello', ()=> setSseStatus('online'));
     es.addEventListener('ride:update', ()=> refreshTasks());
     es.addEventListener('vans:update', ()=> { refreshVans(); refreshTasks(); });
+    es.onerror = ()=> setSseStatus('offline');
     return ()=>{ es.close(); };
   },[]);
 
@@ -62,7 +66,7 @@ export default function Driving(){
 
   return (
     <div className="p-6 max-w-3xl mx-auto space-y-4">
-      <h1 className="text-2xl font-semibold">Truck Commander</h1>
+      <h1 className="text-2xl font-semibold">Truck Commander <span className="text-sm opacity-70">{sseStatus==='online'?'• Live':sseStatus==='connecting'?'• Connecting':'• Offline'}</span></h1>
       <section className="rounded-xl p-4 bg-white/70 dark:bg-white/10 border border-white/20 space-y-2">
         <div className="text-sm">{currentVan ? `Online as ${currentVan.name}` : 'Offline'}</div>
         {!currentVan && (

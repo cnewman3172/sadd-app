@@ -9,6 +9,7 @@ type Van = any;
 export default function Dashboard(){
   const [rides, setRides] = useState<Ride[]>([]);
   const [vans, setVans] = useState<Van[]>([]);
+  const [sseStatus, setSseStatus] = useState<'connecting'|'online'|'offline'>('connecting');
 
   async function refresh(){
     const [r, v] = await Promise.all([
@@ -22,6 +23,8 @@ export default function Dashboard(){
   useEffect(()=>{ refresh(); const id = setInterval(refresh, 5000); return ()=>clearInterval(id); },[]);
   useEffect(()=>{
     const es = new EventSource('/api/stream');
+    setSseStatus('connecting');
+    es.addEventListener('hello', ()=> setSseStatus('online'));
     es.addEventListener('ride:update', ()=> refresh());
     es.addEventListener('vans:update', ()=> refresh());
     es.addEventListener('vans:location', (e)=>{
@@ -30,7 +33,8 @@ export default function Dashboard(){
         setVans((prev:any[])=> prev.map(v=> v.id===d.id ? { ...v, currentLat:d.lat, currentLng:d.lng } : v));
       }catch{}
     });
-    return ()=>{ es.close(); };
+    es.onerror = ()=> setSseStatus('offline');
+    return ()=>{ es.close(); setSseStatus('offline'); };
   },[]);
 
   const pending = useMemo(()=> rides.filter((r:Ride)=>r.status==='PENDING'),[rides]);
@@ -39,6 +43,12 @@ export default function Dashboard(){
   async function setStatus(id:string, status:string, vanId?:string){
     await fetch(`/api/rides/${id}`, { method:'PUT', body: JSON.stringify({ status, vanId }) });
     refresh();
+  }
+  async function assignBest(r:any){
+    const s = await fetch(`/api/assign/suggest?rideId=${r.id}`).then(r=>r.json());
+    const best = s.ranked?.[0];
+    if (!best) return alert('No suitable vans online.');
+    await setStatus(r.id, 'ASSIGNED', best.vanId);
   }
 
   return (
@@ -64,7 +74,7 @@ export default function Dashboard(){
         </Card>
       </div>
       <div className="md:col-span-2 space-y-4">
-        <Card title="Incoming Requests">
+        <Card title={`Incoming Requests ${sseStatus==='online' ? '• Live' : sseStatus==='connecting' ? '• Connecting' : '• Offline'}`}>
           <div className="space-y-2">
             {pending.length===0 && <div className="text-sm opacity-80">No pending requests.</div>}
             {pending.map((r:any)=> (
@@ -84,6 +94,7 @@ export default function Dashboard(){
                     const vanId = sel?.value || undefined;
                     setStatus(r.id, 'ASSIGNED', vanId);
                   }} className="rounded bg-black text-white px-3 py-1 text-sm">Assign</button>
+                  <button onClick={()=>assignBest(r)} className="rounded border px-3 py-1 text-sm">Assign Best</button>
                 </div>
               </div>
             ))}
