@@ -15,8 +15,13 @@ export async function PUT(req: Request, { params }: { params: { id: string } }){
   const payload = verifyToken(token);
   if (!payload || (payload.role !== 'ADMIN' && payload.role !== 'COORDINATOR' && payload.role !== 'TC')) return NextResponse.json({ error:'forbidden' }, { status: 403 });
   const { status, vanId, driverId, coordinatorId, notes } = await req.json();
-  const ride = await prisma.ride.update({ where: { id: params.id }, data: {
-    status, vanId, driverId, coordinatorId, notes
-  }});
+  let data: any = { status, vanId, driverId, coordinatorId, notes };
+  if (vanId && !driverId){
+    const van = await prisma.van.findUnique({ where: { id: vanId } });
+    if (van?.activeTcId){
+      data.driverId = van.activeTcId;
+    }
+  }
+  const ride = await prisma.ride.update({ where: { id: params.id }, data });
   return NextResponse.json(ride);
 }
