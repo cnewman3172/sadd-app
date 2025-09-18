@@ -1,10 +1,10 @@
 SADD PWA (Docker, Cloudflare Tunnel, GitHub CI)
 
-Quick Start (one command on your Ubuntu LTS server):
+Quick Start (one command from this folder on your Ubuntu LTS server):
 
-  curl -fsSL https://raw.githubusercontent.com/YOUR_GITHUB_ORG/YOUR_REPO/main/ops/install.sh | bash -s -- APP_DIR=/opt/apps/sadd DOMAIN=sadd.fwaboss.com REPO_URL=https://github.com/YOUR_GITHUB_ORG/YOUR_REPO.git
+  bash ops/install.sh APP_DIR=/opt/apps/sadd DOMAIN=sadd.example.com
 
-Then edit /opt/apps/sadd/.env, paste your Cloudflare Tunnel token (CF_TUNNEL_TOKEN=...), and run:
+Then edit /opt/apps/sadd/.env, paste your Cloudflare Tunnel token (CF_TUNNEL_TOKEN=...) if you use Cloudflare, and run:
 
   cd /opt/apps/sadd && docker compose up -d cloudflared
 
@@ -12,8 +12,8 @@ All generated passwords/keys live in /opt/apps/sadd/.env.
 
 First admin setup:
 
-1) Register an account at https://sadd.fwaboss.com/login
-2) On the server, run the admin promotion command printed by the installer.
+1) Register an account at https://sadd.example.com/login
+2) Promote to ADMIN with the one-liner printed by the installer (uses /api/admin/promote and your generated SETUP_KEY).
 
 Auto deploy:
 
@@ -30,4 +30,3 @@ API quick refs:
 - `POST /api/driver/go-offline`
 - `GET /api/driver/tasks` → `{ van, tasks }`
 - `PUT /api/rides/:id` body may include `{ status, vanId }`; if `vanId` provided and that van has an `activeTcId`, the ride's `driverId` auto-fills with that TC.
-

@@ -76,6 +76,14 @@ SETUP_KEY=$SETUP_KEY
 EOF
 fi
 
+echo "==> Starting database and waiting for readiness"
+$DOCKER compose up -d db
+for i in {1..30}; do
+  if $DOCKER compose exec -T db pg_isready -U sadd -d sadd -h 127.0.0.1 >/dev/null 2>&1; then
+    echo "Postgres is ready"; break;
+  fi
+  echo "Waiting for Postgres ($i/30)..."; sleep 2;
+done
 echo "==> Applying database schema"
 $DOCKER compose run --rm web npx prisma db push
 
