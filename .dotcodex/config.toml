@@ -1,7 +1,6 @@
 model = "gpt-5"
 model_provider = "openai-chat-completions"
 sandbox_mode = "danger-full-access"
-model_reasoning_effort = "medium"
 
 [model_providers.openai-chat-completions]
 name = "OpenAI GPT-5"
