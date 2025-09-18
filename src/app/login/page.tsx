@@ -8,7 +8,12 @@ export default function Login() {
   async function submitLogin(e: React.FormEvent) {
     e.preventDefault();
     const res = await fetch('/api/auth/login', { method: 'POST', body: JSON.stringify(form) });
-    if (res.ok) window.location.href = '/';
+    if (res.ok) {
+      const data = await res.json();
+      const role = data.role as string;
+      const dest: Record<string,string> = { ADMIN: '/executives', COORDINATOR: '/dashboard', TC: '/driving', RIDER: '/request' };
+      window.location.href = dest[role] || '/';
+    }
   }
 
   async function submitRegister(e: React.FormEvent) {
@@ -49,4 +54,3 @@ export default function Login() {
     </div>
   );
 }
-

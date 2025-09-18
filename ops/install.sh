@@ -65,8 +65,8 @@ RATE_LIMIT_PER_MINUTE=60
 EOF
 fi
 
-echo "==> Running database migrations"
-docker compose run --rm web npx prisma migrate deploy
+echo "==> Applying database schema"
+docker compose run --rm web npx prisma db push
 
 echo "==> Bringing up containers"
 docker compose up -d --build
@@ -82,4 +82,3 @@ echo "3) Passwords & keys are stored in $ENV_FILE"
 echo "4) Auto-deploy:"
 echo "   - Preferred: use GHCR + Watchtower. In GitHub, enable Actions and Packages."
 echo "   - Or set up the built-in timer: sudo systemctl enable --now sadd-updater.timer (after creating repo clone)."
-
