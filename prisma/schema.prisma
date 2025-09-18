@@ -33,6 +33,9 @@ model Van {
   activeTc  User?    @relation(fields: [activeTcId], references: [id])
   activeTcId String?
   passengers Int      @default(0)
+  currentLat Float?
+  currentLng Float?
+  lastPing   DateTime?
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 }
@@ -81,6 +84,15 @@ model PushSubscription {
   createdAt DateTime @default(now())
 }
 
+model Audit {
+  id        String   @id @default(uuid())
+  createdAt DateTime @default(now())
+  actorId   String?
+  action    String
+  subject   String?
+  details   Json?
+}
+
 enum Role {
   ADMIN
   COORDINATOR
@@ -108,4 +120,3 @@ enum VanStatus {
   MAINTENANCE
   OFFLINE
 }
-
