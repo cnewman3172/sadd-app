@@ -2,6 +2,8 @@ import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { verifyToken } from '@/lib/auth';
 
+export const runtime = 'nodejs';
+
 export async function GET(req: Request){
   const token = (req.headers.get('cookie')||'').split('; ').find(c=>c.startsWith('sadd_token='))?.split('=')[1];
   const payload = verifyToken(token);
@@ -17,4 +19,3 @@ export async function GET(req: Request){
   });
   return NextResponse.json(rides);
 }
-

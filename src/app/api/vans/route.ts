@@ -2,6 +2,8 @@ import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { verifyToken } from '@/lib/auth';
 
+export const runtime = 'nodejs';
+
 export async function GET(){
   const vans = await prisma.van.findMany({ orderBy: { name: 'asc' } });
   return NextResponse.json(vans);
@@ -16,4 +18,3 @@ export async function POST(req: Request){
   const van = await prisma.van.create({ data: { name, capacity: Number(capacity)||8 } });
   return NextResponse.json(van);
 }
-

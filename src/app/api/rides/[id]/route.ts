@@ -2,6 +2,8 @@ import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { verifyToken } from '@/lib/auth';
 
+export const runtime = 'nodejs';
+
 export async function GET(req: Request, { params }: { params: { id: string } }){
   const ride = await prisma.ride.findUnique({ where: { id: params.id }, include: { rider: true, van: true } });
   if (!ride) return NextResponse.json({ error:'not found' }, { status: 404 });
@@ -18,4 +20,3 @@ export async function PUT(req: Request, { params }: { params: { id: string } }){
   }});
   return NextResponse.json(ride);
 }
-
