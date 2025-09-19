@@ -120,3 +120,8 @@ enum VanStatus {
   MAINTENANCE
   OFFLINE
 }
+
+// Added to match Ride.source field
+enum RideSource {
+  REQUEST
+}
