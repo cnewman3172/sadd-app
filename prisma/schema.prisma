@@ -23,6 +23,8 @@ model User {
   drives    Ride[]   @relation("DriverRides")
   coord     Ride[]   @relation("CoordinatorRides")
   pushSubs  PushSubscription[]
+  // Back-relation for Van.activeTc
+  activeTcOf Van[]
 }
 
 model Van {
@@ -38,6 +40,8 @@ model Van {
   lastPing   DateTime?
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+  // Back-relation for Ride.van
+  rides     Ride[]
 }
 
 model Ride {
