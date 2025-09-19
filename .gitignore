@@ -36,3 +36,4 @@ prisma/dev.db*
 # Codex CLI local files
 .dotcodex/
 
+STACK.md
