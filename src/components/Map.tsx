@@ -6,7 +6,7 @@ export default function Map({ height=300, markers=[] }: { height?: number, marke
   useEffect(()=>{
     (async()=>{
       const L = await import('leaflet');
-      // @ts-ignore
+      // @ts-expect-error: importing CSS lacks type declarations in node_modules
       await import('leaflet/dist/leaflet.css');
       if (!ref.current) return;
       const map = L.map(ref.current).setView([64.8378,-147.7164], 12);
@@ -16,4 +16,3 @@ export default function Map({ height=300, markers=[] }: { height?: number, marke
   },[markers]);
   return <div ref={ref} style={{height}} className="w-full" />
 }
-

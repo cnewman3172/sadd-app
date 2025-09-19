@@ -11,7 +11,6 @@ export async function GET(req: Request){
   // piggyback: append an auth event immediately by forcing a small delay
   setTimeout(async ()=>{
     try{
-      // @ts-ignore - Response has body as ReadableStream; we can't write after creation.
       // The events module sends initial hello/ping; clients will make a /api/me call if needed.
     }catch{}
   }, 10);
