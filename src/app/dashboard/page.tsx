@@ -2,25 +2,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import dynamic from 'next/dynamic';
 const Map = dynamic(() => import('../../components/Map'), { ssr: false });
-
-type Ride = {
-  id: string;
-  rideCode: number;
-  status: 'PENDING'|'ASSIGNED'|'EN_ROUTE'|'PICKED_UP'|'DROPPED'|'CANCELED';
-  requestedAt: string;
-  pickupAddr: string;
-  dropAddr: string;
-  passengers: number;
-  rider?: { firstName?: string; lastName?: string };
-};
-type Van = {
-  id: string;
-  name: string;
-  capacity: number;
-  status: 'ACTIVE'|'MAINTENANCE'|'OFFLINE';
-  currentLat?: number|null;
-  currentLng?: number|null;
-};
+import type { Ride, Van } from '@/types';
 
 export default function Dashboard(){
   const [rides, setRides] = useState<Ride[]>([]);

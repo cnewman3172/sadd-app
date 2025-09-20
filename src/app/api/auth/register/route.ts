@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { registerUser } from '@/lib/auth';
 import { allowAuth } from '@/lib/ratelimit';
+import { captureError } from '@/lib/obs';
 import { z } from 'zod';
 
 const schema = z.object({
@@ -22,6 +23,7 @@ export async function POST(req: Request){
     const user = await registerUser({ email, password, firstName, lastName, rank, unit, phone });
     return NextResponse.json({ id: user.id });
   }catch(e:any){
+    captureError(e, { route: 'auth/register' });
     const msg = e?.issues?.[0]?.message || e?.message || 'Registration failed';
     return NextResponse.json({ error: msg }, { status: 400 });
   }

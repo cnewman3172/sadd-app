@@ -1,21 +1,6 @@
 "use client";
 import { useEffect, useRef, useState } from 'react';
-
-type Van = {
-  id: string;
-  name: string;
-  capacity: number;
-  status: 'ACTIVE'|'MAINTENANCE'|'OFFLINE';
-  activeTcId?: string | null;
-};
-type Ride = {
-  id: string;
-  rideCode: number;
-  status: 'ASSIGNED'|'EN_ROUTE'|'PICKED_UP'|'DROPPED'|'PENDING'|'CANCELED';
-  pickupAddr: string;
-  dropAddr: string;
-  passengers: number;
-};
+import type { Van, Ride } from '@/types';
 
 export default function Driving(){
   const [vans, setVans] = useState<Van[]>([]);
