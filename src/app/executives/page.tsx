@@ -1,4 +1,31 @@
+"use client";
+import { useEffect, useState } from 'react';
+
 export default function Executives(){
+  const [active, setActive] = useState<boolean | null>(null);
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  async function load(){
+    try{
+      const r = await fetch('/api/health', { cache: 'no-store' });
+      const d = await r.json();
+      setActive(Boolean(d.active));
+    }catch{ setActive(null); }
+  }
+  useEffect(()=>{ load(); },[]);
+
+  async function toggle(){
+    setBusy(true); setError(null);
+    try{
+      const r = await fetch('/api/admin/toggle-active', { method:'POST' });
+      if (!r.ok){ const d = await r.json().catch(()=>({error:'failed'})); throw new Error(d.error||'Toggle failed'); }
+      const d = await r.json();
+      setActive(Boolean(d.active));
+    }catch(e:any){ setError(e.message||'Toggle failed'); }
+    finally{ setBusy(false); }
+  }
+
   return (
     <div className="p-6 max-w-6xl mx-auto grid gap-6">
       <h1 className="text-2xl font-semibold">Admin</h1>
@@ -11,10 +38,12 @@ export default function Executives(){
             <Metric title="Avg Dropoff" value="—" />
             <Metric title="No-Show Rate" value="—" />
           </div>
-          <div className="mt-4">
-            <form action="/api/admin/toggle-active" method="post">
-              <button className="rounded px-4 py-2 border">Toggle SADD Active</button>
-            </form>
+          <div className="mt-4 flex items-center gap-3">
+            <button onClick={toggle} disabled={busy} className="rounded px-4 py-2 border">
+              {busy ? 'Toggling…' : 'Toggle SADD Active'}
+            </button>
+            <span className="text-sm opacity-80">Status: {active===null ? '—' : active ? 'Active' : 'Inactive'}</span>
+            {error && <span className="text-sm text-red-600">{error}</span>}
           </div>
         </section>
         <aside className="rounded-xl p-4 bg-white/70 dark:bg-white/10 border border-white/20">
