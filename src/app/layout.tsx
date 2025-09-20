@@ -16,7 +16,6 @@ export const metadata: Metadata = {
   title: "SADD — Soldiers Against Drunk Driving",
   description: "Free, confidential rides — built by Arctic Aura Designs.",
   manifest: "/manifest.webmanifest",
-  themeColor: "#0a0a0a",
   icons: {
     icon: "/icons/icon-192.png",
     apple: "/icons/apple-touch-icon.png",

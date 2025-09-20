@@ -1,14 +1,26 @@
 import { NextResponse } from 'next/server';
 import { verifyJwt } from '@/lib/jwt';
+import { z } from 'zod';
 import { prisma } from '@/lib/prisma';
 import { publish } from '@/lib/events';
 import { logAudit } from '@/lib/audit';
+
+const schema = z.object({
+  pickupAddr: z.string().min(1).optional(),
+  dropAddr: z.string().min(1).optional(),
+  passengers: z.number().int().min(1).max(8).optional(),
+  notes: z.string().max(500).optional(),
+  pickupLat: z.number().optional(),
+  pickupLng: z.number().optional(),
+  dropLat: z.number().optional(),
+  dropLng: z.number().optional(),
+});
 
 export async function POST(req: Request){
   const token = (req.headers.get('cookie')||'').split('; ').find(c=>c.startsWith('sadd_token='))?.split('=')[1];
   const payload = await verifyJwt(token);
   if (!payload) return NextResponse.json({ error:'auth required' }, { status: 401 });
-  const { pickupAddr, dropAddr, passengers=1, notes, pickupLat, pickupLng, dropLat, dropLng } = await req.json();
+  const { pickupAddr, dropAddr, passengers=1, notes, pickupLat, pickupLng, dropLat, dropLng } = schema.parse(await req.json());
   // naive: if coords missing, leave zeros and let dispatcher edit later
   const ride = await prisma.ride.create({ data: {
     riderId: payload.uid,

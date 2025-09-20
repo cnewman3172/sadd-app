@@ -1,10 +1,12 @@
 import { NextResponse } from 'next/server';
 import { authenticate } from '@/lib/auth';
+import { z } from 'zod';
+
+const schema = z.object({ email: z.string().email(), password: z.string().min(8) });
 
 export async function POST(req: Request){
-  const body = await req.json();
-  const { email, password } = body;
-  const res = await authenticate(email, password);
+  const body = schema.parse(await req.json());
+  const res = await authenticate(body.email, body.password);
   if (!res) return NextResponse.json({ error:'Invalid credentials' }, { status: 401 });
   const r = NextResponse.json({ ok: true, role: res.user.role });
   const secure = (process.env.NEXT_PUBLIC_APP_URL||'').startsWith('https') || process.env.NODE_ENV === 'production';

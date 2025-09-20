@@ -2,6 +2,11 @@ services:
   web:
     image: ghcr.io/YOUR_GITHUB_ORG/YOUR_REPO/web:latest
     container_name: sadd_web
+    healthcheck:
+      test: ["CMD-SHELL", "curl -fsS http://localhost:3000/api/health || exit 1"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
     ports:
       - "3000:3000"
     environment:
@@ -14,8 +19,11 @@ services:
       - OSRM_URL=${OSRM_URL}
       - NOMINATIM_URL=${NOMINATIM_URL}
     depends_on:
-      - db
+      db:
+        condition: service_healthy
     restart: unless-stopped
+    networks:
+      - sadd-net
 
   db:
     image: postgres:16-alpine
@@ -26,7 +34,14 @@ services:
       - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
     volumes:
       - sadd-db:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U sadd -d sadd || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
     restart: unless-stopped
+    networks:
+      - sadd-net
 
   cloudflared:
     image: cloudflare/cloudflared:latest
@@ -35,8 +50,11 @@ services:
     environment:
       - TUNNEL_TOKEN=${CF_TUNNEL_TOKEN}
     depends_on:
-      - web
+      web:
+        condition: service_started
     restart: unless-stopped
+    networks:
+      - sadd-net
 
   watchtower:
     image: containrrr/watchtower
@@ -50,6 +68,12 @@ services:
       - WATCHTOWER_CLEANUP=true
       - WATCHTOWER_SCHEDULE=0 0/5 * * * *
     restart: unless-stopped
+    networks:
+      - sadd-net
 
 volumes:
   sadd-db:
+
+networks:
+  sadd-net:
+    name: sadd-net
