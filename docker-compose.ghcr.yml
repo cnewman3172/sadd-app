@@ -1,6 +1,6 @@
 services:
   web:
-    image: ghcr.io/YOUR_GITHUB_ORG/YOUR_REPO/web:latest
+    image: ghcr.io/pvp2max/sadd-app/web:latest
     container_name: sadd_web
     healthcheck:
       test: ["CMD-SHELL", "curl -fsS http://localhost:3000/api/health || exit 1"]
