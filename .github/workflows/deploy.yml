@@ -21,12 +21,14 @@ jobs:
           registry: ghcr.io
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
+      - name: Lowercase repo for GHCR
+        run: echo "REPO_LC=${GITHUB_REPOSITORY,,}" >> $GITHUB_ENV
       - name: Build and push
         uses: docker/build-push-action@v6
         with:
           push: true
           tags: |
-            ghcr.io/${{ toLower(github.repository) }}/web:latest
-            ghcr.io/${{ toLower(github.repository) }}/web:${{ github.sha }}
-          cache-from: type=registry,ref=ghcr.io/${{ toLower(github.repository) }}/web:cache
-          cache-to: type=registry,ref=ghcr.io/${{ toLower(github.repository) }}/web:cache,mode=max
+            ghcr.io/${{ env.REPO_LC }}/web:latest
+            ghcr.io/${{ env.REPO_LC }}/web:${{ github.sha }}
+          cache-from: type=registry,ref=ghcr.io/${{ env.REPO_LC }}/web:cache
+          cache-to: type=registry,ref=ghcr.io/${{ env.REPO_LC }}/web:cache,mode=max
