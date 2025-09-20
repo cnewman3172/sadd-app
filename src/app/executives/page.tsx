@@ -1,6 +1,8 @@
 "use client";
 import { useEffect, useState } from 'react';
-import type { Ride, Van, User } from '@/types';
+import type { Ride } from '@/types';
+import Fleet from '@/components/admin/Fleet';
+import AuditLog from '@/components/admin/AuditLog';
 
 export default function Executives(){
   const [active, setActive] = useState<boolean | null>(null);
@@ -35,11 +37,26 @@ export default function Executives(){
     finally{ setBusy(false); }
   }
 
+  const tabs: Array<{ id:'dashboard'|'fleet'|'users'|'audit'; label:string }> = [
+    { id:'dashboard', label:'Dashboard' },
+    { id:'fleet', label:'Fleet' },
+    { id:'users', label:'Users' },
+    { id:'audit', label:'Audit Log' },
+  ];
+  const [tab, setTab] = useState<'dashboard'|'fleet'|'users'|'audit'>('dashboard');
+
   return (
     <div className="p-6 max-w-6xl mx-auto grid gap-6">
       <h1 className="text-2xl font-semibold">Admin</h1>
+      <div className="flex gap-2 border-b border-black/10 dark:border-white/10">
+        {tabs.map(t=> (
+          <button key={t.id} onClick={()=>setTab(t.id)} className={`px-4 py-2 -mb-px border-b-2 ${tab===t.id?'border-black dark:border-white font-semibold':'border-transparent opacity-70'}`}>{t.label}</button>
+        ))}
+      </div>
+
+      {tab==='dashboard' && (
       <div className="grid md:grid-cols-4 gap-4">
-        <section className="rounded-xl p-4 bg-white/70 dark:bg-white/10 border border-white/20 md:col-span-3">
+        <section className="rounded-xl p-4 bg-white text-black dark:bg-neutral-900 dark:text-white border border-black/10 dark:border-white/20 md:col-span-3">
           <h2 className="font-semibold mb-3">Dashboard</h2>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
             <Metric title="Total Rides" value={summary?.totalRides?.toString() ?? '—'} />
@@ -56,7 +73,7 @@ export default function Executives(){
           </div>
           <div className="mt-6">
             <h3 className="font-semibold mb-2">Recent Rides</h3>
-            <div className="rounded-xl border border-white/20 overflow-x-auto">
+            <div className="rounded-xl border border-black/10 dark:border-white/20 overflow-x-auto">
               <table className="w-full text-sm">
                 <thead>
                   <tr className="text-left opacity-70">
@@ -70,7 +87,7 @@ export default function Executives(){
                 </thead>
                 <tbody>
                   {(summary?.lastRides||[]).map(r=> (
-                    <tr key={r.id} className="border-t border-white/20">
+                    <tr key={r.id} className="border-t border-black/10 dark:border-white/20">
                       <td className="py-2 px-2 whitespace-nowrap">{new Date(r.requestedAt).toLocaleString()}</td>
                       <td className="px-2 whitespace-nowrap">#{r.rideCode}</td>
                       <td className="px-2 whitespace-nowrap">{r.rider?.firstName} {r.rider?.lastName}</td>
@@ -84,23 +101,28 @@ export default function Executives(){
             </div>
           </div>
         </section>
-        <aside className="rounded-xl p-4 bg-white/70 dark:bg-white/10 border border-white/20">
+        <aside className="rounded-xl p-4 bg-white text-black dark:bg-neutral-900 dark:text-white border border-black/10 dark:border-white/20">
           <nav className="grid gap-2 text-sm">
-            <a className="underline" href="#dashboard">Dashboard</a>
-            <a className="underline" href="#analytics">Analytics</a>
+            <span className="opacity-70">Quick Links</span>
             <a className="underline" href="#users">Users</a>
-            <a className="underline" href="/executives/vans">Fleet</a>
-            <a className="underline" href="/executives/audit">Audit Log</a>
+            <a className="underline" href="/executives/vans">Open Fleet Page</a>
+            <a className="underline" href="/executives/audit">Open Audit Page</a>
           </nav>
         </aside>
       </div>
+      )}
 
-      <section id="users" className="rounded-xl p-4 bg-white/70 dark:bg-white/10 border border-white/20">
+      {tab==='fleet' && (
+        <Fleet />
+      )}
+
+      {tab==='users' && (
+      <section id="users" className="rounded-xl p-4 bg-white text-black dark:bg-neutral-900 dark:text-white border border-black/10 dark:border-white/20">
         <div className="flex items-center justify-between mb-2">
           <h2 className="font-semibold">Users</h2>
-          <input value={q} onChange={(e)=> setQ(e.target.value)} onKeyDown={async(e)=>{ if(e.key==='Enter'){ const d = await fetch(`/api/admin/users?q=${encodeURIComponent(q)}`).then(r=>r.json()); setUsers(d); } }} placeholder="Search email or name" className="p-2 rounded border bg-white/80 text-sm" />
+          <input value={q} onChange={(e)=> setQ(e.target.value)} onKeyDown={async(e)=>{ if(e.key==='Enter'){ const d = await fetch(`/api/admin/users?q=${encodeURIComponent(q)}`).then(r=>r.json()); setUsers(d); } }} placeholder="Search email or name" className="p-2 rounded border bg-white/90 dark:bg-neutral-800 text-sm" />
         </div>
-        <div className="rounded-xl border border-white/20 overflow-x-auto">
+        <div className="rounded-xl border border-black/10 dark:border-white/20 overflow-x-auto">
           <table className="w-full text-sm">
             <thead>
               <tr className="text-left opacity-70">
@@ -112,11 +134,11 @@ export default function Executives(){
             </thead>
             <tbody>
               {users.map(u=> (
-                <tr key={u.id} className="border-t border-white/20">
+                <tr key={u.id} className="border-t border-black/10 dark:border-white/20">
                   <td className="py-2 px-2 whitespace-nowrap">{u.email}</td>
                   <td className="px-2 whitespace-nowrap">{u.firstName} {u.lastName}</td>
                   <td className="px-2">
-                    <select defaultValue={u.role} className="p-1 rounded border bg-white/80" onChange={async(e)=>{
+                    <select defaultValue={u.role} className="p-1 rounded border bg-white/90 dark:bg-neutral-800" onChange={async(e)=>{
                       const role = e.target.value;
                       const res = await fetch(`/api/admin/users/${u.id}`, { method:'PUT', headers:{ 'Content-Type':'application/json' }, body: JSON.stringify({ role }) });
                       if (!res.ok) { alert('Update failed'); e.target.value = u.role; return; }
@@ -135,13 +157,18 @@ export default function Executives(){
           </table>
         </div>
       </section>
+      )}
+
+      {tab==='audit' && (
+        <AuditLog />
+      )}
     </div>
   );
 }
 
 function Metric({title, value}:{title:string; value:string}){
   return (
-    <div className="rounded-lg p-3 bg-white/60 dark:bg-white/5 border border-white/20">
+    <div className="rounded-lg p-3 bg-white text-black dark:bg-neutral-900 dark:text-white border border-black/10 dark:border-white/20">
       <div className="text-xs opacity-70">{title}</div>
       <div className="text-xl font-semibold">{value}</div>
     </div>
