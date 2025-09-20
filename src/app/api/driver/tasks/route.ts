@@ -1,12 +1,12 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
-import { verifyToken } from '@/lib/auth';
+import { verifyJwt } from '@/lib/jwt';
 
 export const runtime = 'nodejs';
 
 export async function GET(req: Request){
   const token = (req.headers.get('cookie')||'').split('; ').find(c=>c.startsWith('sadd_token='))?.split('=')[1];
-  const payload = verifyToken(token);
+  const payload = await verifyJwt(token);
   if (!payload || !['ADMIN','COORDINATOR','TC'].includes(payload.role)) return NextResponse.json({ error:'forbidden' }, { status: 403 });
 
   // Find van assigned to this TC
@@ -18,4 +18,3 @@ export async function GET(req: Request){
   });
   return NextResponse.json({ van, tasks });
 }
-

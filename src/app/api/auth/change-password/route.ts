@@ -1,11 +1,11 @@
 import { NextResponse } from 'next/server';
 import bcrypt from 'bcryptjs';
 import { prisma } from '@/lib/prisma';
-import { verifyToken } from '@/lib/auth';
+import { verifyJwt } from '@/lib/jwt';
 
 export async function POST(req: Request){
   const token = (req.headers.get('cookie')||'').split('; ').find(c=>c.startsWith('sadd_token='))?.split('=')[1];
-  const payload = verifyToken(token);
+  const payload = await verifyJwt(token);
   if (!payload) return NextResponse.json({ error:'unauthorized' }, { status: 401 });
   const { current, next } = await req.json();
   const user = await prisma.user.findUnique({ where: { id: payload.uid } });
