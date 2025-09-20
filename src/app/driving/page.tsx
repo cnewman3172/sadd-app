@@ -1,8 +1,21 @@
 "use client";
 import { useEffect, useRef, useState } from 'react';
 
-type Van = any;
-type Ride = any;
+type Van = {
+  id: string;
+  name: string;
+  capacity: number;
+  status: 'ACTIVE'|'MAINTENANCE'|'OFFLINE';
+  activeTcId?: string | null;
+};
+type Ride = {
+  id: string;
+  rideCode: number;
+  status: 'ASSIGNED'|'EN_ROUTE'|'PICKED_UP'|'DROPPED'|'PENDING'|'CANCELED';
+  pickupAddr: string;
+  dropAddr: string;
+  passengers: number;
+};
 
 export default function Driving(){
   const [vans, setVans] = useState<Van[]>([]);
@@ -10,6 +23,7 @@ export default function Driving(){
   const [tasks, setTasks] = useState<Ride[]>([]);
   const [selected, setSelected] = useState('');
   const [sseStatus, setSseStatus] = useState<'connecting'|'online'|'offline'>('connecting');
+  const [userId, setUserId] = useState<string>('');
 
   async function refreshVans(){
     const v = await fetch('/api/vans').then(r=>r.json());
@@ -20,9 +34,10 @@ export default function Driving(){
     setCurrentVan(r.van);
     setTasks(r.tasks||[]);
   }
-  useEffect(()=>{ 
-    refreshVans(); 
-    refreshTasks(); 
+  useEffect(()=>{
+    fetch('/api/me').then(r=> r.ok ? r.json() : {}).then(d=> setUserId(d?.id || d?.uid || ''));
+    refreshVans();
+    refreshTasks();
     const es = new EventSource('/api/stream');
     setSseStatus('connecting');
     es.addEventListener('hello', ()=> setSseStatus('online'));
@@ -73,7 +88,9 @@ export default function Driving(){
           <div className="flex gap-2 items-center">
             <select className="border rounded px-2 py-1" value={selected} onChange={(e)=>setSelected(e.target.value)}>
               <option value="">Select van</option>
-              {vans.map((v:any)=> <option key={v.id} value={v.id}>{v.name}</option>)}
+              {vans
+                .filter(v=> (v.activeTcId==null || v.activeTcId===userId))
+                .map(v=> <option key={v.id} value={v.id}>{v.name}</option>)}
             </select>
             <button onClick={goOnline} className="rounded px-4 py-2 bg-black text-white">Go Online</button>
           </div>
