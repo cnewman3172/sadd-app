@@ -1,13 +1,6 @@
 "use client";
 import { useEffect, useState } from 'react';
-
-type Van = {
-  id: string;
-  name: string;
-  capacity: number;
-  status: 'ACTIVE'|'MAINTENANCE'|'OFFLINE';
-  passengers: number;
-};
+import type { Van } from '@/types';
 
 export default function VansPage(){
   const [vans, setVans] = useState<Van[]>([]);
@@ -94,4 +87,3 @@ export default function VansPage(){
     </div>
   );
 }
-
