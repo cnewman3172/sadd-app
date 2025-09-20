@@ -32,3 +32,5 @@ jobs:
             ghcr.io/${{ env.REPO_LC }}/web:${{ github.sha }}
           cache-from: type=registry,ref=ghcr.io/${{ env.REPO_LC }}/web:cache
           cache-to: type=registry,ref=ghcr.io/${{ env.REPO_LC }}/web:cache,mode=max
+          build-args: |
+            BUILD_SHA=${{ github.sha }}

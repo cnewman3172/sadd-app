@@ -21,6 +21,7 @@ export async function GET(){
     uptime: process.uptime(),
     db: { ok: dbOk, userCount, ms: elapsed },
     active: setting?.active ?? false,
+    buildSha: process.env.BUILD_SHA || 'dev',
     env: {
       hasDatabaseUrl: Boolean(process.env.DATABASE_URL),
       hasJwtSecret: Boolean(process.env.JWT_SECRET),

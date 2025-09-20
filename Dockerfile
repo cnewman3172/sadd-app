@@ -5,6 +5,7 @@ COPY package.json package-lock.json* bun.lock* .npmrc* ./
 RUN if [ -f package-lock.json ]; then npm ci --no-audit --no-fund; else npm install --no-audit --no-fund; fi
 
 FROM node:20-alpine AS builder
+ARG BUILD_SHA="dev"
 WORKDIR /app
 RUN apk add --no-cache openssl
 COPY --from=deps /app/node_modules ./node_modules
@@ -12,8 +13,10 @@ COPY . .
 RUN npx prisma generate && npm run build
 
 FROM node:20-alpine AS runner
+ARG BUILD_SHA="dev"
 WORKDIR /app
 ENV NODE_ENV=production
+ENV BUILD_SHA=$BUILD_SHA
 RUN apk add --no-cache openssl curl postgresql-client
 COPY --from=builder /app/node_modules ./node_modules
 COPY --from=builder /app/.next ./.next
