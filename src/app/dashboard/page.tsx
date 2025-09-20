@@ -3,8 +3,24 @@ import { useEffect, useMemo, useState } from 'react';
 import dynamic from 'next/dynamic';
 const Map = dynamic(() => import('../../components/Map'), { ssr: false });
 
-type Ride = any;
-type Van = any;
+type Ride = {
+  id: string;
+  rideCode: number;
+  status: 'PENDING'|'ASSIGNED'|'EN_ROUTE'|'PICKED_UP'|'DROPPED'|'CANCELED';
+  requestedAt: string;
+  pickupAddr: string;
+  dropAddr: string;
+  passengers: number;
+  rider?: { firstName?: string; lastName?: string };
+};
+type Van = {
+  id: string;
+  name: string;
+  capacity: number;
+  status: 'ACTIVE'|'MAINTENANCE'|'OFFLINE';
+  currentLat?: number|null;
+  currentLng?: number|null;
+};
 
 export default function Dashboard(){
   const [rides, setRides] = useState<Ride[]>([]);
@@ -44,10 +60,12 @@ export default function Dashboard(){
     await fetch(`/api/rides/${id}`, { method:'PUT', body: JSON.stringify({ status, vanId }) });
     refresh();
   }
-  async function assignBest(r:any){
+  async function assignBest(r:Ride){
     const s = await fetch(`/api/assign/suggest?rideId=${r.id}`).then(r=>r.json());
     const best = s.ranked?.[0];
     if (!best) return alert('No suitable vans online.');
+    const mins = Math.round((best.seconds||0)/60);
+    if (!confirm(`Assign ${best.name} (~${mins} min) to #${r.rideCode}?`)) return;
     await setStatus(r.id, 'ASSIGNED', best.vanId);
   }
 
@@ -77,7 +95,7 @@ export default function Dashboard(){
         <Card title={`Incoming Requests ${sseStatus==='online' ? '• Live' : sseStatus==='connecting' ? '• Connecting' : '• Offline'}`}>
           <div className="space-y-2">
             {pending.length===0 && <div className="text-sm opacity-80">No pending requests.</div>}
-            {pending.map((r:any)=> (
+            {pending.map((r)=> (
               <div key={r.id} className="rounded border p-3 flex flex-col gap-2">
                 <div className="flex items-center justify-between">
                   <div className="font-medium">#{r.rideCode} · {r.rider?.firstName} {r.rider?.lastName}</div>
@@ -87,7 +105,7 @@ export default function Dashboard(){
                 <div className="flex gap-2 items-center">
                   <select className="border rounded px-2 py-1 text-sm" id={`van-${r.id}`} defaultValue="">
                     <option value="">Select van</option>
-                    {vans.map((v:any)=> <option key={v.id} value={v.id}>{v.name}</option>)}
+                    {vans.map((v)=> <option key={v.id} value={v.id}>{v.name}</option>)}
                   </select>
                   <button onClick={()=>{
                     const sel = document.getElementById(`van-${r.id}`) as HTMLSelectElement | null;
@@ -101,7 +119,7 @@ export default function Dashboard(){
           </div>
         </Card>
         <Card title="Live Operations Map">
-          <Map height={500} markers={vans.filter((v:any)=>v.currentLat&&v.currentLng).map((v:any)=>({ lat:v.currentLat, lng:v.currentLng, color:'green' }))} />
+          <Map height={500} markers={vans.filter((v)=>v.currentLat&&v.currentLng).map((v)=>({ lat:v.currentLat!, lng:v.currentLng!, color:'green' }))} />
         </Card>
       </div>
     </div>

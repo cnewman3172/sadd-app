@@ -13,3 +13,13 @@ export function allowPing(key: string){
   return true;
 }
 
+export function allowAuth(ip: string){
+  const now = Date.now();
+  const key = `auth:${ip}`;
+  const perMin = Number(process.env.AUTH_RATE_LIMIT_PER_MIN || '20');
+  const b = buckets.get(key) || { count: 0, resetAt: now + 60000, lastTs: 0 };
+  if (now > b.resetAt){ b.count = 0; b.resetAt = now + 60000; }
+  if (b.count >= perMin) return false;
+  b.count += 1; b.lastTs = now; buckets.set(key, b);
+  return true;
+}

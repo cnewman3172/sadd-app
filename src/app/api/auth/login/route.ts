@@ -1,10 +1,13 @@
 import { NextResponse } from 'next/server';
 import { authenticate } from '@/lib/auth';
+import { allowAuth } from '@/lib/ratelimit';
 import { z } from 'zod';
 
 const schema = z.object({ email: z.string().email(), password: z.string().min(8) });
 
 export async function POST(req: Request){
+  const ip = (req.headers.get('cf-connecting-ip') || req.headers.get('x-forwarded-for') || '').split(',')[0].trim() || 'local';
+  if (!allowAuth(ip)) return NextResponse.json({ error:'rate limited' }, { status: 429 });
   const body = schema.parse(await req.json());
   const res = await authenticate(body.email, body.password);
   if (!res) return NextResponse.json({ error:'Invalid credentials' }, { status: 401 });
