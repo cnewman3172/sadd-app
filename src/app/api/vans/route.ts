@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
-import { verifyToken } from '@/lib/auth';
+import { verifyJwt } from '@/lib/jwt';
 import { publish } from '@/lib/events';
 import { logAudit } from '@/lib/audit';
 
@@ -13,7 +13,7 @@ export async function GET(){
 
 export async function POST(req: Request){
   const token = (req.headers.get('cookie')||'').split('; ').find(c=>c.startsWith('sadd_token='))?.split('=')[1];
-  const payload = verifyToken(token);
+  const payload = await verifyJwt(token);
   if (!payload || (payload.role !== 'ADMIN' && payload.role !== 'COORDINATOR')) return NextResponse.json({ error:'forbidden' }, { status: 403 });
   const { name, capacity=8 } = await req.json();
   if (!name) return NextResponse.json({ error:'name required' }, { status: 400 });
