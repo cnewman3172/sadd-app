@@ -15,14 +15,27 @@ for i in $(seq 1 60); do
   echo "...waiting ($i)"; sleep 2
 done
 
-# Run migrations (skip noisy P3005 if no migrations exist)
+# Run migrations with baseline handling
 echo "Running Prisma migrations..."
 if [ -d prisma/migrations ] && [ "$(ls -A prisma/migrations 2>/dev/null | wc -l)" -gt 0 ]; then
-  npx prisma migrate deploy || true
+  if ! npx prisma migrate deploy; then
+    echo "migrate deploy failed; attempting baseline resolve for first migration"
+    FIRST_MIG=$(ls -1 prisma/migrations | head -n1)
+    if [ -n "$FIRST_MIG" ]; then
+      npx prisma migrate resolve --applied "$FIRST_MIG" || true
+      npx prisma migrate deploy || true
+    fi
+  fi
 else
-  echo "No migrations directory; applying schema via db push"
+  echo "No migrations directory; using db push"
+  npx prisma db push
 fi
-npx prisma db push
+
+# Optional seed (idempotent), run only if SEED=true
+if [ "${SEED:-false}" = "true" ]; then
+  echo "Running seed script..."
+  npm run seed || true
+fi
 
 echo "Starting Next.js..."
 exec npm start
