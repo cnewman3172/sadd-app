@@ -44,6 +44,15 @@ export default function Dashboard(){
     return vans.filter(v=> v.status==='ACTIVE' && typeof v.currentLat==='number' && typeof v.currentLng==='number' && (v.capacity||0) >= (r.passengers||1)).length;
   }
 
+  async function quickAssign(r: Ride){
+    const s = await fetch(`/api/assign/suggest?rideId=${r.id}`).then(r=>r.json());
+    const best = s.ranked?.[0];
+    if (!best) return alert('No suitable vans online.');
+    const mins = Math.round((best.seconds||0)/60);
+    if (!confirm(`Assign ${best.name} (~${mins} min) to #${r.rideCode}?`)) return;
+    await setStatus(r.id, 'ASSIGNED', best.vanId);
+  }
+
   async function setStatus(id:string, status:string, vanId?:string){
     await fetch(`/api/rides/${id}`, { method:'PUT', body: JSON.stringify({ status, vanId }) });
     refresh();
@@ -95,9 +104,11 @@ export default function Dashboard(){
                 </div>
                 <div className="text-sm opacity-80 flex items-center gap-2">
                   <span>{r.pickupAddr} → {r.dropAddr}</span>
-                  <span className="text-[11px] rounded-full px-2 py-0.5 border">
-                    {candidateCount(r)} candidate{candidateCount(r)===1?'':'s'}
-                  </span>
+                  {(() => {
+                    const n = candidateCount(r);
+                    const color = n === 0 ? 'border-red-500 text-red-600' : n < 3 ? 'border-amber-500 text-amber-600' : 'border-green-600 text-green-700';
+                    return <span className={`text-[11px] rounded-full px-2 py-0.5 border ${color}`}>{n} candidate{n===1?'':'s'}</span>;
+                  })()}
                 </div>
                 <div className="flex gap-2 items-center">
                   <select className="border rounded px-2 py-1 text-sm" id={`van-${r.id}`} defaultValue="">
@@ -110,6 +121,7 @@ export default function Dashboard(){
                     setStatus(r.id, 'ASSIGNED', vanId);
                   }} className="rounded bg-black text-white px-3 py-1 text-sm">Assign</button>
                   <button onClick={()=>openSuggestions(r)} className="rounded border px-3 py-1 text-sm">Suggest</button>
+                  <button onClick={()=>quickAssign(r)} className="rounded border px-3 py-1 text-sm">Quick Assign</button>
                 </div>
               </div>
             ))}
