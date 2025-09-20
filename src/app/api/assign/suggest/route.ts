@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { verifyJwt } from '@/lib/jwt';
+import { z } from 'zod';
 
 export const runtime = 'nodejs';
 
@@ -14,13 +15,16 @@ function haversineMeters(lat1:number, lon1:number, lat2:number, lon2:number){
   return R*c;
 }
 
+const schema = z.object({ rideId: z.string().uuid() });
+
 export async function GET(req: Request){
   const url = new URL(req.url);
-  const rideId = url.searchParams.get('rideId');
+  const parsed = schema.safeParse({ rideId: url.searchParams.get('rideId') || '' });
   const token = (req.headers.get('cookie')||'').split('; ').find(c=>c.startsWith('sadd_token='))?.split('=')[1];
   const payload = await verifyJwt(token);
   if (!payload || !['ADMIN','COORDINATOR','TC'].includes(payload.role)) return NextResponse.json({ error:'forbidden' }, { status: 403 });
-  if (!rideId) return NextResponse.json({ error:'rideId required' }, { status:400 });
+  if (!parsed.success) return NextResponse.json({ error:'rideId required' }, { status:400 });
+  const { rideId } = parsed.data;
 
   const ride = await prisma.ride.findUnique({ where:{ id: rideId } });
   if (!ride) return NextResponse.json({ error:'not found' }, { status:404 });

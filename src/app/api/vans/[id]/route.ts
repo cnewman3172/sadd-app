@@ -1,16 +1,25 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { verifyJwt } from '@/lib/jwt';
+import { z } from 'zod';
 import { publish } from '@/lib/events';
 import { logAudit } from '@/lib/audit';
 
 export const runtime = 'nodejs';
 
+const putSchema = z.object({
+  status: z.enum(['ACTIVE','MAINTENANCE','OFFLINE']).optional(),
+  capacity: z.coerce.number().int().min(1).max(16).optional(),
+  passengers: z.coerce.number().int().min(0).max(99).optional(),
+  activeTcId: z.string().uuid().nullable().optional(),
+  name: z.string().min(1).optional(),
+});
+
 export async function PUT(req: NextRequest, context: { params: Promise<{ id: string }> }){
   const token = (req.headers.get('cookie')||'').split('; ').find(c=>c.startsWith('sadd_token='))?.split('=')[1];
   const payload = await verifyJwt(token);
   if (!payload || (payload.role !== 'ADMIN' && payload.role !== 'COORDINATOR' && payload.role !== 'TC')) return NextResponse.json({ error:'forbidden' }, { status: 403 });
-  const { status, capacity, passengers, activeTcId, name } = await req.json();
+  const { status, capacity, passengers, activeTcId, name } = putSchema.parse(await req.json());
   const { id } = await context.params;
   const van = await prisma.van.update({ where: { id }, data: { 
     status, 

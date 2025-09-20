@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { verifyJwt } from '@/lib/jwt';
+import { z } from 'zod';
 import { publish } from '@/lib/events';
 import { logAudit } from '@/lib/audit';
 
@@ -13,11 +14,19 @@ export async function GET(req: NextRequest, context: { params: Promise<{ id: str
   return NextResponse.json(ride);
 }
 
+const schema = z.object({
+  status: z.enum(['PENDING','ASSIGNED','EN_ROUTE','PICKED_UP','DROPPED','CANCELED']).optional(),
+  vanId: z.string().uuid().optional(),
+  driverId: z.string().uuid().optional(),
+  coordinatorId: z.string().uuid().optional(),
+  notes: z.string().max(1000).optional(),
+});
+
 export async function PUT(req: NextRequest, context: { params: Promise<{ id: string }> }){
   const token = (req.headers.get('cookie')||'').split('; ').find(c=>c.startsWith('sadd_token='))?.split('=')[1];
   const payload = await verifyJwt(token);
   if (!payload || (payload.role !== 'ADMIN' && payload.role !== 'COORDINATOR' && payload.role !== 'TC')) return NextResponse.json({ error:'forbidden' }, { status: 403 });
-  const { status, vanId, driverId, coordinatorId, notes } = await req.json();
+  const { status, vanId, driverId, coordinatorId, notes } = schema.parse(await req.json());
   const { id } = await context.params;
   let data: any = { status, vanId, driverId, coordinatorId, notes };
   if (vanId && !driverId){
