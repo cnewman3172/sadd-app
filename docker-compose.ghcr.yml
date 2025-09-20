@@ -2,6 +2,7 @@ services:
   web:
     image: ghcr.io/pvp2max/sadd-app/web:latest
     container_name: sadd_web
+    pull_policy: always
     healthcheck:
       test: ["CMD-SHELL", "curl -fsS http://localhost:3000/api/health || exit 1"]
       interval: 15s
