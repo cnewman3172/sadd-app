@@ -1,6 +1,5 @@
 import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
-import { verifyToken } from './lib/auth';
 
 const roleHome: Record<string, string> = {
   ADMIN: '/executives',
@@ -23,12 +22,27 @@ export function middleware(req: NextRequest) {
   if (!saddRoutes.some((p) => pathname.startsWith(p))) return NextResponse.next();
 
   const token = req.cookies.get('sadd_token')?.value;
-  const payload = verifyToken(token);
-  if (!payload) return NextResponse.redirect(new URL('/login', req.url));
+  if (!token) return NextResponse.redirect(new URL('/login', req.url));
+
+  // Decode JWT payload on the Edge without Node libraries.
+  // Note: This does NOT verify the signature (APIs still enforce real auth).
+  let role: string | null = null;
+  try {
+    const parts = token.split('.');
+    if (parts.length === 3) {
+      let b64 = parts[1].replace(/-/g, '+').replace(/_/g, '/');
+      while (b64.length % 4) b64 += '=';
+      const json = atob(b64);
+      const payload = JSON.parse(json);
+      role = payload?.role ?? null;
+    }
+  } catch {
+    role = null;
+  }
+  if (!role) return NextResponse.redirect(new URL('/login', req.url));
 
   const route = protectedRoutes.find((r) => pathname.startsWith(r.path));
-  if (!route) return NextResponse.next();
-  if (!route.roles.includes(payload.role)) return NextResponse.redirect(new URL('/', req.url));
+  if (route && !route.roles.includes(role)) return NextResponse.redirect(new URL('/', req.url));
 
   return NextResponse.next();
 }
@@ -36,4 +50,3 @@ export function middleware(req: NextRequest) {
 export const config = {
   matcher: ['/executives/:path*', '/dashboard/:path*', '/driving/:path*', '/request/:path*', '/profile/:path*'],
 };
-
