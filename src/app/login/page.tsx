@@ -43,7 +43,17 @@ export default function Login() {
             <input className="w-full p-3 rounded border bg-white/80" placeholder="Password" type="password" onChange={(e)=>setForm({...form, password:e.target.value})} required />
             <button className="w-full rounded bg-black text-white py-3">Login</button>
             <button type="button" onClick={()=>setMode('register')} className="w-full rounded border py-3">Create account</button>
-            <button type="button" onClick={()=>alert('Email fortwainwrightboss@army.mil to reset your password.')} className="w-full text-sm underline">Forgot password?</button>
+            <button
+              type="button"
+              onClick={async ()=>{
+                const email = form?.email;
+                if (!email) { setError('Enter your email above first.'); return; }
+                const res = await fetch('/api/auth/forgot', { method:'POST', headers:{ 'Content-Type':'application/json' }, body: JSON.stringify({ email }) });
+                if (res.ok) alert('If the email exists, you will receive reset instructions.');
+                else setError('Please try again later.');
+              }}
+              className="w-full text-sm underline"
+            >Forgot password?</button>
           </form>
         ) : (
           <form onSubmit={submitRegister} className="space-y-3">

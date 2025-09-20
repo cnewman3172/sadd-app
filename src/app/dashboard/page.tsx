@@ -58,6 +58,9 @@ export default function Dashboard(){
 
   const pending = useMemo(()=> rides.filter((r:Ride)=>r.status==='PENDING'),[rides]);
   const active = useMemo(()=> rides.filter((r:Ride)=>['ASSIGNED','EN_ROUTE','PICKED_UP'].includes(r.status)),[rides]);
+  function candidateCount(r: Ride){
+    return vans.filter(v=> v.status==='ACTIVE' && typeof v.currentLat==='number' && typeof v.currentLng==='number' && (v.capacity||0) >= (r.passengers||1)).length;
+  }
 
   async function setStatus(id:string, status:string, vanId?:string){
     await fetch(`/api/rides/${id}`, { method:'PUT', body: JSON.stringify({ status, vanId }) });
@@ -108,7 +111,12 @@ export default function Dashboard(){
                   <div className="font-medium">#{r.rideCode} · {r.rider?.firstName} {r.rider?.lastName}</div>
                   <div className="text-xs opacity-70">{new Date(r.requestedAt).toLocaleString()}</div>
                 </div>
-                <div className="text-sm opacity-80">{r.pickupAddr} → {r.dropAddr}</div>
+                <div className="text-sm opacity-80 flex items-center gap-2">
+                  <span>{r.pickupAddr} → {r.dropAddr}</span>
+                  <span className="text-[11px] rounded-full px-2 py-0.5 border">
+                    {candidateCount(r)} candidate{candidateCount(r)===1?'':'s'}
+                  </span>
+                </div>
                 <div className="flex gap-2 items-center">
                   <select className="border rounded px-2 py-1 text-sm" id={`van-${r.id}`} defaultValue="">
                     <option value="">Select van</option>
