@@ -14,11 +14,13 @@ export async function GET(){
   }catch(e:any){
     dbOk = false;
   }
+  const setting = await prisma.setting.findUnique({ where: { id: 1 } }).catch(()=>null);
   const elapsed = Date.now() - start;
   return NextResponse.json({
     ok: true,
     uptime: process.uptime(),
     db: { ok: dbOk, userCount, ms: elapsed },
+    active: setting?.active ?? false,
     env: {
       hasDatabaseUrl: Boolean(process.env.DATABASE_URL),
       hasJwtSecret: Boolean(process.env.JWT_SECRET),
@@ -26,4 +28,3 @@ export async function GET(){
     }
   });
 }
-

@@ -1,4 +1,10 @@
-export default function Home() {
+export default async function Home() {
+  const base = process.env.NEXT_PUBLIC_APP_URL || '';
+  let active = false;
+  try{
+    const r = await fetch(`${base}/api/health`, { cache: 'no-store' });
+    if (r.ok){ const d = await r.json(); active = Boolean(d.active); }
+  }catch{}
   return (
     <div className="min-h-screen bg-gradient-to-b from-black/60 to-black/20 dark:from-black/80 text-foreground">
       <header className="sticky top-0 z-10 backdrop-blur bg-white/60 dark:bg-black/40 border-b border-white/10">
@@ -15,7 +21,7 @@ export default function Home() {
           <div className="flex items-center justify-between">
             <div>
               <p className="text-sm opacity-80">SADD Activity</p>
-              <h2 className="text-2xl font-semibold">Currently Inactive</h2>
+              <h2 className="text-2xl font-semibold">{active ? 'Active' : 'Currently Inactive'}</h2>
             </div>
             <a href="#request" className="hidden sm:inline-block rounded-full px-4 py-2 bg-black text-white dark:bg-white dark:text-black">Request a Ride</a>
           </div>

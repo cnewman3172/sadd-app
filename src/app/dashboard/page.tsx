@@ -26,6 +26,9 @@ export default function Dashboard(){
   const [rides, setRides] = useState<Ride[]>([]);
   const [vans, setVans] = useState<Van[]>([]);
   const [sseStatus, setSseStatus] = useState<'connecting'|'online'|'offline'>('connecting');
+  const [suggestFor, setSuggestFor] = useState<Ride|null>(null);
+  const [suggestions, setSuggestions] = useState<Array<{ vanId:string; name:string; seconds:number; meters:number }>>([]);
+  const [loadingSuggest, setLoadingSuggest] = useState(false);
 
   async function refresh(){
     const [r, v] = await Promise.all([
@@ -60,13 +63,17 @@ export default function Dashboard(){
     await fetch(`/api/rides/${id}`, { method:'PUT', body: JSON.stringify({ status, vanId }) });
     refresh();
   }
-  async function assignBest(r:Ride){
-    const s = await fetch(`/api/assign/suggest?rideId=${r.id}`).then(r=>r.json());
-    const best = s.ranked?.[0];
-    if (!best) return alert('No suitable vans online.');
-    const mins = Math.round((best.seconds||0)/60);
-    if (!confirm(`Assign ${best.name} (~${mins} min) to #${r.rideCode}?`)) return;
-    await setStatus(r.id, 'ASSIGNED', best.vanId);
+  async function openSuggestions(r:Ride){
+    setSuggestFor(r); setLoadingSuggest(true);
+    try {
+      const s = await fetch(`/api/assign/suggest?rideId=${r.id}`).then(r=>r.json());
+      setSuggestions(s.ranked?.slice(0,5) || []);
+    } finally { setLoadingSuggest(false); }
+  }
+  async function chooseSuggestion(vanId:string){
+    if (!suggestFor) return;
+    await setStatus(suggestFor.id, 'ASSIGNED', vanId);
+    setSuggestFor(null); setSuggestions([]);
   }
 
   return (
@@ -112,7 +119,7 @@ export default function Dashboard(){
                     const vanId = sel?.value || undefined;
                     setStatus(r.id, 'ASSIGNED', vanId);
                   }} className="rounded bg-black text-white px-3 py-1 text-sm">Assign</button>
-                  <button onClick={()=>assignBest(r)} className="rounded border px-3 py-1 text-sm">Assign Best</button>
+                  <button onClick={()=>openSuggestions(r)} className="rounded border px-3 py-1 text-sm">Suggest</button>
                 </div>
               </div>
             ))}
@@ -122,6 +129,31 @@ export default function Dashboard(){
           <Map height={500} markers={vans.filter((v)=>v.currentLat&&v.currentLng).map((v)=>({ lat:v.currentLat!, lng:v.currentLng!, color:'green' }))} />
         </Card>
       </div>
+      {suggestFor && (
+        <div className="fixed inset-0 bg-black/40 grid place-items-center p-4" role="dialog" aria-modal="true">
+          <div className="w-full max-w-md rounded-xl bg-white dark:bg-neutral-900 border border-white/20 p-4">
+            <div className="flex items-center justify-between mb-2">
+              <h3 className="font-semibold">Suggestions for #{suggestFor.rideCode}</h3>
+              <button onClick={()=>{setSuggestFor(null); setSuggestions([]);}} aria-label="Close">✕</button>
+            </div>
+            {loadingSuggest && <div className="text-sm opacity-80">Loading…</div>}
+            {!loadingSuggest && suggestions.length===0 && (
+              <div className="text-sm opacity-80">No suitable vans online.</div>
+            )}
+            <div className="grid gap-2">
+              {suggestions.map(s=> (
+                <div key={s.vanId} className="flex items-center justify-between rounded border p-2">
+                  <div>
+                    <div className="font-medium">{s.name}</div>
+                    <div className="text-xs opacity-70">~{Math.round((s.seconds||0)/60)} min · {(s.meters/1000).toFixed(1)} km</div>
+                  </div>
+                  <button onClick={()=>chooseSuggestion(s.vanId)} className="rounded bg-black text-white px-3 py-1 text-sm">Assign</button>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

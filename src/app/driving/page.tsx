@@ -57,6 +57,7 @@ export default function Driving(){
     if (res.ok) { stopPings(); refreshTasks(); }
   }
   async function setStatus(id:string, status:string){
+    if (!confirm(`Mark #${id.slice(0,8)} as ${status}?`)) return;
     await fetch(`/api/rides/${id}`, { method:'PUT', body: JSON.stringify({ status }) });
     refreshTasks();
   }
