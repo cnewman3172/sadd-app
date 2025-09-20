@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { z } from 'zod';
+import { allow } from '@/lib/ratelimit';
 
 export const runtime = 'nodejs';
 
@@ -10,6 +11,8 @@ export async function GET(req: Request){
   const parsed = schema.safeParse({ q: url.searchParams.get('q') || '' });
   if (!parsed.success) return NextResponse.json([]);
   const { q } = parsed.data;
+  const ip = (req.headers.get('cf-connecting-ip') || req.headers.get('x-forwarded-for') || '').split(',')[0].trim() || 'local';
+  if (!allow(`geocode:${ip}`, Number(process.env.GEOCODE_RATE_PER_MIN||'60'))) return NextResponse.json([], { status: 429 });
   const endpoint = process.env.NOMINATIM_URL || 'https://nominatim.openstreetmap.org';
   const r = await fetch(`${endpoint}/search?format=jsonv2&q=${encodeURIComponent(q)}`, {
     headers: { 'User-Agent': 'SADD/1.0 (self-hosted)' }
