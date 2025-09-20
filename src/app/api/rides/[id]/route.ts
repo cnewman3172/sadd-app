@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { verifyJwt } from '@/lib/jwt';
 import { z } from 'zod';
+import { captureError } from '@/lib/obs';
 import { publish } from '@/lib/events';
 import { logAudit } from '@/lib/audit';
 
@@ -9,9 +10,14 @@ export const runtime = 'nodejs';
 
 export async function GET(req: NextRequest, context: { params: Promise<{ id: string }> }){
   const { id } = await context.params;
-  const ride = await prisma.ride.findUnique({ where: { id }, include: { rider: true, van: true } });
-  if (!ride) return NextResponse.json({ error:'not found' }, { status: 404 });
-  return NextResponse.json(ride);
+  try{
+    const ride = await prisma.ride.findUnique({ where: { id }, include: { rider: true, van: true } });
+    if (!ride) return NextResponse.json({ error:'not found' }, { status: 404 });
+    return NextResponse.json(ride);
+  }catch(e:any){
+    captureError(e, { route: 'rides/[id]#GET', id });
+    return NextResponse.json({ error:'failed' }, { status: 500 });
+  }
 }
 
 const schema = z.object({
@@ -35,8 +41,13 @@ export async function PUT(req: NextRequest, context: { params: Promise<{ id: str
       data.driverId = van.activeTcId;
     }
   }
-  const ride = await prisma.ride.update({ where: { id }, data });
-  publish('ride:update', { id: ride.id, status: ride.status, code: ride.rideCode, vanId: ride.vanId });
-  logAudit('ride_update', payload.uid, ride.id, data);
-  return NextResponse.json(ride);
+  try{
+    const ride = await prisma.ride.update({ where: { id }, data });
+    publish('ride:update', { id: ride.id, status: ride.status, code: ride.rideCode, vanId: ride.vanId });
+    logAudit('ride_update', payload.uid, ride.id, data);
+    return NextResponse.json(ride);
+  }catch(e:any){
+    captureError(e, { route: 'rides/[id]#PUT', id, uid: payload.uid });
+    return NextResponse.json({ error:'update failed' }, { status: 400 });
+  }
 }
