@@ -1,7 +1,8 @@
 FROM node:20-alpine AS deps
 WORKDIR /app
-COPY package.json bun.lock* .npmrc* ./
-RUN npm ci --no-audit --no-fund
+# Include npm lockfile if present. Fall back to npm install when absent.
+COPY package.json package-lock.json* bun.lock* .npmrc* ./
+RUN if [ -f package-lock.json ]; then npm ci --no-audit --no-fund; else npm install --no-audit --no-fund; fi
 
 FROM node:20-alpine AS builder
 WORKDIR /app
