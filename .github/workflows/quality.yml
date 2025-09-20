@@ -1,0 +1,19 @@
+name: quality
+on:
+  pull_request:
+  push:
+    branches: [ main ]
+
+jobs:
+  lint-type:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - run: npm ci --no-audit --no-fund
+      - name: ESLint (non-blocking)
+        run: npm run -s lint || true
+      - name: Typecheck (non-blocking)
+        run: npx tsc --noEmit || true
