@@ -101,8 +101,8 @@ export default function Dashboard(){
         </Card>
         <Card title="Active Fleet">
           <div className="text-sm space-y-2">
-            {vans.length===0 && <div className="opacity-80">No vans configured.</div>}
-            {vans.map((v:any)=> (
+            {activeVans.length===0 && <div className="opacity-80">No active vans.</div>}
+            {activeVans.map((v:any)=> (
               <div key={v.id} className="flex items-center justify-between">
                 <div>{v.name} <span className="opacity-60">({v.capacity})</span></div>
                 <div className="text-xs opacity-70">{v.status}</div>

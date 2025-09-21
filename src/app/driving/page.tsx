@@ -1,5 +1,6 @@
 "use client";
 import { useEffect, useRef, useState } from 'react';
+import { showToast } from '@/components/Toast';
 import type { Van, Ride } from '@/types';
 
 export default function Driving(){
@@ -38,7 +39,7 @@ export default function Driving(){
     if (res.ok) { setSelected(''); refreshTasks(); startPings(); }
     else {
       const d = await res.json().catch(()=>({error:'Failed to go online'}));
-      alert(d.error || 'Failed to go online');
+      showToast(d.error || 'Failed to go online');
     }
   }
   async function goOffline(){
