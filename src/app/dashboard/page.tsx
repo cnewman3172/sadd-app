@@ -22,6 +22,7 @@ export default function Dashboard(){
   const [nameOpts, setNameOpts] = useState<any[]>([]);
   const [nameOpen, setNameOpen] = useState(false);
   const [activeEtas, setActiveEtas] = useState<Record<string, { toPickupSec: number|null; toDropSec: number|null }>>({});
+  const lastEtaRef = (typeof window!=='undefined' ? (window as any).__etaRef : null) || { current: 0 } as { current: number };
 
   async function refresh(){
     const [r, v] = await Promise.all([
@@ -57,8 +58,12 @@ export default function Dashboard(){
     const flush = ()=>{
       setVans((prev:any[])=> {
         const next = prev.map(v=> buffer[v.id] ? { ...v, currentLat: buffer[v.id].lat, currentLng: buffer[v.id].lng } : v);
-        // Recompute ETAs for active trips when positions change
-        computeActiveEtas(rides, next);
+        // Recompute ETAs for active trips when positions change (throttled)
+        const now = Date.now();
+        if (now - lastEtaRef.current >= 15000){
+          lastEtaRef.current = now;
+          computeActiveEtas(rides, next);
+        }
         return next;
       });
       for (const k in buffer) delete buffer[k];
@@ -84,11 +89,12 @@ export default function Dashboard(){
     const byVan: Record<string, any[]> = {};
     rArr.filter((r:any)=> ['ASSIGNED','EN_ROUTE','PICKED_UP'].includes(r.status) && r.vanId)
       .forEach((r:any)=>{ (byVan[r.vanId!] ||= []).push(r); });
-    const result: Record<string, { toPickupSec: number|null; toDropSec: number|null }> = {};
+    const result: Record<string, { toPickupSec: number|null; toDropSec: number|null }> = { ...activeEtas };
     for (const vanId of Object.keys(byVan)){
       const v = vArr.find((x:any)=> x.id===vanId);
       if (!v || typeof v.currentLat!=='number' || typeof v.currentLng!=='number'){
-        byVan[vanId].forEach((r:any)=> result[r.id] = { toPickupSec: null, toDropSec: null });
+        // Keep old values if any to avoid flashing
+        byVan[vanId].forEach((r:any)=> { result[r.id] = result[r.id] || { toPickupSec: null, toDropSec: null }; });
         continue;
       }
       // Load tasks in order for this van
@@ -97,12 +103,10 @@ export default function Dashboard(){
       if (!Array.isArray(tasks) || tasks.length===0){
         // Fall back to direct ETAs if no tasks
         for (const r of byVan[vanId]){
-          const toPick = (typeof r.pickupLat==='number' && typeof r.pickupLng==='number') ? await fetch(`/api/eta?from=${v.currentLat},${v.currentLng}&to=${r.pickupLat},${r.pickupLng}`).then(r=>r.json()).catch(()=>null) : null;
-          const toDrop = (typeof r.dropLat==='number' && typeof r.dropLng==='number') ? await fetch(`/api/eta?from=${v.currentLat},${v.currentLng}&to=${r.dropLat},${r.dropLng}`).then(r=>r.json()).catch(()=>null) : null;
-          result[r.id] = {
-            toPickupSec: toPick && toPick.seconds!=null ? Math.round(toPick.seconds) : null,
-            toDropSec: toDrop && toDrop.seconds!=null ? Math.round(toDrop.seconds) : null,
-          };
+          try{
+            const res = await fetch('/api/route/legs', { method:'POST', headers:{ 'Content-Type':'application/json' }, body: JSON.stringify({ coords: [[v.currentLat, v.currentLng],[r.pickupLat, r.pickupLng],[r.dropLat, r.dropLng]] }) });
+            if (res.ok){ const d = await res.json(); const legs:number[] = d?.legsSeconds||[]; result[r.id] = { toPickupSec: Math.round(legs[0]||0)||null, toDropSec: Math.round((legs[0]||0)+(legs[1]||0))||null }; }
+          }catch{}
         }
         continue;
       }
@@ -114,19 +118,17 @@ export default function Dashboard(){
         const dropIdx = stops.length; stops.push([t.dropLat, t.dropLng]);
         index[t.id] = { pick: pickIdx, drop: dropIdx };
       });
-      // Compute leg durations sequentially to get per-stop ETAs
-      const legsSec: number[] = [];
-      for (let i=0;i<stops.length-1;i++){
-        try{
-          const d = await fetch(`/api/eta?from=${stops[i][0]},${stops[i][1]}&to=${stops[i+1][0]},${stops[i+1][1]}`, { cache:'no-store' }).then(r=>r.json());
-          legsSec[i] = (d?.seconds!=null) ? Number(d.seconds) : 0;
-        }catch{ legsSec[i] = 0; }
-      }
+      // Compute legs in a single OSRM call to avoid flicker
+      let legsSec: number[] = [];
+      try{
+        const res = await fetch('/api/route/legs', { method:'POST', headers:{ 'Content-Type':'application/json' }, body: JSON.stringify({ coords: stops }) });
+        if (res.ok){ const d = await res.json(); legsSec = d?.legsSeconds || []; }
+      }catch{}
       const cum: number[] = [];
       let s = 0; for (let i=0;i<legsSec.length;i++){ s += legsSec[i]; cum[i+1] = Math.round(s); }
       for (const r of byVan[vanId]){
         const idx = index[r.id];
-        if (!idx){ result[r.id] = { toPickupSec: null, toDropSec: null }; continue; }
+        if (!idx){ result[r.id] = result[r.id] || { toPickupSec: null, toDropSec: null }; continue; }
         result[r.id] = {
           toPickupSec: cum[idx.pick] ?? null,
           toDropSec: cum[idx.drop] ?? null,
