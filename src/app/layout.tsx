@@ -1,10 +1,8 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
-import dynamic from 'next/dynamic';
-
-const TopNav = dynamic(()=> import('@/components/TopNav'), { ssr:false });
-const ToastHost = dynamic(()=> import('@/components/Toast').then(m=> m.default), { ssr:false });
+import TopNav from '@/components/TopNav';
+import ToastHost from '@/components/Toast';
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
