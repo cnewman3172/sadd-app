@@ -114,10 +114,7 @@ export default async function Home() {
         </section>
       </main>
 
-      {/* Footer */}
-      <footer className="mx-auto max-w-7xl px-4 pb-10 text-sm opacity-80">
-        © 2025 Arctic Aura Designs, Soldiers Against Drunk Driving · <a className="underline" href="/privacy">Privacy</a> · <a className="underline" href="/volunteer">Volunteer</a>
-      </footer>
+      {/* Footer is provided by the global layout */}
     </div>
   );
 }
