@@ -10,9 +10,14 @@ export default function RequestPage(){
   const [form, setForm] = useState<any>({ passengers:1 });
   const [status, setStatus] = useState<any>(null);
   const [history, setHistory] = useState<any[]>([]);
+  const [sse, setSse] = useState<EventSource | null>(null);
   const ICE_URL = 'https://ice.disa.mil/index.cfm?fa=card&sp=86951&s=360&dep=*DoD';
 
-  useEffect(()=>{ fetch('/api/my-rides?limit=3').then(r=>r.json()).then(setHistory); },[]);
+  async function reloadHistory(){
+    const data = await fetch('/api/my-rides?limit=3').then(r=>r.json());
+    setHistory(data);
+  }
+  useEffect(()=>{ reloadHistory(); },[]);
 
   function useMyLocation(){ navigator.geolocation.getCurrentPosition(async (pos)=>{
     const { latitude, longitude } = pos.coords;
@@ -24,7 +29,27 @@ export default function RequestPage(){
     const res = await fetch('/api/rides/request', { method:'POST', body: JSON.stringify(form) });
     const data = await res.json();
     setStatus(data);
+    // Refresh recent list to include the new ride
+    reloadHistory();
   }
+
+  // Live status updates via SSE for the active ride
+  useEffect(()=>{
+    if (!status?.id) return;
+    const es = new EventSource('/api/stream');
+    const onUpdate = (ev: MessageEvent)=>{
+      try{
+        const d = JSON.parse(ev.data);
+        if (d && (d.id === status.id || d.code === status.rideCode)){
+          setStatus((prev:any)=> prev ? { ...prev, status: d.status, vanId: d.vanId ?? prev.vanId } : prev);
+          reloadHistory();
+        }
+      }catch{}
+    };
+    es.addEventListener('ride:update', onUpdate as any);
+    setSse(es);
+    return ()=>{ try{ es.close(); }catch{} };
+  }, [status?.id]);
 
   return (
     <div className="grid md:grid-cols-3 gap-6 p-4 max-w-6xl mx-auto">

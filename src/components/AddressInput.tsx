@@ -1,5 +1,5 @@
 "use client";
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 
 type Option = { label: string; lat: number; lon: number };
 
@@ -16,6 +16,7 @@ export default function AddressInput({
   onSelect: (opt: Option) => void;
   onChange?: (text: string) => void;
 }){
+  const rootRef = useRef<HTMLDivElement>(null);
   const [q, setQ] = useState(value || "");
   const [opts, setOpts] = useState<Option[]>([]);
   const [open, setOpen] = useState(false);
@@ -43,16 +44,27 @@ export default function AddressInput({
     });
   }, [q, debounced]);
 
+  // Close when clicking outside
+  useEffect(()=>{
+    function onDocClick(e: MouseEvent){
+      if (!rootRef.current) return;
+      if (!rootRef.current.contains(e.target as Node)) setOpen(false);
+    }
+    document.addEventListener('pointerdown', onDocClick);
+    return ()=> document.removeEventListener('pointerdown', onDocClick);
+  },[]);
+
   return (
-    <div className="relative">
+    <div className="relative" ref={rootRef}>
       <label className="text-sm">{label}</label>
       <input
         className="w-full p-3 rounded border"
         placeholder={placeholder || "Address or place"}
         value={q}
-        onChange={(e)=>{ setQ(e.target.value); onChange?.(e.target.value); }}
+        onChange={(e)=>{ setQ(e.target.value); onChange?.(e.target.value); if (!e.target.value || e.target.value.length<3) setOpen(false); }}
         onFocus={()=>{ if(opts.length>0) setOpen(true); }}
-        onBlur={()=> setTimeout(()=> setOpen(false), 150)}
+        onBlur={()=> setTimeout(()=> setOpen(false), 120)}
+        onKeyDown={(e)=>{ if (e.key==='Escape') setOpen(false); }}
       />
       {open && opts.length>0 && (
         <div className="absolute z-10 mt-1 w-full max-h-56 overflow-auto rounded border bg-white text-black shadow-lg">
@@ -74,4 +86,3 @@ export default function AddressInput({
     </div>
   );
 }
-
