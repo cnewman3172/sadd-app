@@ -23,6 +23,11 @@ services:
       db:
         condition: service_healthy
     restart: unless-stopped
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
     networks:
       - sadd-net
 
@@ -41,6 +46,11 @@ services:
       timeout: 5s
       retries: 10
     restart: unless-stopped
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
     networks:
       - sadd-net
 
@@ -54,6 +64,11 @@ services:
       web:
         condition: service_started
     restart: unless-stopped
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
     networks:
       - sadd-net
 
@@ -71,6 +86,11 @@ services:
       - WATCHTOWER_SCHEDULE=0 0/5 * * * *
       - DOCKER_CONFIG=/config
     restart: unless-stopped
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
     networks:
       - sadd-net
 
