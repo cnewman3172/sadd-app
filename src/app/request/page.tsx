@@ -146,7 +146,13 @@ export default function RequestPage(){
       </div>
       <aside className="space-y-4">
         <div className="rounded-xl overflow-hidden border border-white/20">
-          <Map height={400} markers={getMarkers(status, vanPos)} />
+          <Map
+            height={400}
+            vanMarkers={activeVansMarkers()}
+            pickups={status ? getPickupMarkers(status) : []}
+            drops={status ? getDropMarkers(status) : []}
+            markers={[]}
+          />
         </div>
         {status && (status.status==='EN_ROUTE' || status.status==='PICKED_UP') && (
           <div className="rounded-xl p-3 border border-white/20 bg-white/70 dark:bg-white/10">
@@ -199,19 +205,26 @@ function ReviewInline({ ride, iceUrl, onDone }:{ ride:any; iceUrl:string; onDone
   );
 }
 
-function getMarkers(status:any, vanPos: {lat:number,lng:number}|null){
-  const ms: Array<{lat:number,lng:number,color?:string}> = [];
-  if (!status) return ms;
+function getPickupMarkers(status:any){
+  const arr: Array<{lat:number,lng:number}> = [];
   if (status.status==='EN_ROUTE' && typeof status.pickupLat==='number' && typeof status.pickupLng==='number'){
-    ms.push({ lat: status.pickupLat, lng: status.pickupLng, color: 'green' });
+    arr.push({ lat: status.pickupLat, lng: status.pickupLng });
   }
+  return arr;
+}
+
+function getDropMarkers(status:any){
+  const arr: Array<{lat:number,lng:number}> = [];
   if (status.status==='PICKED_UP' && typeof status.dropLat==='number' && typeof status.dropLng==='number'){
-    ms.push({ lat: status.dropLat, lng: status.dropLng, color: 'green' });
+    arr.push({ lat: status.dropLat, lng: status.dropLng });
   }
-  if ((status.status==='EN_ROUTE' || status.status==='PICKED_UP') && vanPos){
-    ms.push({ lat: vanPos.lat, lng: vanPos.lng, color: 'red' });
-  }
-  return ms;
+  return arr;
+}
+
+function activeVansMarkers(){
+  // We rely on the server-provided vans list from /api/vans? In this page we didn't load all vans previously.
+  // Keep lightweight: no vans layer if not fetched; the assigned van is tracked separately via vanPos.
+  return [] as Array<{id:string,lat:number,lng:number,color:string}>;
 }
 
 function formatEta(sec:number){

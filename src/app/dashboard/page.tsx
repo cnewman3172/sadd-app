@@ -128,7 +128,7 @@ export default function Dashboard(){
           </div>
         </Card>
         <Card title="Live Operations Map">
-          <Map height={500} markers={vans.filter((v)=>v.currentLat&&v.currentLng).map((v)=>({ lat:v.currentLat!, lng:v.currentLng!, color:'green' }))} />
+          <CoordinatorMap vans={vans as any} />
         </Card>
       </div>
       {suggestFor && (
@@ -166,5 +166,42 @@ function Card({title, children}:{title:string, children:any}){
       <h2 className="font-semibold mb-2">{title}</h2>
       {children}
     </section>
+  );
+}
+
+function CoordinatorMap({ vans }:{ vans: any[] }){
+  const [selectedVan, setSelectedVan] = useState<string>('');
+  const [poi, setPoi] = useState<{ pickups:Array<{lat:number,lng:number}>, drops:Array<{lat:number,lng:number}> }>({ pickups:[], drops:[] });
+  const [routes, setRoutes] = useState<Array<Array<[number,number]>>>([]);
+
+  async function loadTasks(id:string){
+    setRoutes([]); setPoi({ pickups:[], drops:[] });
+    const r = await fetch(`/api/vans/${id}/tasks`).then(r=>r.json());
+    const tasks = r.tasks||[];
+    setPoi({ pickups: tasks.map((t:any)=>({lat:t.pickupLat,lng:t.pickupLng})), drops: tasks.map((t:any)=>({lat:t.dropLat,lng:t.dropLng})) });
+    // Build routes as straight lines between legs to avoid heavy OSRM usage
+    const lines: Array<Array<[number,number]>> = [];
+    for (const t of tasks){
+      lines.push([[t.pickupLat, t.pickupLng],[t.dropLat, t.dropLng]]);
+    }
+    setRoutes(lines);
+  }
+
+  const vanMarkers = vans.filter(v=> v.currentLat&&v.currentLng).map((v:any)=>{
+    const pax = Number(v.passengers||0);
+    const cap = Number(v.capacity||8);
+    const color = pax<=0 ? '#16a34a' : pax<cap ? '#f59e0b' : '#dc2626';
+    return { id:v.id, lat:v.currentLat!, lng:v.currentLng!, color };
+  });
+
+  return (
+    <Map
+      height={500}
+      vanMarkers={vanMarkers}
+      pickups={selectedVan ? poi.pickups : []}
+      drops={selectedVan ? poi.drops : []}
+      polylines={selectedVan ? routes : []}
+      onVanClick={(id)=>{ setSelectedVan(id); loadTasks(id); }}
+    />
   );
 }
