@@ -7,6 +7,7 @@ const tabs = [
   { href: '/executives/analytics', label: 'Analytics' },
   { href: '/executives/users', label: 'Users' },
   { href: '/executives/vans', label: 'Vans' },
+  { href: '/executives/shifts', label: 'Shifts' },
 ];
 
 export default function TabNav(){
@@ -31,4 +32,3 @@ export default function TabNav(){
     </nav>
   );
 }
-

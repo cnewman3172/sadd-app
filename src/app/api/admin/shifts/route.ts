@@ -1,0 +1,46 @@
+import { NextResponse } from 'next/server';
+import { prisma } from '@/lib/prisma';
+import { verifyJwt } from '@/lib/jwt';
+import { z } from 'zod';
+
+export const runtime = 'nodejs';
+
+export async function GET(req: Request){
+  const token = (req.headers.get('cookie')||'').split('; ').find(c=>c.startsWith('sadd_token='))?.split('=')[1];
+  const payload = await verifyJwt(token);
+  if (!payload || payload.role !== 'ADMIN') return NextResponse.json({ error:'forbidden' }, { status: 403 });
+  const from = new Date();
+  const shifts = await prisma.shift.findMany({
+    where: { endsAt: { gte: from } },
+    orderBy: { startsAt: 'asc' },
+    include: { _count: { select: { signups: true } } },
+    take: 200,
+  });
+  return NextResponse.json(shifts);
+}
+
+export async function POST(req: Request){
+  const token = (req.headers.get('cookie')||'').split('; ').find(c=>c.startsWith('sadd_token='))?.split('=')[1];
+  const payload = await verifyJwt(token);
+  if (!payload || payload.role !== 'ADMIN') return NextResponse.json({ error:'forbidden' }, { status: 403 });
+  const schema = z.object({
+    title: z.string().max(120).optional(),
+    startsAt: z.string().datetime(),
+    endsAt: z.string().datetime(),
+    needed: z.coerce.number().int().min(1).max(10).default(1),
+    notes: z.string().max(500).optional(),
+  });
+  try{
+    const body = schema.parse(await req.json());
+    if (new Date(body.endsAt) <= new Date(body.startsAt)){
+      return NextResponse.json({ error:'endsAt must be after startsAt' }, { status: 400 });
+    }
+    const shift = await prisma.shift.create({ data: {
+      title: body.title, startsAt: new Date(body.startsAt), endsAt: new Date(body.endsAt), needed: body.needed, notes: body.notes,
+    }});
+    return NextResponse.json(shift);
+  }catch(e:any){
+    return NextResponse.json({ error: e?.message || 'invalid' }, { status: 400 });
+  }
+}
+
