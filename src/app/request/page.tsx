@@ -10,6 +10,8 @@ export default function RequestPage(){
   const [form, setForm] = useState<any>({ passengers:1 });
   const [status, setStatus] = useState<any>(null);
   const [history, setHistory] = useState<any[]>([]);
+  const [pendingReview, setPendingReview] = useState<any|null>(null);
+  const [showForm, setShowForm] = useState(true);
   const [sse, setSse] = useState<EventSource | null>(null);
   const ICE_URL = 'https://ice.disa.mil/index.cfm?fa=card&sp=86951&s=360&dep=*DoD';
   const [vanPos, setVanPos] = useState<{lat:number,lng:number}|null>(null);
@@ -63,6 +65,9 @@ export default function RequestPage(){
   async function reloadHistory(){
     const data = await fetch('/api/my-rides?limit=3').then(r=>r.json());
     setHistory(data);
+    const pr = (data||[]).find((r:any)=> r.status==='DROPPED' && (r.rating==null));
+    setPendingReview(pr||null);
+    setShowForm(!pr);
   }
   useEffect(()=>{ reloadHistory(); },[]);
   useEffect(()=>{ refreshVans(); const id = setInterval(refreshVans, 10000); return ()=> clearInterval(id); },[]);
@@ -141,7 +146,18 @@ export default function RequestPage(){
   return (
     <div className="grid md:grid-cols-3 gap-6 p-4 max-w-6xl mx-auto">
       <div className="md:col-span-2 space-y-4">
-        {!status && (
+        {/* Gate: prompt review first if there is an unrated DROPPED ride */}
+        {pendingReview && (
+          <section className="p-4 rounded-xl bg-white/70 dark:bg-white/10 backdrop-blur border border-white/20">
+            <h2 className="text-lg font-semibold mb-2">How was your last ride?</h2>
+            <p className="text-sm opacity-80 mb-3">Please leave a quick star rating for ride #{pendingReview.rideCode}. Your feedback helps improve SADD.</p>
+            <ReviewInline ride={pendingReview} iceUrl={ICE_URL} onDone={()=>{ setPendingReview(null); setShowForm(true); reloadHistory(); }} />
+            <div className="mt-2">
+              <button onClick={()=>{ setShowForm(true); }} className="text-xs underline opacity-80">Skip for now</button>
+            </div>
+          </section>
+        )}
+        {!status && showForm && (
           <form onSubmit={submit} className="grid gap-3 p-4 rounded-xl bg-white/70 dark:bg-white/10 backdrop-blur border border-white/20">
             <h1 className="text-xl font-semibold">Request a Ride</h1>
             <AddressInput
@@ -183,7 +199,7 @@ export default function RequestPage(){
                 <div key={r.id} className="text-sm border-t border-white/20 pt-2">
                   <div className="flex items-center justify-between">
                     <div>#{r.rideCode} — {r.status} — {new Date(r.requestedAt).toLocaleString()}</div>
-                    {r.status==='DROPPED' && !r.rating && (
+                    {r.status==='DROPPED' && !r.rating && !pendingReview && (
                       <ReviewInline ride={r} iceUrl={ICE_URL} onDone={()=> reloadHistory()} />
                     )}
                   </div>
