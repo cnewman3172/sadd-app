@@ -22,7 +22,15 @@ export async function POST(req: Request){
   }
   // Clear any other van the current TC might be attached to
   await prisma.van.updateMany({ where:{ activeTcId: payload.uid }, data:{ activeTcId: null, status: 'OFFLINE', passengers: 0 } });
-  const van = await prisma.van.update({ where:{ id: vanId }, data:{ activeTcId: payload.uid, status: 'ACTIVE' } });
+  // Attempt to claim this van atomically; if someone else grabbed it, fail gracefully
+  const result = await prisma.van.updateMany({
+    where: { id: vanId, OR: [ { activeTcId: null }, { activeTcId: payload.uid } ] },
+    data: { activeTcId: payload.uid, status: 'ACTIVE' },
+  });
+  if (result.count === 0){
+    return NextResponse.json({ error:'van already has an active TC' }, { status: 409 });
+  }
+  const van = await prisma.van.findUnique({ where: { id: vanId } });
   publish('vans:update', { id: van.id });
   logAudit('driver_online', payload.uid, van.id);
   return NextResponse.json(van);

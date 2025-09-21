@@ -36,6 +36,10 @@ export default function Driving(){
     if (!selected) return alert('Select a van');
     const res = await fetch('/api/driver/go-online', { method:'POST', body: JSON.stringify({ vanId: selected }) });
     if (res.ok) { setSelected(''); refreshTasks(); startPings(); }
+    else {
+      const d = await res.json().catch(()=>({error:'Failed to go online'}));
+      alert(d.error || 'Failed to go online');
+    }
   }
   async function goOffline(){
     const res = await fetch('/api/driver/go-offline', { method:'POST' });
@@ -47,21 +51,26 @@ export default function Driving(){
     refreshTasks();
   }
 
-  // location pings when online
-  const watchId = useRef<number | null>(null);
+  // location pings every 5 seconds when online
+  const pingTimer = useRef<number | null>(null);
   function startPings(){
     if (typeof navigator === 'undefined' || !navigator.geolocation) return;
-    if (watchId.current !== null) return;
-    watchId.current = navigator.geolocation.watchPosition((pos)=>{
-      const { latitude, longitude } = pos.coords;
-      fetch('/api/driver/ping', { method:'POST', body: JSON.stringify({ lat: latitude, lng: longitude }) });
-    }, ()=>{}, { enableHighAccuracy:true, maximumAge:5000, timeout:10000 });
+    if (pingTimer.current !== null) return;
+    const sendOnce = () => {
+      try{
+        navigator.geolocation.getCurrentPosition((pos)=>{
+          const { latitude, longitude } = pos.coords;
+          fetch('/api/driver/ping', { method:'POST', body: JSON.stringify({ lat: latitude, lng: longitude }) });
+        });
+      }catch{}
+    };
+    sendOnce();
+    pingTimer.current = window.setInterval(sendOnce, 5000);
   }
   function stopPings(){
-    if (typeof navigator === 'undefined' || !navigator.geolocation) return;
-    if (watchId.current !== null){
-      navigator.geolocation.clearWatch(watchId.current);
-      watchId.current = null;
+    if (pingTimer.current !== null){
+      window.clearInterval(pingTimer.current);
+      pingTimer.current = null;
     }
   }
 
@@ -117,6 +126,9 @@ export default function Driving(){
                 {t.status==='ASSIGNED' && <button onClick={()=>setStatus(t.id,'EN_ROUTE')} className="rounded bg-black text-white px-3 py-1 text-sm">En Route</button>}
                 {t.status==='EN_ROUTE' && <button onClick={()=>setStatus(t.id,'PICKED_UP')} className="rounded border px-3 py-1 text-sm">Picked Up</button>}
                 {t.status==='PICKED_UP' && <button onClick={()=>setStatus(t.id,'DROPPED')} className="rounded bg-green-600 text-white px-3 py-1 text-sm">Dropped</button>}
+                {(t.status==='ASSIGNED' || t.status==='EN_ROUTE') && (
+                  <button onClick={async()=>{ if (!confirm(`Mark #${t.rideCode} as No Show and cancel?`)) return; await fetch(`/api/rides/${t.id}`, { method:'PUT', body: JSON.stringify({ status:'CANCELED', notes:'No Show' }) }); refreshTasks(); }} className="rounded border px-3 py-1 text-sm border-red-500 text-red-600">No Show</button>
+                )}
               </div>
             </div>
           ))}

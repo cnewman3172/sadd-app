@@ -136,6 +136,23 @@ export default function Dashboard(){
             ))}
           </div>
         </Card>
+        <Card title="Active Trips">
+          <div className="space-y-2">
+            {active.length===0 && <div className="text-sm opacity-80">No active trips.</div>}
+            {active.map((r)=> (
+              <div key={r.id} className="rounded border p-3 flex flex-col gap-2">
+                <div className="flex items-center justify-between">
+                  <div className="font-medium">#{r.rideCode} · {r.rider?.firstName} {r.rider?.lastName}</div>
+                  <div className="text-xs opacity-70">{r.status}</div>
+                </div>
+                <div className="text-sm opacity-80">{r.pickupAddr} → {r.dropAddr}</div>
+                <div className="flex gap-2 items-center">
+                  <button onClick={async()=>{ if (!confirm(`Cancel #${r.rideCode}?`)) return; await setStatus(r.id, 'CANCELED'); }} className="rounded border px-3 py-1 text-sm border-red-500 text-red-600">Cancel Ride</button>
+                </div>
+              </div>
+            ))}
+          </div>
+        </Card>
         <Card title="Live Operations Map">
           <CoordinatorMap vans={vans as any} />
         </Card>
