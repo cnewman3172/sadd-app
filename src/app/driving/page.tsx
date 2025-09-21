@@ -148,6 +148,9 @@ export default function Driving(){
                 <div className="font-medium">#{t.rideCode}</div>
                 <div className="text-xs opacity-70">{t.status}</div>
               </div>
+              <div className="text-sm opacity-90">
+                Rider: {(t.rider?.firstName||'').toString()} {(t.rider?.lastName||'').toString()}
+              </div>
               <div className="text-sm opacity-80">{t.pickupAddr} → {t.dropAddr} · Pax {t.passengers}</div>
               <div className="flex flex-wrap gap-2 text-xs mt-1">
                 {(t.status==='ASSIGNED' || t.status==='EN_ROUTE') && (
