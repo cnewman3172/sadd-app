@@ -44,6 +44,10 @@ export async function POST(req: Request){
         rider = await prisma.user.create({ data: { email: `${digits}-${Date.now()}@caller.sadd.local`, password: hash, firstName: firstName || 'Guest', lastName: lastName || 'Caller', phone: body.phone, role: 'RIDER' } });
       }
     }
+    // Ensure rider phone matches manual entry
+    else if (rider.phone !== body.phone){
+      try{ await prisma.user.update({ where:{ id: rider.id }, data:{ phone: body.phone } }); }catch{}
+    }
 
     const ride = await prisma.ride.create({ data: {
       riderId: rider.id,
