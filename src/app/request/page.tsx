@@ -20,6 +20,8 @@ export default function RequestPage(){
   const [vans, setVans] = useState<any[]>([]);
   const [selVan, setSelVan] = useState<string>('');
   const [route, setRoute] = useState<Array<Array<[number,number]>>>([]);
+  const [preEtaSec, setPreEtaSec] = useState<number|null>(null);
+  const [preEtaVan, setPreEtaVan] = useState<string>('');
   function formatEta(sec:number){
     const m = Math.floor(sec/60); const s = sec%60;
     if (m>=60){ const h=Math.floor(m/60); const rm=m%60; return `${h}h ${rm}m`; }
@@ -75,6 +77,21 @@ export default function RequestPage(){
   useEffect(()=>{ (async()=>{ try{ const h = await fetch('/api/health', { cache:'no-store' }).then(r=>r.json()); setActive(Boolean(h.active)); }catch{ setActive(null); } })(); },[]);
   useEffect(()=>{ refreshVans(); const id = setInterval(refreshVans, 5000); return ()=> clearInterval(id); },[]);
   async function refreshVans(){ try{ const v = await fetch('/api/vans', { cache:'no-store' }).then(r=>r.json()); setVans(v||[]); }catch{} }
+
+  // Pre-request ETA based on pickup location and best available van
+  useEffect(()=>{
+    (async()=>{
+      setPreEtaSec(null); setPreEtaVan('');
+      if (typeof form.pickupLat !== 'number' || typeof form.pickupLng !== 'number') return;
+      const pax = Math.min(11, Math.max(1, parseInt(String(form.passengers||'1'),10) || 1));
+      try{
+        const d = await fetch(`/api/assign/eta?pickup=${form.pickupLat},${form.pickupLng}&pax=${pax}`, { cache:'no-store' }).then(r=>r.json());
+        const sec = d?.best?.secondsToPickup as number|undefined;
+        const van = d?.best?.name as string||'';
+        if (sec!=null){ setPreEtaSec(Math.round(sec)); setPreEtaVan(van||''); }
+      }catch{}
+    })();
+  }, [form.pickupLat, form.pickupLng, form.passengers]);
 
   function useMyLocation(){ navigator.geolocation.getCurrentPosition(async (pos)=>{
     const { latitude, longitude } = pos.coords;
@@ -185,6 +202,9 @@ export default function RequestPage(){
               onChange={(text)=> setForm((f:any)=> ({ ...f, pickupAddr: text }))}
               onSelect={(opt)=> setForm((f:any)=> ({ ...f, pickupAddr: opt.label, pickupLat: opt.lat, pickupLng: opt.lon }))}
             />
+            {preEtaSec!=null && (
+              <div className="text-xs opacity-70">Estimated pickup ETA: ~ {Math.max(1, Math.round(preEtaSec/60))} min {preEtaVan?`via ${preEtaVan}`:''}</div>
+            )}
             <div>
               <button type="button" onClick={useMyLocation} className="mt-1 rounded px-3 py-1 border text-sm">Use my location</button>
             </div>
