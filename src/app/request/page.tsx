@@ -17,6 +17,48 @@ export default function RequestPage(){
   const [vans, setVans] = useState<any[]>([]);
   const [selVan, setSelVan] = useState<string>('');
   const [route, setRoute] = useState<Array<Array<[number,number]>>>([]);
+  function formatEta(sec:number){
+    const m = Math.floor(sec/60); const s = sec%60;
+    if (m>=60){ const h=Math.floor(m/60); const rm=m%60; return `${h}h ${rm}m`; }
+    return `${m}m ${s}s`;
+  }
+  function getPickupMarkers(localStatus:any){
+    const arr: Array<{lat:number,lng:number}> = [];
+    if (localStatus?.status==='EN_ROUTE' && typeof localStatus.pickupLat==='number' && typeof localStatus.pickupLng==='number'){
+      arr.push({ lat: localStatus.pickupLat, lng: localStatus.pickupLng });
+    }
+    return arr;
+  }
+  function getDropMarkers(localStatus:any){
+    const arr: Array<{lat:number,lng:number}> = [];
+    if (localStatus?.status==='PICKED_UP' && typeof localStatus.dropLat==='number' && typeof localStatus.dropLng==='number'){
+      arr.push({ lat: localStatus.dropLat, lng: localStatus.dropLng });
+    }
+    return arr;
+  }
+  function activeVansMarkers(){
+    const all = vans.filter((v:any)=> v.currentLat && v.currentLng);
+    return all.map((v:any)=>{
+      const pax = Number(v.passengers||0);
+      const cap = Number(v.capacity||8);
+      const color = pax<=0 ? '#16a34a' : pax<cap ? '#f59e0b' : '#dc2626';
+      return { id: v.id, lat: v.currentLat!, lng: v.currentLng!, color };
+    });
+  }
+  async function handleVanClick(id:string){
+    setSelVan(id); setRoute([]);
+    try{
+      const r = await fetch(`/api/vans/${id}/tasks`).then(r=>r.json());
+      const tasks = r.tasks||[];
+      const van = vans.find((v:any)=> v.id===id);
+      if (van?.currentLat && van?.currentLng && tasks.length>0){
+        const coords: Array<[number,number]> = [[van.currentLat, van.currentLng]];
+        for (const t of tasks){ coords.push([t.pickupLat,t.pickupLng], [t.dropLat,t.dropLng]); }
+        const res = await fetch('/api/route', { method:'POST', headers:{ 'Content-Type':'application/json' }, body: JSON.stringify({ coords }) });
+        if (res.ok){ const d = await res.json(); setRoute([d.coordinates||[]]); }
+      }
+    }catch{}
+  }
 
   async function reloadHistory(){
     const data = await fetch('/api/my-rides?limit=3').then(r=>r.json());
@@ -212,51 +254,4 @@ function ReviewInline({ ride, iceUrl, onDone }:{ ride:any; iceUrl:string; onDone
       {error && <span className="text-red-600 text-xs">{error}</span>}
     </div>
   );
-}
-
-function getPickupMarkers(status:any){
-  const arr: Array<{lat:number,lng:number}> = [];
-  if (status.status==='EN_ROUTE' && typeof status.pickupLat==='number' && typeof status.pickupLng==='number'){
-    arr.push({ lat: status.pickupLat, lng: status.pickupLng });
-  }
-  return arr;
-}
-
-function getDropMarkers(status:any){
-  const arr: Array<{lat:number,lng:number}> = [];
-  if (status.status==='PICKED_UP' && typeof status.dropLat==='number' && typeof status.dropLng==='number'){
-    arr.push({ lat: status.dropLat, lng: status.dropLng });
-  }
-  return arr;
-}
-
-function activeVansMarkers(){
-  const all = vans.filter((v:any)=> v.currentLat && v.currentLng);
-  return all.map((v:any)=>{
-    const pax = Number(v.passengers||0);
-    const cap = Number(v.capacity||8);
-    const color = pax<=0 ? '#16a34a' : pax<cap ? '#f59e0b' : '#dc2626';
-    return { id: v.id, lat: v.currentLat!, lng: v.currentLng!, color };
-  });
-}
-
-async function handleVanClick(id:string){
-  setSelVan(id); setRoute([]);
-  try{
-    const r = await fetch(`/api/vans/${id}/tasks`).then(r=>r.json());
-    const tasks = r.tasks||[];
-    const van = vans.find((v:any)=> v.id===id);
-    if (van?.currentLat && van?.currentLng && tasks.length>0){
-      const coords: Array<[number,number]> = [[van.currentLat, van.currentLng]];
-      for (const t of tasks){ coords.push([t.pickupLat,t.pickupLng], [t.dropLat,t.dropLng]); }
-      const res = await fetch('/api/route', { method:'POST', headers:{ 'Content-Type':'application/json' }, body: JSON.stringify({ coords }) });
-      if (res.ok){ const d = await res.json(); setRoute([d.coordinates||[]]); }
-    }
-  }catch{}
-}
-
-function formatEta(sec:number){
-  const m = Math.floor(sec/60); const s = sec%60;
-  if (m>=60){ const h=Math.floor(m/60); const rm=m%60; return `${h}h ${rm}m`; }
-  return `${m}m ${s}s`;
 }
