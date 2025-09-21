@@ -14,7 +14,7 @@ export default function Dashboard(){
   const [suggestions, setSuggestions] = useState<Array<{ vanId:string; name:string; seconds:number; meters:number }>>([]);
   const [loadingSuggest, setLoadingSuggest] = useState(false);
   const [manualOpen, setManualOpen] = useState(false);
-  const [manual, setManual] = useState<any>({ passengers: 1 });
+  const [manual, setManual] = useState<any>({ passengers: '1' });
   const [manualBusy, setManualBusy] = useState(false);
 
   async function refresh(){
@@ -209,7 +209,23 @@ export default function Dashboard(){
               <AddressInput label="Pickup" value={manual.pickupAddr||''} onChange={(t)=> setManual({...manual, pickupAddr: t})} onSelect={(o)=> setManual({...manual, pickupAddr:o.label, pickupLat:o.lat, pickupLng:o.lon})} />
               <AddressInput label="Drop Off" value={manual.dropAddr||''} onChange={(t)=> setManual({...manual, dropAddr: t})} onSelect={(o)=> setManual({...manual, dropAddr:o.label, dropLat:o.lat, dropLng:o.lon})} />
               <div className="grid grid-cols-2 gap-2">
-                <input type="number" min={1} max={8} className="p-2 rounded border bg-white/80 dark:bg-neutral-800 text-sm text-black dark:text-white" value={manual.passengers||1} onChange={(e)=> setManual({...manual, passengers:Number(e.target.value)})} />
+                <input
+                  type="text"
+                  inputMode="numeric"
+                  pattern="[0-9]*"
+                  className="p-2 rounded border bg-white/80 dark:bg-neutral-800 text-sm text-black dark:text-white"
+                  placeholder="# Passengers"
+                  value={String(manual.passengers ?? '')}
+                  onChange={(e)=>{
+                    const v = e.target.value.replace(/\D/g,'');
+                    setManual({...manual, passengers: v});
+                  }}
+                  onBlur={()=>{
+                    const v = String(manual.passengers||'');
+                    const n = Math.min(11, Math.max(1, parseInt(v||'0',10) || 1));
+                    setManual({...manual, passengers: String(n)});
+                  }}
+                />
                 <input className="p-2 rounded border bg-white/80 dark:bg-neutral-800 text-sm text-black dark:text-white" placeholder="Notes (optional)" value={manual.notes||''} onChange={(e)=> setManual({...manual, notes:e.target.value})} />
               </div>
               <div className="flex justify-end gap-2 mt-2">
@@ -217,9 +233,10 @@ export default function Dashboard(){
                 <button disabled={manualBusy} onClick={async()=>{
                   setManualBusy(true);
                   try{
-                    const res = await fetch('/api/admin/rides', { method:'POST', headers:{ 'Content-Type':'application/json' }, body: JSON.stringify(manual) });
+                    const pax = Math.min(11, Math.max(1, parseInt(String(manual.passengers||'1'),10) || 1));
+                    const res = await fetch('/api/admin/rides', { method:'POST', headers:{ 'Content-Type':'application/json' }, body: JSON.stringify({ ...manual, passengers: pax }) });
                     if (!res.ok){ const d = await res.json().catch(()=>({error:'failed'})); throw new Error(d.error||'failed'); }
-                    setManualOpen(false); setManual({ passengers:1 });
+                    setManualOpen(false); setManual({ passengers:'1' });
                     showToast('Manual ride created');
                     refresh();
                   }catch(e:any){ alert(e.message||'Failed'); }
