@@ -12,6 +12,29 @@ function toCsv(rows: string[][]){
   return rows.map(r=> r.map(esc).join(',')).join('\n') + '\n';
 }
 
+function fmtInTz(d: Date | string | null | undefined, tz: string){
+  if (!d) return '';
+  const date = typeof d === 'string' ? new Date(d) : d;
+  if (!(date instanceof Date) || isNaN(date.getTime())) return '';
+  try{
+    const parts = new Intl.DateTimeFormat('sv-SE', {
+      timeZone: tz || 'UTC',
+      year: 'numeric', month: '2-digit', day: '2-digit',
+      hour: '2-digit', minute: '2-digit', second: '2-digit',
+      hour12: false,
+    }).formatToParts(date);
+    const get = (type: Intl.DateTimeFormatPartTypes) => parts.find(p=>p.type===type)?.value ?? '';
+    const y = get('year'), m = get('month'), da = get('day');
+    const h = get('hour'), mi = get('minute'), s = get('second');
+    if (!y || !m || !da) return '';
+    // "YYYY-MM-DD HH:mm:ss"
+    return `${y}-${m}-${da} ${h||'00'}:${mi||'00'}:${s||'00'}`;
+  }catch{
+    // Fallback to ISO UTC if tz unsupported
+    return (date as Date).toISOString?.() ?? '';
+  }
+}
+
 export async function GET(req: Request){
   const token = (req.headers.get('cookie')||'').split('; ').find(c=>c.startsWith('sadd_token='))?.split('=')[1];
   const payload = await verifyJwt(token);
@@ -19,6 +42,7 @@ export async function GET(req: Request){
 
   const url = new URL(req.url);
   const format = (url.searchParams.get('format') || 'csv').toLowerCase();
+  const tz = url.searchParams.get('tz') || 'UTC';
   const fromStr = url.searchParams.get('from') || '';
   const toStr = url.searchParams.get('to') || '';
   const where: any = {};
@@ -70,6 +94,7 @@ export async function GET(req: Request){
     'dropoff_address',
     'rating',
     'review_comment',
+    'time_zone',
   ];
   const rows: string[][] = [header];
   for (const r of rides){
@@ -85,18 +110,20 @@ export async function GET(req: Request){
       r.rider?.unit || '',
       tcName,
       r.driver?.email || '',
-      r.requestedAt?.toISOString?.() || (r as any).requestedAt || '',
-      r.pickupAt?.toISOString?.() || (r as any).pickupAt || '',
-      r.dropAt?.toISOString?.() || (r as any).dropAt || '',
+      fmtInTz(r.requestedAt as any, tz),
+      fmtInTz(r.pickupAt as any, tz),
+      fmtInTz(r.dropAt as any, tz),
       r.pickupAddr,
       r.dropAddr,
       r.rating!=null ? String(r.rating) : '',
       r.reviewComment || '',
+      tz,
     ]);
   }
 
   const csv = toCsv(rows);
-  const filename = `rides_export_${new Date().toISOString().slice(0,10)}.csv`;
+  const safeTz = tz.replace(/[^A-Za-z0-9_\-\/]/g,'_').replace(/[\/]/g,'-');
+  const filename = `rides_export_${new Date().toISOString().slice(0,10)}_${safeTz}.csv`;
   return new NextResponse(csv, {
     headers: {
       'Content-Type': 'text/csv; charset=utf-8',
