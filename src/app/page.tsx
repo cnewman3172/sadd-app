@@ -22,7 +22,7 @@ export default async function Home() {
   } catch {}
 
   return (
-    <div className="relative min-h-screen overflow-hidden text-foreground">
+    <div className="relative min-h-screen overflow-hidden text-foreground ambient-bg">
       {/* Ambient gradient orbs */}
       <div aria-hidden className="pointer-events-none absolute inset-0 -z-10">
         <div data-orb data-speed="0.10" className="absolute left-[-10%] top-[-10%]">

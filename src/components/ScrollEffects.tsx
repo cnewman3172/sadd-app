@@ -18,13 +18,18 @@ export default function ScrollEffects(){
 
     // Soft parallax for orb wrappers
     const orbs = Array.from(document.querySelectorAll<HTMLElement>('[data-orb]'));
-    const onScroll = ()=>{
-      const y = window.scrollY;
+    let normX = 0, normY = 0, scrollY = 0;
+    const applyParallax = ()=>{
       orbs.forEach(el=>{
         const speed = Number(el.dataset.speed || '0.12');
-        const dy = Math.round(y * speed);
-        el.style.transform = `translate3d(0, ${dy}px, 0)`;
+        const dx = Math.round(normX * 10 * speed);
+        const dy = Math.round((scrollY * speed) + (normY * 10 * speed));
+        el.style.transform = `translate3d(${dx}px, ${dy}px, 0)`;
       });
+    };
+    const onScroll = ()=>{
+      scrollY = window.scrollY;
+      applyParallax();
       // Gradient sheen progress for elements
       const sheens = Array.from(document.querySelectorAll<HTMLElement>('[data-sheen]'));
       sheens.forEach(el=>{
@@ -37,15 +42,9 @@ export default function ScrollEffects(){
     };
     const onMove = (ev: MouseEvent)=>{
       const { innerWidth: w, innerHeight: h } = window;
-      const nx = (ev.clientX - w/2) / (w/2);
-      const ny = (ev.clientY - h/2) / (h/2);
-      orbs.forEach(el=>{
-        const speed = Number(el.dataset.speed || '0.12');
-        const x = Math.round(nx * 10 * speed);
-        const y = Math.round(ny * 10 * speed);
-        // combine with scroll translateY already applied above
-        el.style.transform += ` translateX(${x}px) translateY(${y}px)`;
-      });
+      normX = (ev.clientX - w/2) / (w/2);
+      normY = (ev.clientY - h/2) / (h/2);
+      applyParallax();
     };
     onScroll();
     window.addEventListener('scroll', onScroll, { passive: true });

@@ -58,9 +58,9 @@ body {
 
 .orb {
   position: absolute;
-  filter: blur(40px);
+  filter: blur(60px);
   border-radius: 9999px;
-  opacity: .75;
+  opacity: .85;
   animation: floatXY 14s ease-in-out infinite;
 }
 
@@ -103,6 +103,15 @@ body {
   transition: transform .2s ease-out;
   pointer-events: none;
   mix-blend-mode: screen;
+}
+
+/* Ambient page background that complements orbs */
+.ambient-bg {
+  background:
+    radial-gradient(1200px 800px at 10% -10%, rgba(96,165,250,.25), transparent 60%),
+    radial-gradient(1200px 800px at 110% 10%, rgba(167,139,250,.22), transparent 60%),
+    radial-gradient(1200px 800px at 20% 110%, rgba(240,171,252,.20), transparent 60%),
+    linear-gradient(180deg, rgba(0,0,0,.08), transparent 35%);
 }
 [data-reveal].is-visible {
   opacity: 1;
