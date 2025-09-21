@@ -76,8 +76,18 @@ function Bar({ label, value, max }:{ label:string; value:number; max:number }){
 function ExportAndResetRow(){
   const [from, setFrom] = useState('');
   const [to, setTo] = useState('');
+  const [tz, setTz] = useState('');
+  useEffect(()=>{
+    try{
+      const z = Intl.DateTimeFormat().resolvedOptions().timeZone;
+      if (z) setTz(z);
+    }catch{}
+  },[]);
   const base = '/api/admin/export/rides?format=csv';
-  const href = base + (from?`&from=${encodeURIComponent(from)}`:'') + (to?`&to=${encodeURIComponent(to)}`:'');
+  const href = base
+    + (from?`&from=${encodeURIComponent(from)}`:'')
+    + (to?`&to=${encodeURIComponent(to)}`:'')
+    + (tz?`&tz=${encodeURIComponent(tz)}`:'');
   return (
         <div className="mt-4 flex items-end justify-between gap-3">
           <div className="flex items-end gap-2">
@@ -90,6 +100,7 @@ function ExportAndResetRow(){
           <input type="date" value={to} onChange={(e)=> setTo(e.target.value)} className="block p-2 rounded border bg-white/80 dark:bg-neutral-800 text-sm text-black dark:text-white" />
             </div>
             <a className="rounded border px-3 py-2 text-sm" href={href}>Export Rides (CSV)</a>
+            {tz && <div className="text-xs opacity-60 ml-2">Times in {tz}</div>}
           </div>
       <div className="ml-auto">
         <ResetRidesInline />
