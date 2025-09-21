@@ -5,6 +5,18 @@ import { captureError } from '@/lib/obs';
 
 export const runtime = 'nodejs';
 
+export async function GET(req: NextRequest){
+  const token = (req.headers.get('cookie')||'').split('; ').find(c=>c.startsWith('sadd_token='))?.split('=')[1];
+  const payload = await verifyJwt(token);
+  if (!payload || payload.role !== 'ADMIN') return NextResponse.json({ error:'forbidden' }, { status: 403 });
+  const host = process.env.SMTP_HOST;
+  const user = process.env.SMTP_USER;
+  const pass = process.env.SMTP_PASS;
+  const from = process.env.SMTP_FROM;
+  const configured = Boolean(host && user && pass && from);
+  return NextResponse.json({ ok:true, configured });
+}
+
 export async function POST(req: NextRequest){
   const token = (req.headers.get('cookie')||'').split('; ').find(c=>c.startsWith('sadd_token='))?.split('=')[1];
   const payload = await verifyJwt(token);
@@ -30,4 +42,3 @@ export async function POST(req: NextRequest){
     return NextResponse.json({ ok:false, error: e?.message || 'send_failed' }, { status: 500 });
   }
 }
-
