@@ -17,7 +17,6 @@ export default function ExecutivesDashboard(){
       const [h, s, conf] = await Promise.all([
         fetch('/api/health', { cache: 'no-store' }).then(r=>r.json()),
         fetch('/api/admin/summary', { cache: 'no-store' }).then(r=>r.json()),
-      ),
         fetch('/api/admin/settings', { cache: 'no-store' }).then(r=>r.json()).catch(()=>null),
       ]);
       setActive(Boolean(h.active));

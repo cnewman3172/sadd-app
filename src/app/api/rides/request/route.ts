@@ -2,7 +2,6 @@ import { NextResponse } from 'next/server';
 import { verifyJwt } from '@/lib/jwt';
 import { z } from 'zod';
 import { captureError } from '@/lib/obs';
-import { prisma } from '@/lib/prisma';
 import { publish } from '@/lib/events';
 import { logAudit } from '@/lib/audit';
 import { prisma } from '@/lib/prisma';
