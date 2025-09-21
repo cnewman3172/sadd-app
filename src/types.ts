@@ -33,5 +33,5 @@ export interface Ride {
   passengers: number;
   rider?: { firstName?: string; lastName?: string };
   vanId?: string | null;
+  rating?: number | null;
 }
-

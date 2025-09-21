@@ -3,11 +3,14 @@ import dynamic from 'next/dynamic';
 import { useEffect, useState } from 'react';
 
 const Map = dynamic(() => import('../../components/Map'), { ssr: false });
+import AddressInput from '@/components/AddressInput';
+import StarRating from '@/components/StarRating';
 
 export default function RequestPage(){
   const [form, setForm] = useState<any>({ passengers:1 });
   const [status, setStatus] = useState<any>(null);
   const [history, setHistory] = useState<any[]>([]);
+  const ICE_URL = 'https://ice.disa.mil/index.cfm?fa=card&sp=86951&s=360&dep=*DoD';
 
   useEffect(()=>{ fetch('/api/my-rides?limit=3').then(r=>r.json()).then(setHistory); },[]);
 
@@ -29,17 +32,23 @@ export default function RequestPage(){
         {!status && (
           <form onSubmit={submit} className="grid gap-3 p-4 rounded-xl bg-white/70 dark:bg-white/10 backdrop-blur border border-white/20">
             <h1 className="text-xl font-semibold">Request a Ride</h1>
-            <div className="grid gap-2">
-              <label className="text-sm">Pickup</label>
-              <div className="flex gap-2">
-                <input className="flex-1 p-3 rounded border" placeholder="Address or place" onChange={(e)=>setForm({...form, pickupAddr: e.target.value})} />
-                <button type="button" onClick={useMyLocation} className="rounded px-3 border">Use my location</button>
-              </div>
+            <AddressInput
+              label="Pickup"
+              placeholder="Address or place"
+              value={form.pickupAddr}
+              onChange={(text)=> setForm((f:any)=> ({ ...f, pickupAddr: text }))}
+              onSelect={(opt)=> setForm((f:any)=> ({ ...f, pickupAddr: opt.label, pickupLat: opt.lat, pickupLng: opt.lon }))}
+            />
+            <div>
+              <button type="button" onClick={useMyLocation} className="mt-1 rounded px-3 py-1 border text-sm">Use my location</button>
             </div>
-            <div className="grid gap-2">
-              <label className="text-sm">Drop Off</label>
-              <input className="p-3 rounded border" placeholder="Address or place" onChange={(e)=>setForm({...form, dropAddr: e.target.value})} />
-            </div>
+            <AddressInput
+              label="Drop Off"
+              placeholder="Address or place"
+              value={form.dropAddr}
+              onChange={(text)=> setForm((f:any)=> ({ ...f, dropAddr: text }))}
+              onSelect={(opt)=> setForm((f:any)=> ({ ...f, dropAddr: opt.label, dropLat: opt.lat, dropLng: opt.lon }))}
+            />
             <div className="grid grid-cols-2 gap-2">
               <input type="number" min={1} className="p-3 rounded border" placeholder="# Passengers" value={form.passengers} onChange={(e)=>setForm({...form, passengers:Number(e.target.value)})} />
               <input className="p-3 rounded border" placeholder="Notes (optional)" onChange={(e)=>setForm({...form, notes:e.target.value})} />
@@ -57,11 +66,18 @@ export default function RequestPage(){
         {history.length>0 && (
           <div className="p-4 rounded-xl bg-white/70 dark:bg-white/10 backdrop-blur border border-white/20">
             <h3 className="font-semibold mb-2">Your last 3 rides</h3>
-            <ul className="text-sm space-y-1">
+            <div className="space-y-4">
               {history.map((r)=> (
-                <li key={r.id}>#{r.rideCode} — {r.status} — {new Date(r.requestedAt).toLocaleString()}</li>
+                <div key={r.id} className="text-sm border-t border-white/20 pt-2">
+                  <div className="flex items-center justify-between">
+                    <div>#{r.rideCode} — {r.status} — {new Date(r.requestedAt).toLocaleString()}</div>
+                    {r.status==='DROPPED' && !r.rating && (
+                      <ReviewInline ride={r} iceUrl={ICE_URL} onDone={()=> reloadHistory()} />
+                    )}
+                  </div>
+                </div>
               ))}
-            </ul>
+            </div>
           </div>
         )}
       </div>
@@ -74,3 +90,42 @@ export default function RequestPage(){
   );
 }
 
+function ReviewInline({ ride, iceUrl, onDone }:{ ride:any; iceUrl:string; onDone: ()=>void }){
+  const [stars, setStars] = useState(0);
+  const [comment, setComment] = useState('');
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string|null>(null);
+  const lowEmail = 'fortwainwrightboss@army.mil';
+
+  async function submit(bypass=false){
+    if (stars<1){ setError('Please select a star rating'); return; }
+    setBusy(true); setError(null);
+    try{
+      const r = await fetch(`/api/rides/${ride.id}/review`, {
+        method:'POST', headers:{ 'Content-Type':'application/json' },
+        body: JSON.stringify({ rating: stars, comment: comment || undefined, bypass })
+      });
+      if (!r.ok){ const d = await r.json().catch(()=>({error:'failed'})); throw new Error(d.error||'Failed'); }
+      // Route user for follow-up:
+      if (stars <= 3){
+        const subj = encodeURIComponent(`SADD Ride #${ride.rideCode} feedback (${stars}★)`);
+        const body = encodeURIComponent(comment || '');
+        window.location.href = `mailto:${lowEmail}?subject=${subj}&body=${body}`;
+      }else{
+        window.open(iceUrl, '_blank');
+      }
+      onDone();
+    }catch(e:any){ setError(e.message||'Failed'); }
+    finally{ setBusy(false); }
+  }
+
+  return (
+    <div className="flex items-center gap-3">
+      <StarRating value={stars} onChange={setStars} />
+      <input className="flex-1 p-2 rounded border" placeholder="Optional feedback" value={comment} onChange={(e)=> setComment(e.target.value)} />
+      <button disabled={busy} onClick={()=> submit(false)} className="rounded border px-3 py-1">Submit</button>
+      <button disabled={busy} onClick={()=> submit(true)} className="rounded border px-3 py-1 opacity-80">Skip extra</button>
+      {error && <span className="text-red-600 text-xs">{error}</span>}
+    </div>
+  );
+}
