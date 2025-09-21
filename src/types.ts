@@ -31,7 +31,7 @@ export interface Ride {
   pickupAddr: string;
   dropAddr: string;
   passengers: number;
-  rider?: { firstName?: string; lastName?: string };
+  rider?: { firstName?: string; lastName?: string; phone?: string };
   vanId?: string | null;
   rating?: number | null;
 }

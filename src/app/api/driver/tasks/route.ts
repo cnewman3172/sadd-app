@@ -15,6 +15,7 @@ export async function GET(req: Request){
   const tasks = await prisma.ride.findMany({
     where: { vanId: van.id, status: { in: ['ASSIGNED','EN_ROUTE','PICKED_UP'] } },
     orderBy: { requestedAt: 'asc' },
+    include: { rider: { select: { firstName: true, lastName: true, phone: true } } },
   });
   return NextResponse.json({ van, tasks });
 }
