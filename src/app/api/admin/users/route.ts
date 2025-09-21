@@ -24,7 +24,7 @@ export async function GET(req: Request){
       where,
       orderBy: { createdAt: 'desc' },
       take: 200,
-      select: { id: true, email: true, firstName: true, lastName: true, role: true, createdAt: true }
+      select: { id: true, email: true, firstName: true, lastName: true, phone: true, role: true, createdAt: true }
     });
     return NextResponse.json(users);
   }catch(e:any){
@@ -32,4 +32,3 @@ export async function GET(req: Request){
     return NextResponse.json({ error:'failed' }, { status: 500 });
   }
 }
-
