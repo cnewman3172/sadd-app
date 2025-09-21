@@ -13,13 +13,16 @@ export async function PUT(req: Request, ctx: { params: Promise<{ id:string }> })
   const schema = z.object({ title: z.string().max(120).optional(), startsAt: z.string().datetime().optional(), endsAt: z.string().datetime().optional(), needed: z.coerce.number().int().min(1).max(10).optional(), notes: z.string().max(500).optional() });
   try{
     const patch = schema.parse(await req.json());
-    if (patch.startsAt && patch.endsAt && new Date(patch.endsAt) <= new Date(patch.startsAt)){
-      return NextResponse.json({ error:'endsAt must be after startsAt' }, { status: 400 });
-    }
+    // Fetch current to support overnight logic if only one bound provided
+    const current = await prisma.shift.findUnique({ where: { id } });
+    if (!current) return NextResponse.json({ error:'not found' }, { status:404 });
+    const start = 'startsAt' in patch ? new Date(patch.startsAt!) : current.startsAt;
+    let end = 'endsAt' in patch ? new Date(patch.endsAt!) : current.endsAt;
+    if (end <= start) end = new Date(end.getTime() + 24*60*60*1000);
     const s = await prisma.shift.update({ where: { id }, data: {
       ...('title' in patch ? { title: patch.title } : {}),
-      ...('startsAt' in patch ? { startsAt: new Date(patch.startsAt!) } : {}),
-      ...('endsAt' in patch ? { endsAt: new Date(patch.endsAt!) } : {}),
+      startsAt: start,
+      endsAt: end,
       ...('needed' in patch ? { needed: patch.needed } : {}),
       ...('notes' in patch ? { notes: patch.notes } : {}),
     }});
@@ -35,4 +38,3 @@ export async function DELETE(req: Request, ctx: { params: Promise<{ id:string }>
   await prisma.shift.delete({ where: { id } }).catch(()=>{});
   return NextResponse.json({ ok:true });
 }
-

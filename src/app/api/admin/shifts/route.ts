@@ -32,15 +32,15 @@ export async function POST(req: Request){
   });
   try{
     const body = schema.parse(await req.json());
-    if (new Date(body.endsAt) <= new Date(body.startsAt)){
-      return NextResponse.json({ error:'endsAt must be after startsAt' }, { status: 400 });
-    }
+    const start = new Date(body.startsAt);
+    let end = new Date(body.endsAt);
+    // Support overnight shifts (end before or equal start means next day)
+    if (end <= start) end = new Date(end.getTime() + 24*60*60*1000);
     const shift = await prisma.shift.create({ data: {
-      title: body.title, startsAt: new Date(body.startsAt), endsAt: new Date(body.endsAt), needed: body.needed, notes: body.notes,
+      title: body.title, startsAt: start, endsAt: end, needed: body.needed, notes: body.notes,
     }});
     return NextResponse.json(shift);
   }catch(e:any){
     return NextResponse.json({ error: e?.message || 'invalid' }, { status: 400 });
   }
 }
-
