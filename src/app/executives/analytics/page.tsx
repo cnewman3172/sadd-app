@@ -34,9 +34,7 @@ export default function AnalyticsPage(){
           <Metric title="High Reviews (4–5★)" value={String(summary?.ratings?.highCount ?? '—')} />
           <Metric title="Low Reviews (1–3★)" value={String(summary?.ratings?.lowCount ?? '—')} />
         </div>
-        <div className="mt-4">
-          <a className="inline-block rounded border px-3 py-2 text-sm" href="/api/admin/export/rides?format=csv">Export Rides (CSV)</a>
-        </div>
+        <ExportPanel />
       </section>
 
       <section className="rounded-xl p-4 bg-white/70 dark:bg-white/10 border border-white/20">
@@ -75,6 +73,26 @@ function Bar({ label, value, max }:{ label:string; value:number; max:number }){
         <div className="h-3 rounded bg-black dark:bg-white" style={{ width: `${pct}%` }} />
       </div>
       <div className="col-span-1 text-right text-sm tabular-nums">{value}</div>
+    </div>
+  );
+}
+
+function ExportPanel(){
+  const [from, setFrom] = useState('');
+  const [to, setTo] = useState('');
+  const base = '/api/admin/export/rides?format=csv';
+  const href = base + (from?`&from=${encodeURIComponent(from)}`:'') + (to?`&to=${encodeURIComponent(to)}`:'');
+  return (
+    <div className="mt-4 flex items-end gap-2">
+      <div>
+        <label className="text-xs opacity-70">From</label>
+        <input type="date" value={from} onChange={(e)=> setFrom(e.target.value)} className="block p-2 rounded border bg-white/80 text-sm" />
+      </div>
+      <div>
+        <label className="text-xs opacity-70">To</label>
+        <input type="date" value={to} onChange={(e)=> setTo(e.target.value)} className="block p-2 rounded border bg-white/80 text-sm" />
+      </div>
+      <a className="rounded border px-3 py-2 text-sm" href={href}>Export Rides (CSV)</a>
     </div>
   );
 }
