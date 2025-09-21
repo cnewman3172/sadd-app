@@ -17,11 +17,23 @@ export default function Driving(){
   const [walkTaskId, setWalkTaskId] = useState<string>('');
   const [walkForm, setWalkForm] = useState<any>({ riderId:'', name:'', phone:'', dropAddr:'', dropLat: undefined as number|undefined, dropLng: undefined as number|undefined });
   const [walkSelRider, setWalkSelRider] = useState<any|null>(null);
+  const [walkNameOpts, setWalkNameOpts] = useState<any[]>([]);
+  const [walkNameOpen, setWalkNameOpen] = useState(false);
 
   async function refreshVans(){
     const v = await fetch('/api/vans').then(r=>r.json());
     setVans(v);
   }
+
+  // Inline rider lookup bound to the Name input (Walk-On)
+  useEffect(()=>{
+    const t = setTimeout(async()=>{
+      const q = String(walkForm.name||'').trim();
+      if (q.length < 2){ setWalkNameOpts([]); setWalkNameOpen(false); return; }
+      try{ const r = await fetch(`/api/admin/users?q=${encodeURIComponent(q)}`, { cache:'no-store' }); const d = await r.json(); setWalkNameOpts(d||[]); setWalkNameOpen(true); }catch{}
+    }, 250);
+    return ()=> clearTimeout(t);
+  }, [walkForm.name]);
   async function refreshTasks(){
     const r = await fetch('/api/driver/tasks').then(r=>r.json());
     setCurrentVan(r.van);
@@ -216,14 +228,25 @@ export default function Driving(){
               return (
                 <div className="grid gap-2">
                   <div className="text-xs opacity-70">Pickup: {t?.pickupAddr || '—'}</div>
-                  <UserLookup onSelect={(u:any)=> { setWalkSelRider(u); setWalkForm((f:any)=> ({ ...f, riderId: u.id, name: `${u.firstName} ${u.lastName}`, phone: (u as any).phone||f.phone })); }} />
+                  <div className="relative">
+                    <input className="p-2 rounded border text-sm w-full" placeholder="Name" value={walkForm.name} onChange={(e)=> setWalkForm((f:any)=> ({ ...f, name: e.target.value }))} onFocus={()=>{ if (walkNameOpts.length>0) setWalkNameOpen(true); }} />
+                    {walkNameOpen && walkNameOpts.length>0 && (
+                      <div className="absolute z-10 mt-1 w-full max-h-56 overflow-auto rounded border bg-white text-black shadow-lg">
+                        {walkNameOpts.map((u:any)=> (
+                          <button key={u.id} type="button" className="block w-full text-left px-3 py-2 hover:bg-black/5" onMouseDown={(e)=> e.preventDefault()} onClick={()=>{ setWalkSelRider(u); setWalkForm((f:any)=> ({ ...f, riderId: u.id, name: `${u.firstName} ${u.lastName}`, phone: (u as any).phone||f.phone })); setWalkNameOpen(false); }}>
+                            <div className="text-sm">{u.firstName} {u.lastName} <span className="opacity-60">{u.email}</span></div>
+                            <div className="text-xs opacity-60">{u.rank||'—'} · {u.phone||'no phone'}</div>
+                          </button>
+                        ))}
+                      </div>
+                    )}
+                  </div>
                   {walkSelRider && (
                     <div className="text-xs inline-flex items-center gap-2 rounded-full border px-2 py-1 w-fit">
                       <span className="opacity-70">{walkSelRider.rank || '—'}</span>
                       <span className="opacity-60">{walkSelRider.phone || 'no phone'}</span>
                     </div>
                   )}
-                  <input className="p-2 rounded border text-sm" placeholder="Name" value={walkForm.name} onChange={(e)=> setWalkForm((f:any)=> ({ ...f, name: e.target.value }))} />
                   <input className="p-2 rounded border text-sm" placeholder="Cell Number" value={walkForm.phone} onChange={(e)=> setWalkForm((f:any)=> ({ ...f, phone: e.target.value }))} />
                   <AddressInput label="Drop Off" value={walkForm.dropAddr} onChange={(t)=> setWalkForm((f:any)=> ({ ...f, dropAddr: t }))} onSelect={(o)=> setWalkForm((f:any)=> ({ ...f, dropAddr: o.label, dropLat: o.lat, dropLng: o.lon }))} />
                   <div className="flex justify-end gap-2 mt-2">

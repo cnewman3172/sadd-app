@@ -19,6 +19,8 @@ export default function Dashboard(){
   const [manualEtaSec, setManualEtaSec] = useState<number|null>(null);
   const [manualEtaVan, setManualEtaVan] = useState<string>('');
   const [selRider, setSelRider] = useState<any|null>(null);
+  const [nameOpts, setNameOpts] = useState<any[]>([]);
+  const [nameOpen, setNameOpen] = useState(false);
   const [activeEtas, setActiveEtas] = useState<Record<string, { toPickupSec: number|null; toDropSec: number|null }>>({});
 
   async function refresh(){
@@ -31,6 +33,16 @@ export default function Dashboard(){
     // Compute ETAs right after data loads
     try{ await computeActiveEtas(r as any, v as any); }catch{}
   }
+
+  // Inline rider lookup bound to the Name input
+  useEffect(()=>{
+    const t = setTimeout(async()=>{
+      const q = String(manual.name||'').trim();
+      if (q.length < 2){ setNameOpts([]); setNameOpen(false); return; }
+      try{ const r = await fetch(`/api/admin/users?q=${encodeURIComponent(q)}`, { cache:'no-store' }); const d = await r.json(); setNameOpts(d||[]); setNameOpen(true); }catch{}
+    }, 250);
+    return ()=> clearTimeout(t);
+  }, [manual.name]);
 
   useEffect(()=>{ refresh(); const id = setInterval(refresh, 5000); return ()=>clearInterval(id); },[]);
   useEffect(()=>{
@@ -302,10 +314,21 @@ export default function Dashboard(){
             </div>
             <div className="grid gap-2">
               <div className="grid grid-cols-2 gap-2">
-                <input className="p-2 rounded border bg-white/80 dark:bg-neutral-800 text-sm text-black dark:text-white" placeholder="Caller Name" value={manual.name||''} onChange={(e)=> setManual({...manual, name:e.target.value})} />
+                <div className="relative">
+                  <input className="p-2 rounded border bg-white/80 dark:bg-neutral-800 text-sm text-black dark:text-white w-full" placeholder="Caller Name" value={manual.name||''} onChange={(e)=> { setManual({...manual, name:e.target.value}); }} onFocus={()=>{ if (nameOpts.length>0) setNameOpen(true); }} />
+                  {nameOpen && nameOpts.length>0 && (
+                    <div className="absolute z-10 mt-1 w-full max-h-56 overflow-auto rounded border bg-white text-black shadow-lg">
+                      {nameOpts.map((u:any)=> (
+                        <button key={u.id} type="button" className="block w-full text-left px-3 py-2 hover:bg-black/5" onMouseDown={(e)=> e.preventDefault()} onClick={()=>{ setSelRider(u); setManual((m:any)=> ({ ...m, riderId: u.id, name: `${u.firstName} ${u.lastName}`, phone: (u as any).phone||m.phone })); setNameOpen(false); }}>
+                          <div className="text-sm">{u.firstName} {u.lastName} <span className="opacity-60">{u.email}</span></div>
+                          <div className="text-xs opacity-60">{u.rank||'—'} · {u.phone||'no phone'}</div>
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                </div>
                 <input className="p-2 rounded border bg-white/80 dark:bg-neutral-800 text-sm text-black dark:text-white" placeholder="Phone" value={manual.phone||''} onChange={(e)=> setManual({...manual, phone:e.target.value})} />
               </div>
-              <UserLookup onSelect={(u)=> { setSelRider(u); setManual((m:any)=> ({ ...m, riderId: u.id, name: `${u.firstName} ${u.lastName}`, phone: (u as any).phone||m.phone })); }} />
               {selRider && (
                 <div className="text-xs inline-flex items-center gap-2 rounded-full border px-2 py-1 w-fit">
                   <span className="opacity-70">{selRider.rank || '—'}</span>
@@ -397,34 +420,6 @@ function displayName(r: any){
     }
   }catch{}
   return `${r?.rider?.firstName||''} ${r?.rider?.lastName||''}`.trim();
-}
-
-function UserLookup({ onSelect }:{ onSelect:(u:any)=>void }){
-  const [q, setQ] = useState('');
-  const [opts, setOpts] = useState<any[]>([]);
-  const [open, setOpen] = useState(false);
-  useEffect(()=>{
-    const t = setTimeout(async()=>{
-      if (!q || q.length<2){ setOpts([]); setOpen(false); return; }
-      try{ const r = await fetch(`/api/admin/users?q=${encodeURIComponent(q)}`, { cache:'no-store' }); const d = await r.json(); setOpts(d||[]); setOpen(true); }catch{}
-    }, 250);
-    return ()=> clearTimeout(t);
-  }, [q]);
-  return (
-    <div className="relative">
-      <input className="p-2 rounded border bg-white/80 dark:bg-neutral-800 text-sm w-full" placeholder="Search existing rider (name/email)" value={q} onChange={(e)=> setQ(e.target.value)} onFocus={()=>{ if (opts.length>0) setOpen(true); }} />
-      {open && opts.length>0 && (
-        <div className="absolute z-10 mt-1 w-full max-h-56 overflow-auto rounded border bg-white text-black shadow-lg">
-          {opts.map((u:any)=> (
-            <button key={u.id} type="button" className="block w-full text-left px-3 py-2 hover:bg-black/5" onMouseDown={(e)=> e.preventDefault()} onClick={()=>{ onSelect(u); setOpen(false); setQ(`${u.firstName} ${u.lastName} <${u.email}>`); }}>
-              <div className="text-sm">{u.firstName} {u.lastName}</div>
-              <div className="text-xs opacity-60">{u.email}</div>
-            </button>
-          ))}
-        </div>
-      )}
-    </div>
-  );
 }
 
 function CoordinatorMap({ vans }:{ vans: any[] }){
