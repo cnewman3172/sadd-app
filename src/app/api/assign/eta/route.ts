@@ -51,7 +51,10 @@ export async function GET(req: Request){
     }
     // Build base stops excluding start
     const stopsOnly: Array<[number,number]> = [];
-    tasks.forEach(t=> { stopsOnly.push([t.pickupLat,t.pickupLng], [t.dropLat,t.dropLng]); });
+    tasks.forEach(t=> { 
+      stopsOnly.push([Number(t.pickupLat ?? 0), Number(t.pickupLng ?? 0)]);
+      stopsOnly.push([Number(t.dropLat ?? 0), Number(t.dropLng ?? 0)]);
+    });
     let bestSec = Number.POSITIVE_INFINITY;
     for (let i=0;i<=stopsOnly.length;i++){
       const seq: Array<[number,number]> = [[v.currentLat!, v.currentLng!]]
@@ -72,4 +75,3 @@ export async function GET(req: Request){
   if (!best) return NextResponse.json({ best: null });
   return NextResponse.json({ best });
 }
-
