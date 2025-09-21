@@ -5,6 +5,7 @@ import { prisma } from '@/lib/prisma';
 import { logAudit } from '@/lib/audit';
 import crypto from 'crypto';
 import nodemailer from 'nodemailer';
+import { captureError } from '@/lib/obs';
 
 export async function POST(req: Request){
   const ip = (req.headers.get('cf-connecting-ip') || req.headers.get('x-forwarded-for') || '').split(',')[0].trim() || 'local';
@@ -29,8 +30,16 @@ export async function POST(req: Request){
       const pass = process.env.SMTP_PASS;
       const from = process.env.SMTP_FROM || 'SADD <no-reply@sadd.local>';
       if (host && userS && pass){
-        const transporter = nodemailer.createTransport({ host, port, secure: port===465, auth: { user: userS, pass } });
-        await transporter.sendMail({ from, to: email, subject: 'Reset your SADD password', text: `Click the link to reset your password: ${link}`, html: `<p>Click the link to reset your password:</p><p><a href="${link}">${link}</a></p><p>This link expires in 1 hour.</p>` });
+        const debug = /^1|true$/i.test(process.env.SMTP_DEBUG||'');
+        const transporter = nodemailer.createTransport({ host, port, secure: port===465, auth: { user: userS, pass }, logger: debug, debug });
+        try{
+          await transporter.sendMail({ from, to: email, subject: 'Reset your SADD password', text: `Click the link to reset your password: ${link}`, html: `<p>Click the link to reset your password:</p><p><a href="${link}">${link}</a></p><p>This link expires in 1 hour.</p>` });
+        }catch(e:any){
+          captureError(e, { route: 'auth/forgot#send', host, port });
+          if (process.env.NODE_ENV !== 'production'){
+            return NextResponse.json({ ok:false, error: e?.message || 'smtp_failed', link });
+          }
+        }
       } else {
         // In non-production without SMTP, include the link in the response to simplify testing
         if (process.env.NODE_ENV !== 'production'){
