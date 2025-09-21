@@ -37,3 +37,6 @@ prisma/dev.db*
 .dotcodex/
 
 STACK.md
+
+# Local SSH keys (do not commit)
+ops/keys/

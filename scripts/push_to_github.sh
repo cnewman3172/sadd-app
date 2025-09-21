@@ -17,6 +17,13 @@ GH_USER="$1"
 REPO_NAME="$2"
 URL="git@github.com:${GH_USER}/${REPO_NAME}.git"
 
+# Use repo-local SSH key if present (preferred)
+KEY_PATH="${KEY_PATH:-ops/keys/github_ed25519}"
+if [ -f "$KEY_PATH" ]; then
+  export GIT_SSH_COMMAND="ssh -i \"$KEY_PATH\" -o IdentitiesOnly=yes -o StrictHostKeyChecking=accept-new"
+  echo "Using repo-local SSH key: $KEY_PATH"
+fi
+
 cd "$(dirname "$0")/.."
 
 current_branch=$(git rev-parse --abbrev-ref HEAD)
@@ -35,4 +42,3 @@ echo "Pushing branch '$current_branch' to $URL ..."
 git push github "HEAD:main"
 
 echo "Done. Repository pushed to GitHub: ${GH_USER}/${REPO_NAME}"
-
