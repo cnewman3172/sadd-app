@@ -15,6 +15,8 @@ export default function RequestPage(){
   const [vanPos, setVanPos] = useState<{lat:number,lng:number}|null>(null);
   const [etaSec, setEtaSec] = useState<number|null>(null);
   const [vans, setVans] = useState<any[]>([]);
+  const [selVan, setSelVan] = useState<string>('');
+  const [route, setRoute] = useState<Array<Array<[number,number]>>>([]);
 
   async function reloadHistory(){
     const data = await fetch('/api/my-rides?limit=3').then(r=>r.json());
@@ -157,6 +159,8 @@ export default function RequestPage(){
             pickups={status ? getPickupMarkers(status) : []}
             drops={status ? getDropMarkers(status) : []}
             markers={[]}
+            polylines={selVan ? route : []}
+            onVanClick={handleVanClick}
           />
         </div>
         {status && (status.status==='EN_ROUTE' || status.status==='PICKED_UP') && (
@@ -234,6 +238,21 @@ function activeVansMarkers(){
     const color = pax<=0 ? '#16a34a' : pax<cap ? '#f59e0b' : '#dc2626';
     return { id: v.id, lat: v.currentLat!, lng: v.currentLng!, color };
   });
+}
+
+async function handleVanClick(id:string){
+  setSelVan(id); setRoute([]);
+  try{
+    const r = await fetch(`/api/vans/${id}/tasks`).then(r=>r.json());
+    const tasks = r.tasks||[];
+    const van = vans.find((v:any)=> v.id===id);
+    if (van?.currentLat && van?.currentLng && tasks.length>0){
+      const coords: Array<[number,number]> = [[van.currentLat, van.currentLng]];
+      for (const t of tasks){ coords.push([t.pickupLat,t.pickupLng], [t.dropLat,t.dropLng]); }
+      const res = await fetch('/api/route', { method:'POST', headers:{ 'Content-Type':'application/json' }, body: JSON.stringify({ coords }) });
+      if (res.ok){ const d = await res.json(); setRoute([d.coordinates||[]]); }
+    }
+  }catch{}
 }
 
 function formatEta(sec:number){

@@ -173,18 +173,24 @@ function CoordinatorMap({ vans }:{ vans: any[] }){
   const [selectedVan, setSelectedVan] = useState<string>('');
   const [poi, setPoi] = useState<{ pickups:Array<{lat:number,lng:number}>, drops:Array<{lat:number,lng:number}> }>({ pickups:[], drops:[] });
   const [routes, setRoutes] = useState<Array<Array<[number,number]>>>([]);
+  const [panel, setPanel] = useState<{ name:string; pax:number; cap:number; tasks:number }|null>(null);
 
   async function loadTasks(id:string){
     setRoutes([]); setPoi({ pickups:[], drops:[] });
     const r = await fetch(`/api/vans/${id}/tasks`).then(r=>r.json());
     const tasks = r.tasks||[];
     setPoi({ pickups: tasks.map((t:any)=>({lat:t.pickupLat,lng:t.pickupLng})), drops: tasks.map((t:any)=>({lat:t.dropLat,lng:t.dropLng})) });
-    // Build routes as straight lines between legs to avoid heavy OSRM usage
-    const lines: Array<Array<[number,number]>> = [];
-    for (const t of tasks){
-      lines.push([[t.pickupLat, t.pickupLng],[t.dropLat, t.dropLng]]);
+    // Build OSRM route through van -> pickups/drops in order
+    const van = vans.find((v:any)=> v.id===id);
+    if (van?.currentLat && van?.currentLng && tasks.length>0){
+      const coords: Array<[number,number]> = [[van.currentLat, van.currentLng]];
+      for (const t of tasks){ coords.push([t.pickupLat,t.pickupLng], [t.dropLat,t.dropLng]); }
+      try{
+        const res = await fetch('/api/route', { method:'POST', headers:{ 'Content-Type':'application/json' }, body: JSON.stringify({ coords }) });
+        if (res.ok){ const d = await res.json(); setRoutes([d.coordinates||[]]); }
+      }catch{}
     }
-    setRoutes(lines);
+    setPanel({ name: van?.name || 'Van', pax: Number(van?.passengers||0), cap: Number(van?.capacity||0), tasks: tasks.length });
   }
 
   const vanMarkers = vans.filter(v=> v.currentLat&&v.currentLng).map((v:any)=>{
@@ -195,13 +201,23 @@ function CoordinatorMap({ vans }:{ vans: any[] }){
   });
 
   return (
-    <Map
-      height={500}
-      vanMarkers={vanMarkers}
-      pickups={selectedVan ? poi.pickups : []}
-      drops={selectedVan ? poi.drops : []}
-      polylines={selectedVan ? routes : []}
-      onVanClick={(id)=>{ setSelectedVan(id); loadTasks(id); }}
-    />
+    <div className="relative">
+      <Map
+        height={500}
+        vanMarkers={vanMarkers}
+        pickups={selectedVan ? poi.pickups : []}
+        drops={selectedVan ? poi.drops : []}
+        polylines={selectedVan ? routes : []}
+        onVanClick={(id)=>{ setSelectedVan(id); loadTasks(id); }}
+      />
+      {selectedVan && panel && (
+        <div className="absolute top-3 right-3 rounded-lg bg-white text-black dark:bg-neutral-900 dark:text-white border border-black/10 dark:border-white/20 shadow px-3 py-2 text-sm">
+          <div className="font-semibold mb-1">{panel.name}</div>
+          <div>Passengers: {panel.pax}/{panel.cap}</div>
+          <div>Tasks: {panel.tasks}</div>
+          <button className="mt-2 rounded border px-2 py-1 text-xs" onClick={()=>{ setSelectedVan(''); setRoutes([]); setPoi({pickups:[],drops:[]}); }}>Clear</button>
+        </div>
+      )}
+    </div>
   );
 }
