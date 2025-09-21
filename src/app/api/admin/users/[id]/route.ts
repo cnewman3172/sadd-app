@@ -4,6 +4,7 @@ import { verifyJwt } from '@/lib/jwt';
 import { z } from 'zod';
 import { captureError } from '@/lib/obs';
 import { logAudit } from '@/lib/audit';
+import bcrypt from 'bcryptjs';
 
 export const runtime = 'nodejs';
 
@@ -31,12 +32,32 @@ export async function DELETE(req: Request, context: { params: Promise<{ id: stri
   if (!payload || payload.role !== 'ADMIN') return NextResponse.json({ error:'forbidden' }, { status: 403 });
   const { id } = await context.params;
   try{
-    const rides = await prisma.ride.count({ where: { riderId: id } });
-    if (rides > 0){
-      return NextResponse.json({ error: 'Cannot delete: user has associated rides.' }, { status: 400 });
+    // Prevent deleting the shared Unlinked Rider account
+    const user = await prisma.user.findUnique({ where: { id } });
+    if (!user) return NextResponse.json({ ok:true });
+    if (user.email === 'unlinked@sadd.local'){
+      return NextResponse.json({ error: 'Cannot delete the system Unlinked Rider account.' }, { status: 400 });
     }
-    await prisma.user.delete({ where: { id } });
-    logAudit('user_delete', payload.uid, id);
+
+    // Ensure Unlinked Rider exists
+    let unlinked = await prisma.user.findUnique({ where: { email: 'unlinked@sadd.local' } });
+    if (!unlinked){
+      const hash = await bcrypt.hash(Math.random().toString(36).slice(2), 10);
+      unlinked = await prisma.user.create({ data: { email: 'unlinked@sadd.local', password: hash, firstName: 'Unlinked', lastName: 'Rider', role: 'RIDER' } });
+    }
+
+    await prisma.$transaction(async(tx)=>{
+      // Reassign rides to Unlinked Rider
+      await tx.ride.updateMany({ where: { riderId: id }, data: { riderId: unlinked!.id } });
+      // Clear as driver/coordinator where present
+      await tx.ride.updateMany({ where: { driverId: id }, data: { driverId: null } });
+      await tx.ride.updateMany({ where: { coordinatorId: id }, data: { coordinatorId: null } });
+      // If TC currently active on a van, set van offline and clear
+      await tx.van.updateMany({ where: { activeTcId: id }, data: { activeTcId: null, status: 'OFFLINE', passengers: 0 } });
+      // Finally delete the user
+      await tx.user.delete({ where: { id } });
+    });
+    await logAudit('user_delete', payload.uid, id, { reassignedTo: 'unlinked@sadd.local' });
     return NextResponse.json({ ok:true });
   }catch(e:any){
     captureError(e, { route: 'admin/users/[id]#DELETE', id, uid: payload.uid });
