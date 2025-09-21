@@ -5,13 +5,13 @@ import { z } from 'zod';
 import { captureError } from '@/lib/obs';
 import { publish } from '@/lib/events';
 import { logAudit } from '@/lib/audit';
-import bcrypt from 'bcryptjs';
 
 export const runtime = 'nodejs';
 
 const schema = z.object({
-  name: z.string().min(1),
-  phone: z.string().min(7),
+  riderId: z.string().uuid().optional(),
+  name: z.string().min(1).optional(),
+  phone: z.string().min(7).optional(),
   pickupAddr: z.string().min(1),
   dropAddr: z.string().min(1),
   passengers: z.coerce.number().int().min(1).max(11).default(1),
@@ -28,21 +28,8 @@ export async function POST(req: Request){
   if (!payload || !['ADMIN','COORDINATOR'].includes(payload.role)) return NextResponse.json({ error:'forbidden' }, { status: 403 });
   try{
     const body = schema.parse(await req.json());
-    const [firstName, ...rest] = body.name.trim().split(/\s+/);
-    const lastName = rest.join(' ');
-    // Find or create rider by phone
-    let rider = await prisma.user.findFirst({ where: { phone: body.phone } });
-    if (!rider){
-      const digits = body.phone.replace(/\D/g,'') || `guest${Date.now()}`;
-      const emailBase = `${digits}@caller.sadd.local`;
-      const email = emailBase;
-      const hash = await bcrypt.hash(Math.random().toString(36).slice(2), 10);
-      try{
-        rider = await prisma.user.create({ data: { email, password: hash, firstName: firstName || 'Guest', lastName: lastName || 'Caller', phone: body.phone, role: 'RIDER' } });
-      }catch{
-        // if unique collision on email, append suffix
-        rider = await prisma.user.create({ data: { email: `${digits}-${Date.now()}@caller.sadd.local`, password: hash, firstName: firstName || 'Guest', lastName: lastName || 'Caller', phone: body.phone, role: 'RIDER' } });
-      }
+    if (!body.riderId){
+      return NextResponse.json({ error:'Select an existing rider account (no new accounts are created for manual entries).' }, { status: 400 });
     }
     // Ensure rider phone matches manual entry
     else if (rider.phone !== body.phone){
@@ -50,7 +37,7 @@ export async function POST(req: Request){
     }
 
     const ride = await prisma.ride.create({ data: {
-      riderId: rider.id,
+      riderId: body.riderId,
       pickupAddr: body.pickupAddr,
       dropAddr: body.dropAddr,
       pickupLat: body.pickupLat ?? 0,
@@ -73,7 +60,7 @@ export async function POST(req: Request){
         await logAudit('ride_auto_assign', payload.uid, updated.id, { vanId: best.vanId });
       }
     }catch{}
-    await logAudit('ride_create_manual', payload.uid, ride.id, { phone: body.phone });
+    await logAudit('ride_create_manual', payload.uid, ride.id, { riderId: body.riderId });
     return NextResponse.json(ride);
   }catch(e:any){
     captureError(e, { route: 'admin/rides#create', uid: payload?.uid });
