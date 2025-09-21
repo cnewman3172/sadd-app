@@ -74,6 +74,9 @@ model Ride {
   vanId       String?
   van         Van?       @relation(fields: [vanId], references: [id])
   rating      Int?
+  reviewComment String?
+  reviewBypass  Boolean  @default(false)
+  reviewAt      DateTime?
 }
 
 model Setting {
