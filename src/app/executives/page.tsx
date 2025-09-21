@@ -61,38 +61,7 @@ export default function ExecutivesDashboard(){
         </div>
       </section>
 
-      <section className="rounded-xl p-4 bg-white/70 dark:bg-white/10 border border-white/20">
-        <h3 className="font-semibold mb-2">Recent Rides</h3>
-        <div className="rounded-xl border border-white/20 overflow-x-auto">
-          <table className="w-full text-sm">
-            <thead>
-              <tr className="text-left opacity-70">
-                <th className="py-2 px-2">When</th>
-                <th className="px-2">Ride</th>
-                <th className="px-2">Rider</th>
-                <th className="px-2">Route</th>
-                <th className="px-2">Status</th>
-                <th className="px-2">Van</th>
-              </tr>
-            </thead>
-            <tbody>
-              {(summary?.lastRides||[]).map(r=> (
-                <tr key={r.id} className="border-t border-white/20">
-                  <td className="py-2 px-2 whitespace-nowrap">{new Date(r.requestedAt).toLocaleString()}</td>
-                  <td className="px-2 whitespace-nowrap">#{r.rideCode}</td>
-                  <td className="px-2 whitespace-nowrap">{r.rider?.firstName} {r.rider?.lastName}</td>
-                  <td className="px-2">{r.pickupAddr} → {r.dropAddr}</td>
-                  <td className="px-2 whitespace-nowrap">{r.status}</td>
-                  <td className="px-2 whitespace-nowrap">{(r as any).van?.name || '—'}</td>
-                </tr>
-              ))}
-              {(summary?.lastRides?.length ?? 0)===0 && (
-                <tr><td className="py-3 px-2 text-sm opacity-70" colSpan={6}>No recent rides.</td></tr>
-              )}
-            </tbody>
-          </table>
-        </div>
-      </section>
+      {/* Recent Rides section removed per request */}
 
 
       <section className="rounded-xl p-4 bg-white/70 dark:bg-white/10 border border-white/20">
