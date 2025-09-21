@@ -63,9 +63,8 @@ export default async function Home() {
               Soldiers Against Drunk Driving provides no-questions-asked rides so you and your unit stay safe. On-base and nearby.
             </p>
             <div className="flex flex-col sm:flex-row gap-3">
-              <a href="/request" className="group relative rounded-full px-6 py-3 text-black dark:text-black bg-white/90 border border-white/40 hover:translate-y-[-1px] transition will-change-transform">
-                <span className="absolute inset-0 rounded-full ring-1 ring-white/60" />
-                <span className="relative font-semibold">Request a Ride</span>
+              <a href="/request" className="btn-primary will-change-transform">
+                <span className="font-semibold">Request a Ride</span>
               </a>
               <a href="/volunteer" className="rounded-full px-6 py-3 glass border border-white/30 text-sm">
                 Become a Volunteer
@@ -110,7 +109,7 @@ export default async function Home() {
         <section className="mb-16 text-center" data-reveal>
           <div className="inline-flex items-center gap-3 rounded-2xl glass-strong px-6 py-4 border border-white/30">
             <span className="text-lg">Don’t risk it — request a ride now.</span>
-            <a href="/request" className="rounded-full px-5 py-2 bg-black text-white dark:bg-white dark:text-black">Request</a>
+            <a href="/request" className="btn-primary">Request</a>
           </div>
         </section>
       </main>

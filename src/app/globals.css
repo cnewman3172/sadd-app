@@ -7,6 +7,9 @@
   --glass-border: rgba(0,0,0,.06);
   --glass-inner: rgba(255,255,255,.55);
   --glass-shadow: 0 10px 30px rgba(0,0,0,.08);
+  --btn-bg: #111111;
+  --btn-fg: #ffffff;
+  --btn-border: rgba(0,0,0,.25);
 }
 
 @theme inline {
@@ -24,6 +27,9 @@
     --glass-border: rgba(255,255,255,.22);
     --glass-inner: rgba(255,255,255,.20);
     --glass-shadow: 0 10px 30px rgba(0,0,0,.45);
+    --btn-bg: #ffffff;
+    --btn-fg: #000000;
+    --btn-border: rgba(255,255,255,.35);
   }
 }
 
@@ -35,6 +41,9 @@
   --glass-border: rgba(0,0,0,.06);
   --glass-inner: rgba(255,255,255,.55);
   --glass-shadow: 0 10px 30px rgba(0,0,0,.08);
+  --btn-bg: #111111;
+  --btn-fg: #ffffff;
+  --btn-border: rgba(0,0,0,.25);
 }
 :root[data-theme='dark'] {
   --background: #0a0a0a;
@@ -43,6 +52,9 @@
   --glass-border: rgba(255,255,255,.22);
   --glass-inner: rgba(255,255,255,.20);
   --glass-shadow: 0 10px 30px rgba(0,0,0,.45);
+  --btn-bg: #ffffff;
+  --btn-fg: #000000;
+  --btn-border: rgba(255,255,255,.35);
 }
 
 /* Improve contrast when toggling themes even if legacy utility classes are used */
@@ -86,6 +98,18 @@ body {
   -webkit-backdrop-filter: blur(22px) saturate(180%);
   border: 1px solid var(--glass-border);
 }
+
+/* Themed buttons */
+.btn-primary {
+  display: inline-flex; align-items: center; justify-content: center;
+  padding: .75rem 1.25rem; border-radius: 9999px;
+  color: var(--btn-fg); background: var(--btn-bg);
+  border: 1px solid var(--btn-border);
+  transition: transform .15s ease, box-shadow .15s ease, background-color .2s ease;
+  box-shadow: 0 1px 0 rgba(255,255,255,.2) inset, 0 6px 18px rgba(0,0,0,.12);
+}
+.btn-primary:hover { transform: translateY(-1px); }
+.btn-primary:active { transform: translateY(0); }
 
 .gradient-text {
   background: linear-gradient(135deg,#7dd3fc 0%,#a78bfa 40%,#f0abfc 70%,#fca5a5 100%);
