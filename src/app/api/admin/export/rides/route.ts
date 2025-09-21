@@ -19,11 +19,32 @@ export async function GET(req: Request){
 
   const url = new URL(req.url);
   const format = (url.searchParams.get('format') || 'csv').toLowerCase();
+  const fromStr = url.searchParams.get('from') || '';
+  const toStr = url.searchParams.get('to') || '';
+  const where: any = {};
+  if (fromStr || toStr){
+    const from = fromStr ? new Date(fromStr) : undefined;
+    // to = inclusive end-of-day if only date provided
+    const to = toStr ? new Date(toStr) : undefined;
+    if (from || to){
+      where.requestedAt = {} as any;
+      if (from) (where.requestedAt as any).gte = from;
+      if (to) {
+        const end = new Date(to);
+        // if midnight, bump to end of the day
+        if (end.getHours()===0 && end.getMinutes()===0 && end.getSeconds()===0) {
+          end.setHours(23,59,59,999);
+        }
+        (where.requestedAt as any).lte = end;
+      }
+    }
+  }
 
   const rides = await prisma.ride.findMany({
+    where,
     orderBy: { requestedAt: 'desc' },
     include: {
-      rider: { select: { firstName: true, lastName: true, email: true } },
+      rider: { select: { firstName: true, lastName: true, email: true, phone: true, rank: true, unit: true } },
       driver: { select: { firstName: true, lastName: true, email: true } },
     }
   });
@@ -37,6 +58,9 @@ export async function GET(req: Request){
     'ride_uuid',
     'rider_name',
     'rider_email',
+    'rider_phone',
+    'rider_rank',
+    'rider_unit',
     'truck_commander_name',
     'truck_commander_email',
     'requested_at',
@@ -56,6 +80,9 @@ export async function GET(req: Request){
       r.id,
       riderName,
       r.rider?.email || '',
+      r.rider?.phone || '',
+      r.rider?.rank || '',
+      r.rider?.unit || '',
       tcName,
       r.driver?.email || '',
       r.requestedAt?.toISOString?.() || (r as any).requestedAt || '',
@@ -78,4 +105,3 @@ export async function GET(req: Request){
     }
   });
 }
-
