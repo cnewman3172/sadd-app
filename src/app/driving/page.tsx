@@ -68,6 +68,15 @@ export default function Driving(){
   // location pings every 5 seconds when online
   const pingTimer = useRef<number | null>(null);
   const wakeRef = useRef<any>(null);
+  function sendSinglePing(){
+    if (typeof navigator === 'undefined' || !navigator.geolocation) return;
+    try{
+      navigator.geolocation.getCurrentPosition((pos)=>{
+        const { latitude, longitude } = pos.coords;
+        fetch('/api/driver/ping', { method:'POST', body: JSON.stringify({ lat: latitude, lng: longitude }) });
+      });
+    }catch{}
+  }
   async function requestWake(){
     if (!wakeOn) return;
     try{
@@ -104,6 +113,18 @@ export default function Driving(){
     }
     releaseWake();
   }
+
+  // If already online when opening the page, start pings and force an immediate location update
+  useEffect(()=>{
+    if (currentVan){ startPings(); sendSinglePing(); }
+  }, [currentVan?.id]);
+
+  // When tab becomes visible again, force a one-off ping to refresh location
+  useEffect(()=>{
+    const onVis = ()=>{ if (document.visibilityState==='visible' && currentVan){ sendSinglePing(); } };
+    document.addEventListener('visibilitychange', onVis);
+    return ()=> document.removeEventListener('visibilitychange', onVis);
+  }, [currentVan?.id]);
 
   return (
     <div className="p-6 max-w-3xl mx-auto space-y-4">
