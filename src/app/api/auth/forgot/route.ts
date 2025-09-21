@@ -16,7 +16,7 @@ export async function POST(req: Request){
   try{
     const user = await prisma.user.findUnique({ where: { email } });
     await logAudit('forgot_password_request', user?.id, email);
-    if (user){
+    if (user && !user.disabled){
       // create token expiring in 1 hour
       const token = crypto.randomBytes(32).toString('hex');
       const expiresAt = new Date(Date.now() + 60*60*1000);

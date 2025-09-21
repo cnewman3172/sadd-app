@@ -20,7 +20,7 @@ export async function registerUser(data: {
 
 export async function authenticate(email: string, password: string) {
   const user = await prisma.user.findUnique({ where: { email } });
-  if (!user) return null;
+  if (!user || user.disabled) return null;
   const ok = await bcrypt.compare(password, user.password);
   if (!ok) return null;
   const token = await signJwt({ uid: user.id, role: user.role } as JwtPayload);
