@@ -256,7 +256,7 @@ function CoordinatorMap({ vans }:{ vans: any[] }){
         onVanClick={(id)=>{ setSelectedVan(id); loadTasks(id); }}
       />
       {selectedVan && panel && (
-        <div className="absolute top-3 right-3 rounded-lg bg-white text-black dark:bg-neutral-900 dark:text-white border border-black/10 dark:border-white/20 shadow px-3 py-2 text-sm">
+        <div className="absolute top-3 right-3 z-[1200] rounded-lg bg-white text-black dark:bg-neutral-900 dark:text-white border border-black/10 dark:border-white/20 shadow px-3 py-2 text-sm">
           <div className="font-semibold mb-1">{panel.name}</div>
           <div>Passengers: {panel.pax}/{panel.cap}</div>
           <div>Tasks: {panel.tasks}</div>

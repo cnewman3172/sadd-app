@@ -39,13 +39,14 @@ export default function RequestPage(){
     return arr;
   }
   function activeVansMarkers(){
-    const all = vans.filter((v:any)=> v.currentLat && v.currentLng);
-    return all.map((v:any)=>{
-      const pax = Number(v.passengers||0);
-      const cap = Number(v.capacity||8);
-      const color = pax<=0 ? '#16a34a' : pax<cap ? '#f59e0b' : '#dc2626';
-      return { id: v.id, lat: v.currentLat!, lng: v.currentLng!, color };
-    });
+    // For riders: only show the assigned van; otherwise hide other vans for privacy.
+    if (!status?.vanId) return [] as Array<{id:string,lat:number,lng:number,color:string}>;
+    const v = vans.find((x:any)=> x.id===status.vanId && x.currentLat && x.currentLng);
+    if (!v) return [] as Array<{id:string,lat:number,lng:number,color:string}>;
+    const pax = Number(v.passengers||0);
+    const cap = Number(v.capacity||8);
+    const color = pax<=0 ? '#16a34a' : pax<cap ? '#f59e0b' : '#dc2626';
+    return [{ id: v.id, lat: v.currentLat!, lng: v.currentLng!, color }];
   }
   async function handleVanClick(id:string){
     setSelVan(id); setRoute([]);
