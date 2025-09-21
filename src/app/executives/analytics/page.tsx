@@ -121,6 +121,7 @@ function ResetRidesInline(){
       const r = await fetch('/api/admin/reset-rides', { method:'POST', headers:{ 'Content-Type':'application/json' }, body: JSON.stringify({ token, phrase }) });
       if (!r.ok){ const d = await r.json().catch(()=>({error:'failed'})); throw new Error(d.error||'failed'); }
       setOk(true); setOpen(false);
+      (await import('@/components/Toast')).showToast('All rides cleared');
     }catch(e:any){ setError(e.message||'failed'); }
     finally{ setBusy(false); }
   }
