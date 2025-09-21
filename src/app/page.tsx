@@ -1,16 +1,24 @@
 import ScrollEffects from '@/components/ScrollEffects';
+import CountUp from '@/components/CountUp';
 
 export default async function Home() {
   const base = process.env.NEXT_PUBLIC_APP_URL || '';
   let active = false;
   let avgPickupSeconds: number | null = null;
+  let activeVansCount: number | null = null;
+  let ridesFyCount: number | null = null;
   try {
     const r = await fetch(`${base}/api/health`, { cache: 'no-store' });
     if (r.ok) { const d = await r.json(); active = Boolean(d.active); }
   } catch {}
   try {
-    const s = await fetch(`${base}/api/stats/pickup`, { cache: 'no-store' });
-    if (s.ok) { const d = await s.json(); avgPickupSeconds = typeof d.avgSeconds==='number' ? d.avgSeconds : null; }
+    const s = await fetch(`${base}/api/stats/summary`, { cache: 'no-store' });
+    if (s.ok) {
+      const d = await s.json();
+      avgPickupSeconds = typeof d.avgSeconds==='number' ? d.avgSeconds : null;
+      activeVansCount = typeof d.activeVans==='number' ? d.activeVans : null;
+      ridesFyCount = typeof d.ridesFY==='number' ? d.ridesFY : null;
+    }
   } catch {}
 
   return (
@@ -82,9 +90,9 @@ export default async function Home() {
                   <li>3) Ride: get home safe — no questions asked.</li>
                 </ol>
                 <div className="mt-5 grid grid-cols-3 gap-3 text-center text-sm">
-                  <Stat label="Active Vans" value="Live" />
-                  <Stat label="Average Pickup Time" value={formatAvg(avgPickupSeconds)} />
-                  <Stat label="Rides (FY)" value="—" />
+                  <Stat label="Active Vans" valueNumber={activeVansCount} />
+                  <Stat label="Average Pickup Time" valueNumber={avgPickupSeconds!=null? Math.round(avgPickupSeconds/60): null} suffix=" min" />
+                  <Stat label="Rides (FY)" valueNumber={ridesFyCount} />
                 </div>
               </div>
             </div>
@@ -115,10 +123,12 @@ export default async function Home() {
   );
 }
 
-function Stat({ label, value }: { label: string; value: string }){
+function Stat({ label, value, valueNumber, suffix }: { label: string; value?: string; valueNumber?: number|null; suffix?: string }){
   return (
-    <div className="glass rounded-xl py-3 border border-white/20">
-      <div className="text-xl font-semibold">{value}</div>
+    <div className="glass rounded-xl py-3 border border-white/20 sheen" data-sheen>
+      <div className="text-xl font-semibold">
+        {valueNumber!=null ? <CountUp value={valueNumber} suffix={suffix} /> : (value ?? '—')}
+      </div>
       <div className="text-xs opacity-80">{label}</div>
     </div>
   );

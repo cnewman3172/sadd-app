@@ -25,6 +25,15 @@ export default function ScrollEffects(){
         const dy = Math.round(y * speed);
         el.style.transform = `translate3d(0, ${dy}px, 0)`;
       });
+      // Gradient sheen progress for elements
+      const sheens = Array.from(document.querySelectorAll<HTMLElement>('[data-sheen]'));
+      sheens.forEach(el=>{
+        const rect = el.getBoundingClientRect();
+        const vh = window.innerHeight || document.documentElement.clientHeight;
+        const visible = Math.min(1, Math.max(0, 1 - rect.top/vh * 0.8));
+        const pos = -120 + visible * 240; // -120% to +120%
+        el.style.setProperty('--shine', `${pos}%`);
+      });
     };
     const onMove = (ev: MouseEvent)=>{
       const { innerWidth: w, innerHeight: h } = window;
@@ -49,4 +58,3 @@ export default function ScrollEffects(){
   },[]);
   return null;
 }
-

@@ -92,6 +92,18 @@ body {
   transition: opacity .6s ease, transform .6s ease;
   will-change: opacity, transform;
 }
+
+/* Scroll sheen overlay */
+.sheen { position: relative; overflow: hidden; }
+.sheen::after {
+  content: '';
+  position: absolute; inset: -2px;
+  background: linear-gradient(120deg, transparent 40%, rgba(255,255,255,.45) 50%, transparent 60%);
+  transform: translateX(var(--shine, -120%));
+  transition: transform .2s ease-out;
+  pointer-events: none;
+  mix-blend-mode: screen;
+}
 [data-reveal].is-visible {
   opacity: 1;
   transform: none;
