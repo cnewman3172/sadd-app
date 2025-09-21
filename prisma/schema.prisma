@@ -11,80 +11,80 @@ datasource db {
 }
 
 model User {
-  id        String   @id @default(uuid())
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-  email     String   @unique
-  password  String
-  disabled  Boolean  @default(false)
-  firstName String
-  lastName  String
-  rank      String?
-  unit      String?
-  phone     String?
-  role      Role     @default(RIDER)
-  rides     Ride[]   @relation("RiderRides")
-  drives    Ride[]   @relation("DriverRides")
-  coord     Ride[]   @relation("CoordinatorRides")
-  pushSubs  PushSubscription[]
+  id             String             @id @default(uuid())
+  createdAt      DateTime           @default(now())
+  updatedAt      DateTime           @updatedAt
+  email          String             @unique
+  password       String
+  disabled       Boolean            @default(false)
+  firstName      String
+  lastName       String
+  rank           String?
+  unit           String?
+  phone          String?
+  role           Role               @default(RIDER)
+  rides          Ride[]             @relation("RiderRides")
+  drives         Ride[]             @relation("DriverRides")
+  coord          Ride[]             @relation("CoordinatorRides")
+  pushSubs       PushSubscription[]
   // Back-relation for Van.activeTc
-  activeTcOf Van[]
+  activeTcOf     Van[]
   // Back-relation for PasswordReset.user
   passwordResets PasswordReset[]
 }
 
 model Van {
-  id        String   @id @default(uuid())
-  name      String   @unique
-  capacity  Int
-  status    VanStatus @default(ACTIVE)
-  activeTc  User?    @relation(fields: [activeTcId], references: [id])
+  id         String    @id @default(uuid())
+  name       String    @unique
+  capacity   Int
+  status     VanStatus @default(ACTIVE)
+  activeTc   User?     @relation(fields: [activeTcId], references: [id])
   activeTcId String?
-  passengers Int      @default(0)
+  passengers Int       @default(0)
   currentLat Float?
   currentLng Float?
   lastPing   DateTime?
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
   // Back-relation for Ride.van
-  rides     Ride[]
+  rides      Ride[]
 }
 
 model Ride {
-  id          String   @id @default(uuid())
-  rideCode    Int      @unique @default(autoincrement())
-  rider       User     @relation("RiderRides", fields: [riderId], references: [id])
-  riderId     String
-  driver      User?    @relation("DriverRides", fields: [driverId], references: [id])
-  driverId    String?
-  coordinator User?    @relation("CoordinatorRides", fields: [coordinatorId], references: [id])
+  id            String     @id @default(uuid())
+  rideCode      Int        @unique @default(autoincrement())
+  rider         User       @relation("RiderRides", fields: [riderId], references: [id])
+  riderId       String
+  driver        User?      @relation("DriverRides", fields: [driverId], references: [id])
+  driverId      String?
+  coordinator   User?      @relation("CoordinatorRides", fields: [coordinatorId], references: [id])
   coordinatorId String?
-  source      RideSource @default(REQUEST)
-  status      RideStatus @default(PENDING)
-  lock        RideLock   @default(NONE)
-  notes       String?
-  passengers  Int        @default(1)
-  pickupLat   Float
-  pickupLng   Float
-  pickupAddr  String
-  dropLat     Float
-  dropLng     Float
-  dropAddr    String
-  requestedAt DateTime   @default(now())
-  acceptedAt  DateTime?
-  pickupAt    DateTime?
-  dropAt      DateTime?
-  vanId       String?
-  van         Van?       @relation(fields: [vanId], references: [id])
-  rating      Int?
+  source        RideSource @default(REQUEST)
+  status        RideStatus @default(PENDING)
+  lock          RideLock   @default(NONE)
+  notes         String?
+  passengers    Int        @default(1)
+  pickupLat     Float
+  pickupLng     Float
+  pickupAddr    String
+  dropLat       Float
+  dropLng       Float
+  dropAddr      String
+  requestedAt   DateTime   @default(now())
+  acceptedAt    DateTime?
+  pickupAt      DateTime?
+  dropAt        DateTime?
+  vanId         String?
+  van           Van?       @relation(fields: [vanId], references: [id])
+  rating        Int?
   reviewComment String?
-  reviewBypass  Boolean  @default(false)
+  reviewBypass  Boolean    @default(false)
   reviewAt      DateTime?
 }
 
 model Setting {
-  id      Int    @id @default(1)
-  active  Boolean @default(false)
+  id                 Int     @id @default(1)
+  active             Boolean @default(false)
   autoDisableEnabled Boolean @default(false)
   autoDisableTime    String  @default("22:00")
   autoDisableTz      String  @default("America/Anchorage")
@@ -101,13 +101,13 @@ model PushSubscription {
 }
 
 model PasswordReset {
-  id        String   @id @default(uuid())
-  user      User     @relation(fields: [userId], references: [id])
+  id        String    @id @default(uuid())
+  user      User      @relation(fields: [userId], references: [id])
   userId    String
-  token     String   @unique
+  token     String    @unique
   expiresAt DateTime
   usedAt    DateTime?
-  createdAt DateTime @default(now())
+  createdAt DateTime  @default(now())
 }
 
 model Audit {
