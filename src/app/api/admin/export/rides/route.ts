@@ -35,6 +35,18 @@ function fmtInTz(d: Date | string | null | undefined, tz: string){
   }
 }
 
+function humanizeStatus(s?: string){
+  switch(String(s||'').toUpperCase()){
+    case 'PENDING': return 'Pending';
+    case 'ASSIGNED': return 'Assigned';
+    case 'EN_ROUTE': return 'En Route';
+    case 'PICKED_UP': return 'Picked Up';
+    case 'DROPPED': return 'Dropped Off';
+    case 'CANCELED': return 'Canceled';
+    default: return s||'';
+  }
+}
+
 export async function GET(req: Request){
   const token = (req.headers.get('cookie')||'').split('; ').find(c=>c.startsWith('sadd_token='))?.split('=')[1];
   const payload = await verifyJwt(token);
@@ -95,6 +107,7 @@ export async function GET(req: Request){
     'passengers',
     'pickup_address',
     'dropoff_address',
+    'status',
     'rating',
     'review_comment',
     'time_zone',
@@ -129,6 +142,7 @@ export async function GET(req: Request){
       String((r as any).passengers ?? ''),
       r.pickupAddr,
       r.dropAddr,
+      humanizeStatus((r as any).status),
       r.rating!=null ? String(r.rating) : '',
       r.reviewComment || '',
       tz,
