@@ -2,7 +2,7 @@
 import { useEffect, useState } from 'react';
 import AuditLog from '@/components/admin/AuditLog';
 
-type Summary = { totalUsers:number; totalRides:number; activeRides:number; ridesToday:number; activeVans:number };
+type Summary = { totalUsers:number; totalRides:number; activeRides:number; ridesToday:number; activeVans:number; ratings?: { average:number|null; lowCount:number; highCount:number; totalReviews:number } };
 
 export default function AnalyticsPage(){
   const [summary, setSummary] = useState<Summary | null>(null);
@@ -28,6 +28,14 @@ export default function AnalyticsPage(){
           <Metric title="Rides Today" value={summary?.ridesToday?.toString() ?? '—'} />
           <Metric title="Active Rides" value={summary?.activeRides?.toString() ?? '—'} />
           <Metric title="Active Vans" value={summary?.activeVans?.toString() ?? '—'} />
+        </div>
+        <div className="mt-4 grid grid-cols-1 md:grid-cols-3 gap-3">
+          <Metric title="Avg Rating" value={summary?.ratings?.average ? summary!.ratings!.average!.toFixed(2) + ' ★' : '—'} />
+          <Metric title="High Reviews (4–5★)" value={String(summary?.ratings?.highCount ?? '—')} />
+          <Metric title="Low Reviews (1–3★)" value={String(summary?.ratings?.lowCount ?? '—')} />
+        </div>
+        <div className="mt-4">
+          <a className="inline-block rounded border px-3 py-2 text-sm" href="/api/admin/export/rides?format=csv">Export Rides (CSV)</a>
         </div>
       </section>
 
@@ -70,4 +78,3 @@ function Bar({ label, value, max }:{ label:string; value:number; max:number }){
     </div>
   );
 }
-
