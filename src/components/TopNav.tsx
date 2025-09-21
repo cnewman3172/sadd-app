@@ -2,6 +2,7 @@
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { showToast } from '@/components/Toast';
+import ThemeToggle from '@/components/ThemeToggle';
 
 type User = { id:string; firstName?:string; lastName?:string; role?: 'ADMIN'|'COORDINATOR'|'TC'|'RIDER' };
 
@@ -38,6 +39,7 @@ export default function TopNav(){
       <div className="mx-auto max-w-7xl px-4 py-3 flex items-center justify-between rounded-b-2xl glass border border-white/20">
         <Link href="/" className="font-extrabold tracking-tight text-lg">SADD</Link>
         <div className="flex items-center gap-3">
+          <ThemeToggle />
           {user && (
             <div className="relative">
               <button onClick={()=>{ setMenuOpen(o=>!o); setAcctOpen(false); }} className="rounded-full px-3 py-1 text-sm glass border border-white/20">Menu</button>
