@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
-import TopNav from '@/components/TopNav';
+import NavSwitcher from '@/components/NavSwitcher';
 import ToastHost from '@/components/Toast';
 
 const geistSans = Geist({
@@ -34,7 +34,7 @@ export default function RootLayout({
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased min-h-screen bg-background text-foreground`}
       >
-        <TopNav />
+        <NavSwitcher />
         <main className="pt-2">{children}</main>
         <ToastHost />
       </body>

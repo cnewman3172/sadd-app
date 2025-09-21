@@ -1,6 +1,7 @@
 "use client";
 import { useEffect, useState } from 'react';
 import type { Ride } from '@/types';
+import { showToast } from '@/components/Toast';
 
 export default function ExecutivesDashboard(){
   const [active, setActive] = useState<boolean | null>(null);
@@ -26,7 +27,9 @@ export default function ExecutivesDashboard(){
       const r = await fetch('/api/admin/toggle-active', { method:'POST' });
       if (!r.ok){ const d = await r.json().catch(()=>({error:'failed'})); throw new Error(d.error||'Toggle failed'); }
       const d = await r.json();
-      setActive(Boolean(d.active));
+      const on = Boolean(d.active);
+      setActive(on);
+      showToast(on ? 'SADD is now Active' : 'SADD is now Inactive');
     }catch(e:any){ setError(e.message||'Toggle failed'); }
     finally{ setBusy(false); }
   }
@@ -42,10 +45,12 @@ export default function ExecutivesDashboard(){
           <Metric title="Active Vans" value={summary?.activeVans?.toString() ?? '—'} />
         </div>
         <div className="mt-4 flex items-center gap-3">
-          <button onClick={toggle} disabled={busy} className="rounded px-4 py-2 border">
-            {busy ? 'Toggling…' : 'Toggle SADD Active'}
+          <button onClick={toggle} disabled={busy} className={`rounded px-4 py-2 border text-sm ${active ? 'border-green-600 bg-green-600 text-white' : 'border-red-600 bg-red-600 text-white'}`}>
+            {busy ? 'Toggling…' : active ? 'Set Inactive' : 'Set Active'}
           </button>
-          <span className="text-sm opacity-80">Status: {active===null ? '—' : active ? 'Active' : 'Inactive'}</span>
+          <span className={`text-sm ${active===null ? 'opacity-80' : active ? 'text-green-700 dark:text-green-400' : 'text-red-700 dark:text-red-400'}`}>
+            Status: {active===null ? '—' : active ? 'Active' : 'Inactive'}
+          </span>
           {error && <span className="text-sm text-red-600">{error}</span>}
         </div>
       </section>
@@ -94,4 +99,3 @@ function Metric({title, value}:{title:string; value:string}){
     </div>
   );
 }
-
