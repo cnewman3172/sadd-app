@@ -13,13 +13,17 @@ export async function GET(req: Request){
   try{
     const url = new URL(req.url);
     const q = (url.searchParams.get('q') || '').trim();
+    const includeDisabled = url.searchParams.get('includeDisabled') === '1';
+    const base = includeDisabled ? {} : { disabled: false } as any;
     const where = q ? {
-      OR: [
-        { email: { contains: q, mode: 'insensitive' } },
-        { firstName: { contains: q, mode: 'insensitive' } },
-        { lastName: { contains: q, mode: 'insensitive' } }
-      ]
-    } : {};
+      AND: [ base, {
+        OR: [
+          { email: { contains: q, mode: 'insensitive' } },
+          { firstName: { contains: q, mode: 'insensitive' } },
+          { lastName: { contains: q, mode: 'insensitive' } }
+        ]
+      } ]
+    } : base;
     const users = await prisma.user.findMany({
       where,
       orderBy: { createdAt: 'desc' },
