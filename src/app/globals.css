@@ -57,6 +57,14 @@
   border-color: rgba(0,0,0,.08) !important;
 }
 
+/* Force-disable common `dark:` utilities when user chose Light theme */
+:root[data-theme='light'] .dark\:bg-neutral-900 { background-color: #ffffff !important; }
+:root[data-theme='light'] .dark\:bg-neutral-800 { background-color: #ffffff !important; }
+:root[data-theme='light'] .dark\:bg-white\/10 { background-color: rgba(255,255,255,.70) !important; }
+:root[data-theme='light'] .dark\:hover\:bg-white\/10:hover { background-color: rgba(0,0,0,.05) !important; }
+:root[data-theme='light'] .dark\:text-white { color: #171717 !important; }
+:root[data-theme='light'] .dark\:border-white\/20 { border-color: rgba(0,0,0,.08) !important; }
+
 body {
   background: var(--background);
   color: var(--foreground);
