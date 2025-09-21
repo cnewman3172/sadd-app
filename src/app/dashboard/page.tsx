@@ -18,7 +18,7 @@ export default function Dashboard(){
   const [manualBusy, setManualBusy] = useState(false);
   const [manualEtaSec, setManualEtaSec] = useState<number|null>(null);
   const [manualEtaVan, setManualEtaVan] = useState<string>('');
-  const [activeEtas, setActiveEtas] = useState<Record<string, number|null>>({});
+  const [activeEtas, setActiveEtas] = useState<Record<string, { toPickupSec: number|null; toDropSec: number|null }>>({});
 
   async function refresh(){
     const [r, v] = await Promise.all([
@@ -66,22 +66,59 @@ export default function Dashboard(){
   const activeVans = useMemo(()=> vans.filter((v:any)=> v.status==='ACTIVE'), [vans]);
 
   async function computeActiveEtas(rArr: Ride[], vArr: any[]){
-    const map: Record<string, number|null> = {};
-    await Promise.all(rArr.filter((r:any)=> ['ASSIGNED','EN_ROUTE','PICKED_UP'].includes(r.status) && r.vanId)
-      .map(async (r:any)=>{
-        const v = vArr.find((x:any)=> x.id===r.vanId);
-        if (!v || typeof v.currentLat!=='number' || typeof v.currentLng!=='number'){ map[r.id]=null; return; }
-        let toLat:number|undefined, toLng:number|undefined;
-        if (r.status==='PICKED_UP'){ toLat = r.dropLat; toLng = r.dropLng; }
-        else { toLat = r.pickupLat; toLng = r.pickupLng; }
-        if (typeof toLat!=='number' || typeof toLng!=='number'){ map[r.id]=null; return; }
+    const byVan: Record<string, any[]> = {};
+    rArr.filter((r:any)=> ['ASSIGNED','EN_ROUTE','PICKED_UP'].includes(r.status) && r.vanId)
+      .forEach((r:any)=>{ (byVan[r.vanId!] ||= []).push(r); });
+    const result: Record<string, { toPickupSec: number|null; toDropSec: number|null }> = {};
+    for (const vanId of Object.keys(byVan)){
+      const v = vArr.find((x:any)=> x.id===vanId);
+      if (!v || typeof v.currentLat!=='number' || typeof v.currentLng!=='number'){
+        byVan[vanId].forEach((r:any)=> result[r.id] = { toPickupSec: null, toDropSec: null });
+        continue;
+      }
+      // Load tasks in order for this van
+      let tasks: any[] = [];
+      try{ const d = await fetch(`/api/vans/${vanId}/tasks`, { cache:'no-store' }).then(r=>r.json()); tasks = d.tasks||[]; }catch{}
+      if (!Array.isArray(tasks) || tasks.length===0){
+        // Fall back to direct ETAs if no tasks
+        for (const r of byVan[vanId]){
+          const toPick = (typeof r.pickupLat==='number' && typeof r.pickupLng==='number') ? await fetch(`/api/eta?from=${v.currentLat},${v.currentLng}&to=${r.pickupLat},${r.pickupLng}`).then(r=>r.json()).catch(()=>null) : null;
+          const toDrop = (typeof r.dropLat==='number' && typeof r.dropLng==='number') ? await fetch(`/api/eta?from=${v.currentLat},${v.currentLng}&to=${r.dropLat},${r.dropLng}`).then(r=>r.json()).catch(()=>null) : null;
+          result[r.id] = {
+            toPickupSec: toPick && toPick.seconds!=null ? Math.round(toPick.seconds) : null,
+            toDropSec: toDrop && toDrop.seconds!=null ? Math.round(toDrop.seconds) : null,
+          };
+        }
+        continue;
+      }
+      // Build stop sequence and index map
+      const stops: Array<[number,number]> = [[v.currentLat, v.currentLng]];
+      const index: Record<string, { pick:number; drop:number }> = {};
+      tasks.forEach((t:any)=>{
+        const pickIdx = stops.length; stops.push([t.pickupLat, t.pickupLng]);
+        const dropIdx = stops.length; stops.push([t.dropLat, t.dropLng]);
+        index[t.id] = { pick: pickIdx, drop: dropIdx };
+      });
+      // Compute leg durations sequentially to get per-stop ETAs
+      const legsSec: number[] = [];
+      for (let i=0;i<stops.length-1;i++){
         try{
-          const url = `/api/eta?from=${v.currentLat},${v.currentLng}&to=${toLat},${toLng}`;
-          const d = await fetch(url, { cache:'no-store' }).then(r=>r.json());
-          map[r.id] = (d?.seconds!=null) ? Math.round(d.seconds) : null;
-        }catch{ map[r.id]=null; }
-      }));
-    setActiveEtas(map);
+          const d = await fetch(`/api/eta?from=${stops[i][0]},${stops[i][1]}&to=${stops[i+1][0]},${stops[i+1][1]}`, { cache:'no-store' }).then(r=>r.json());
+          legsSec[i] = (d?.seconds!=null) ? Number(d.seconds) : 0;
+        }catch{ legsSec[i] = 0; }
+      }
+      const cum: number[] = [];
+      let s = 0; for (let i=0;i<legsSec.length;i++){ s += legsSec[i]; cum[i+1] = Math.round(s); }
+      for (const r of byVan[vanId]){
+        const idx = index[r.id];
+        if (!idx){ result[r.id] = { toPickupSec: null, toDropSec: null }; continue; }
+        result[r.id] = {
+          toPickupSec: cum[idx.pick] ?? null,
+          toDropSec: cum[idx.drop] ?? null,
+        };
+      }
+    }
+    setActiveEtas(result);
   }
   function candidateCount(r: Ride){
     return vans.filter(v=> v.status==='ACTIVE' && typeof v.currentLat==='number' && typeof v.currentLng==='number' && (v.capacity||0) >= (r.passengers||1)).length;
@@ -181,7 +218,19 @@ export default function Dashboard(){
               <div key={r.id} className="rounded border p-3 flex flex-col gap-2">
                 <div className="flex items-center justify-between">
                   <div className="font-medium">#{r.rideCode} · {r.rider?.firstName} {r.rider?.lastName}</div>
-                  <div className="text-xs opacity-70">{r.status} {activeEtas[r.id]!=null ? `· ETA ${Math.max(1,Math.round((activeEtas[r.id]||0)/60))} min` : ''}</div>
+                  <div className="text-xs opacity-70">
+                    {r.status}
+                    {(() => {
+                      const e = activeEtas[r.id];
+                      if (!e) return null;
+                      const pick = e.toPickupSec!=null ? `${Math.max(1,Math.round(e.toPickupSec/60))} min` : null;
+                      const drop = e.toDropSec!=null ? `${Math.max(1,Math.round(e.toDropSec/60))} min` : null;
+                      if (r.status==='PICKED_UP') return drop ? <> · Drop ETA {drop}</> : null;
+                      if (pick && drop) return <> · Pickup ETA {pick} · Drop ETA {drop}</>;
+                      if (pick) return <> · Pickup ETA {pick}</>;
+                      return null;
+                    })()}
+                  </div>
                 </div>
                 <div className="text-sm opacity-80">{r.pickupAddr} → {r.dropAddr}</div>
                 <div className="flex gap-2 items-center">
