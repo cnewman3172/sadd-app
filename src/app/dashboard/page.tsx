@@ -130,6 +130,9 @@ export default function Dashboard(){
                   }} className="rounded bg-black text-white px-3 py-1 text-sm">Assign</button>
                   <button onClick={()=>openSuggestions(r)} className="rounded border px-3 py-1 text-sm">Suggest</button>
                   <button onClick={()=>quickAssign(r)} className="rounded border px-3 py-1 text-sm">Quick Assign</button>
+                  <a className="rounded border px-2 py-1 text-xs" target="_blank" href={`https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent((r as any).pickupLat?`${(r as any).pickupLat},${(r as any).pickupLng}`:r.pickupAddr)}`}>Directions to Pickup</a>
+                  <a className="rounded border px-2 py-1 text-xs" target="_blank" href={`https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent((r as any).dropLat?`${(r as any).dropLat},${(r as any).dropLng}`:r.dropAddr)}`}>Directions to Drop</a>
+                  {r.rider?.phone && <a className="rounded border px-2 py-1 text-xs" href={`tel:${r.rider.phone}`}>Call Rider</a>}
                 </div>
               </div>
             ))}

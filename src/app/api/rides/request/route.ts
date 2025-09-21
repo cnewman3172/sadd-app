@@ -36,6 +36,17 @@ export async function POST(req: Request){
       notes,
     }});
     publish('ride:update', { id: ride.id, status: ride.status, code: ride.rideCode });
+    // Auto-assign best van
+    try{
+      const origin = new URL(req.url).origin;
+      const s = await fetch(`${origin}/api/assign/suggest?rideId=${ride.id}`).then(r=>r.json());
+      const best = s.ranked?.[0];
+      if (best?.vanId){
+        const updated = await prisma.ride.update({ where: { id: ride.id }, data: { status:'ASSIGNED', vanId: best.vanId, acceptedAt: new Date() } });
+        publish('ride:update', { id: updated.id, status: updated.status, code: updated.rideCode, vanId: updated.vanId });
+        logAudit('ride_auto_assign', payload.uid, updated.id, { vanId: best.vanId });
+      }
+    }catch{}
     logAudit('ride_create', payload.uid, ride.id, { pickupAddr, dropAddr, passengers });
     return NextResponse.json(ride);
   }catch(e:any){
