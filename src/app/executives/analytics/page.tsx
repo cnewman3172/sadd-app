@@ -7,6 +7,7 @@ export default function AnalyticsPage(){
   const [summary, setSummary] = useState<Summary | null>(null);
   const [statusCounts, setStatusCounts] = useState<Record<string, number>>({});
   const [smtpConfigured, setSmtpConfigured] = useState<boolean|null>(null);
+  const [smtpMissing, setSmtpMissing] = useState<string>('');
 
   useEffect(()=>{
     (async()=>{
@@ -14,8 +15,16 @@ export default function AnalyticsPage(){
       setSummary(s);
       try{
         const ping = await fetch('/api/admin/smtp-test', { cache: 'no-store' });
-        if (ping.ok){ const d = await ping.json(); setSmtpConfigured(Boolean(d?.configured)); }
-        else setSmtpConfigured(false);
+        if (ping.ok){
+          const d = await ping.json();
+          setSmtpConfigured(Boolean(d?.configured));
+          if (!d?.configured && d?.details){
+            const miss = Object.entries(d.details).filter(([k,v]:any)=>!v).map(([k])=>k.toUpperCase()).join(', ');
+            setSmtpMissing(miss);
+          }else{ setSmtpMissing(''); }
+        } else {
+          setSmtpConfigured(false);
+        }
       }catch{ setSmtpConfigured(false); }
       const statuses = ['PENDING','ASSIGNED','EN_ROUTE','PICKED_UP','DROPPED','CANCELED'];
       const results = await Promise.all(statuses.map(st => fetch(`/api/rides?status=${st}&take=200`, { cache: 'no-store' }).then(r=>r.json()).then((arr:any[])=>[st, arr.length] as const)));
@@ -40,7 +49,7 @@ export default function AnalyticsPage(){
           <Metric title="Low Reviews (1–3★)" value={String(summary?.ratings?.lowCount ?? '—')} />
         </div>
         <div className="mt-3 text-xs opacity-70">
-          SMTP: {smtpConfigured==null ? 'Checking…' : smtpConfigured ? 'Configured' : 'Not configured'}
+          SMTP: {smtpConfigured==null ? 'Checking…' : smtpConfigured ? 'Configured' : `Not configured${smtpMissing?` (missing: ${smtpMissing})`:''}`}
         </div>
         <ExportAndResetRow />
       </section>

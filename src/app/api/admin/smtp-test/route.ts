@@ -14,7 +14,7 @@ export async function GET(req: NextRequest){
   const pass = process.env.SMTP_PASS;
   const from = process.env.SMTP_FROM;
   const configured = Boolean(host && user && pass && from);
-  return NextResponse.json({ ok:true, configured });
+  return NextResponse.json({ ok:true, configured, details: { host: !!host, user: !!user, pass: !!pass, from: !!from } });
 }
 
 export async function POST(req: NextRequest){
