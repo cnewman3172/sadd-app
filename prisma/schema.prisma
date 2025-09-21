@@ -28,6 +28,8 @@ model User {
   pushSubs  PushSubscription[]
   // Back-relation for Van.activeTc
   activeTcOf Van[]
+  // Back-relation for PasswordReset.user
+  passwordResets PasswordReset[]
 }
 
 model Van {
