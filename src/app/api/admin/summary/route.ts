@@ -10,13 +10,17 @@ export async function GET(req: Request){
   const payload = await verifyJwt(token);
   if (!payload || payload.role !== 'ADMIN') return NextResponse.json({ error:'forbidden' }, { status: 403 });
   try{
-    const [totalUsers, totalRides, activeRides, ridesToday, activeVans, setting] = await Promise.all([
+    const [totalUsers, totalRides, activeRides, ridesToday, activeVans, setting, avg, lowCount, highCount, totalReviews] = await Promise.all([
       prisma.user.count(),
       prisma.ride.count(),
       prisma.ride.count({ where: { status: { in: ['ASSIGNED','EN_ROUTE','PICKED_UP'] } } }),
       prisma.ride.count({ where: { requestedAt: { gte: new Date(new Date().toDateString()) } } }),
       prisma.van.count({ where: { status: 'ACTIVE' } }),
-      prisma.setting.findUnique({ where: { id: 1 } })
+      prisma.setting.findUnique({ where: { id: 1 } }),
+      prisma.ride.aggregate({ _avg: { rating: true }, where: { rating: { not: null } } }),
+      prisma.ride.count({ where: { rating: { lte: 3 } } }),
+      prisma.ride.count({ where: { rating: { gte: 4 } } }),
+      prisma.ride.count({ where: { rating: { not: null } } }),
     ]);
     const lastRides = await prisma.ride.findMany({
       orderBy: { requestedAt: 'desc' },
@@ -25,11 +29,16 @@ export async function GET(req: Request){
     });
     return NextResponse.json({
       totalUsers, totalRides, activeRides, ridesToday, activeVans, active: setting?.active ?? false,
-      lastRides
+      lastRides,
+      ratings: {
+        average: avg._avg.rating ?? null,
+        lowCount,
+        highCount,
+        totalReviews
+      }
     });
   }catch(e:any){
     captureError(e, { route: 'admin/summary', uid: payload.uid });
     return NextResponse.json({ error:'failed' }, { status: 500 });
   }
 }
-
