@@ -2,6 +2,8 @@
 import { useEffect, useMemo, useState } from 'react';
 import dynamic from 'next/dynamic';
 const Map = dynamic(() => import('../../components/Map'), { ssr: false });
+import AddressInput from '@/components/AddressInput';
+import { showToast } from '@/components/Toast';
 import type { Ride, Van } from '@/types';
 
 export default function Dashboard(){
@@ -11,6 +13,9 @@ export default function Dashboard(){
   const [suggestFor, setSuggestFor] = useState<Ride|null>(null);
   const [suggestions, setSuggestions] = useState<Array<{ vanId:string; name:string; seconds:number; meters:number }>>([]);
   const [loadingSuggest, setLoadingSuggest] = useState(false);
+  const [manualOpen, setManualOpen] = useState(false);
+  const [manual, setManual] = useState<any>({ passengers: 1 });
+  const [manualBusy, setManualBusy] = useState(false);
 
   async function refresh(){
     const [r, v] = await Promise.all([
@@ -78,6 +83,9 @@ export default function Dashboard(){
             <div>Active Vans: {vans.length}</div>
             <div>Pickups In Progress: {active.length}</div>
             <div>Pending Requests: {pending.length}</div>
+          </div>
+          <div className="mt-3">
+            <button onClick={()=> setManualOpen(true)} className="rounded border px-3 py-2 text-sm">New Phone Request…</button>
           </div>
         </Card>
         <Card title="Active Fleet">
@@ -152,6 +160,43 @@ export default function Dashboard(){
                   <button onClick={()=>chooseSuggestion(s.vanId)} className="rounded bg-black text-white px-3 py-1 text-sm">Assign</button>
                 </div>
               ))}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {manualOpen && (
+        <div className="fixed inset-0 bg-black/40 grid place-items-center p-4" role="dialog" aria-modal="true">
+          <div className="w-full max-w-lg rounded-xl bg-white dark:bg-neutral-900 border border-white/20 p-4">
+            <div className="flex items-center justify-between mb-2">
+              <h3 className="font-semibold">Manual Ride Request</h3>
+              <button onClick={()=> setManualOpen(false)} aria-label="Close">✕</button>
+            </div>
+            <div className="grid gap-2">
+              <div className="grid grid-cols-2 gap-2">
+                <input className="p-2 rounded border bg-white/80 dark:bg-neutral-800 text-sm text-black dark:text-white" placeholder="Caller Name" value={manual.name||''} onChange={(e)=> setManual({...manual, name:e.target.value})} />
+                <input className="p-2 rounded border bg-white/80 dark:bg-neutral-800 text-sm text-black dark:text-white" placeholder="Phone" value={manual.phone||''} onChange={(e)=> setManual({...manual, phone:e.target.value})} />
+              </div>
+              <AddressInput label="Pickup" value={manual.pickupAddr||''} onChange={(t)=> setManual({...manual, pickupAddr: t})} onSelect={(o)=> setManual({...manual, pickupAddr:o.label, pickupLat:o.lat, pickupLng:o.lon})} />
+              <AddressInput label="Drop Off" value={manual.dropAddr||''} onChange={(t)=> setManual({...manual, dropAddr: t})} onSelect={(o)=> setManual({...manual, dropAddr:o.label, dropLat:o.lat, dropLng:o.lon})} />
+              <div className="grid grid-cols-2 gap-2">
+                <input type="number" min={1} max={8} className="p-2 rounded border bg-white/80 dark:bg-neutral-800 text-sm text-black dark:text-white" value={manual.passengers||1} onChange={(e)=> setManual({...manual, passengers:Number(e.target.value)})} />
+                <input className="p-2 rounded border bg-white/80 dark:bg-neutral-800 text-sm text-black dark:text-white" placeholder="Notes (optional)" value={manual.notes||''} onChange={(e)=> setManual({...manual, notes:e.target.value})} />
+              </div>
+              <div className="flex justify-end gap-2 mt-2">
+                <button onClick={()=> setManualOpen(false)} className="rounded border px-3 py-1 text-sm">Cancel</button>
+                <button disabled={manualBusy} onClick={async()=>{
+                  setManualBusy(true);
+                  try{
+                    const res = await fetch('/api/admin/rides', { method:'POST', headers:{ 'Content-Type':'application/json' }, body: JSON.stringify(manual) });
+                    if (!res.ok){ const d = await res.json().catch(()=>({error:'failed'})); throw new Error(d.error||'failed'); }
+                    setManualOpen(false); setManual({ passengers:1 });
+                    showToast('Manual ride created');
+                    refresh();
+                  }catch(e:any){ alert(e.message||'Failed'); }
+                  finally{ setManualBusy(false); }
+                }} className="rounded bg-black text-white px-3 py-1 text-sm">Create Ride</button>
+              </div>
             </div>
           </div>
         </div>
