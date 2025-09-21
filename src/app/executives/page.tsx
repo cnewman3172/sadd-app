@@ -8,15 +8,21 @@ export default function ExecutivesDashboard(){
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [summary, setSummary] = useState<{ totalUsers:number; totalRides:number; activeRides:number; ridesToday:number; activeVans:number; lastRides: Ride[] } | null>(null);
+  const [autoEnabled, setAutoEnabled] = useState(false);
+  const [autoTime, setAutoTime] = useState('22:00');
+  const [autoTz, setAutoTz] = useState('America/Anchorage');
 
   async function load(){
     try{
-      const [h, s] = await Promise.all([
+      const [h, s, conf] = await Promise.all([
         fetch('/api/health', { cache: 'no-store' }).then(r=>r.json()),
         fetch('/api/admin/summary', { cache: 'no-store' }).then(r=>r.json()),
+      ),
+        fetch('/api/admin/settings', { cache: 'no-store' }).then(r=>r.json()).catch(()=>null),
       ]);
       setActive(Boolean(h.active));
       setSummary(s);
+      if (conf){ setAutoEnabled(Boolean(conf.autoDisableEnabled)); setAutoTime(conf.autoDisableTime||'22:00'); setAutoTz(conf.autoDisableTz||'America/Anchorage'); }
     }catch{ setActive(null); }
   }
   useEffect(()=>{ load(); },[]);
@@ -85,6 +91,39 @@ export default function ExecutivesDashboard(){
               )}
             </tbody>
           </table>
+        </div>
+      </section>
+
+
+      <section className="rounded-xl p-4 bg-white/70 dark:bg-white/10 border border-white/20">
+        <h3 className="font-semibold mb-2">Auto Disable Schedule</h3>
+        <div className="flex flex-wrap items-center gap-3">
+          <label className="flex items-center gap-2 text-sm">
+            <input type="checkbox" checked={autoEnabled} onChange={(e)=> setAutoEnabled(e.target.checked)} /> Enable daily auto-disable
+          </label>
+          <label className="text-sm">Time
+            <input type="time" className="ml-2 p-1 rounded border bg-white/80 dark:bg-neutral-800" value={autoTime} onChange={(e)=> setAutoTime(e.target.value)} />
+          </label>
+          <label className="text-sm">Timezone
+            <select className="ml-2 p-1 rounded border bg-white/80 dark:bg-neutral-800" value={autoTz} onChange={(e)=> setAutoTz(e.target.value)}>
+              <option value="America/Anchorage">America/Anchorage</option>
+              <option value="America/Adak">America/Adak</option>
+              <option value="America/Los_Angeles">America/Los_Angeles</option>
+              <option value="America/Denver">America/Denver</option>
+              <option value="America/Chicago">America/Chicago</option>
+              <option value="America/New_York">America/New_York</option>
+              <option value="UTC">UTC</option>
+            </select>
+          </label>
+          <button onClick={async()=>{
+            setBusy(true); setError(null);
+            try{
+              const r = await fetch('/api/admin/settings', { method:'PUT', headers:{ 'Content-Type':'application/json' }, body: JSON.stringify({ autoDisableEnabled: autoEnabled, autoDisableTime: autoTime, autoDisableTz: autoTz }) });
+              if (!r.ok){ const d = await r.json().catch(()=>({error:'failed'})); throw new Error(d.error||'Save failed'); }
+              showToast('Auto-disable settings saved');
+            }catch(e:any){ setError(e.message||'Save failed'); }
+            finally{ setBusy(false); }
+          }} className="rounded border px-3 py-2 text-sm">Save</button>
         </div>
       </section>
     </div>
