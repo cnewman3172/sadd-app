@@ -33,7 +33,7 @@ export default function AnalyticsPage(){
           <Metric title="High Reviews (4–5★)" value={String(summary?.ratings?.highCount ?? '—')} />
           <Metric title="Low Reviews (1–3★)" value={String(summary?.ratings?.lowCount ?? '—')} />
         </div>
-        <ExportPanel />
+        <ExportAndResetRow />
       </section>
 
       <section className="rounded-xl p-4 bg-white/70 dark:bg-white/10 border border-white/20">
@@ -46,10 +46,7 @@ export default function AnalyticsPage(){
         </div>
       </section>
 
-      <section className="rounded-xl p-4 bg-red-50 text-red-900 dark:bg-red-900/20 dark:text-red-200 border border-red-300/50 dark:border-red-700/50">
-        <h2 className="font-semibold mb-2">Danger Zone</h2>
-        <ResetRidesPanel />
-      </section>
+      {/* Reset moved inline with Export above */}
     </div>
   );
 }
@@ -76,27 +73,32 @@ function Bar({ label, value, max }:{ label:string; value:number; max:number }){
   );
 }
 
-function ExportPanel(){
+function ExportAndResetRow(){
   const [from, setFrom] = useState('');
   const [to, setTo] = useState('');
   const base = '/api/admin/export/rides?format=csv';
   const href = base + (from?`&from=${encodeURIComponent(from)}`:'') + (to?`&to=${encodeURIComponent(to)}`:'');
   return (
-    <div className="mt-4 flex items-end gap-2">
-      <div>
-        <label className="text-xs opacity-70">From</label>
-        <input type="date" value={from} onChange={(e)=> setFrom(e.target.value)} className="block p-2 rounded border bg-white/80 text-sm" />
+    <div className="mt-4 flex items-end justify-between gap-3">
+      <div className="flex items-end gap-2">
+        <div>
+          <label className="text-xs opacity-70">From</label>
+          <input type="date" value={from} onChange={(e)=> setFrom(e.target.value)} className="block p-2 rounded border bg-white/80 text-sm" />
+        </div>
+        <div>
+          <label className="text-xs opacity-70">To</label>
+          <input type="date" value={to} onChange={(e)=> setTo(e.target.value)} className="block p-2 rounded border bg-white/80 text-sm" />
+        </div>
+        <a className="rounded border px-3 py-2 text-sm" href={href}>Export Rides (CSV)</a>
       </div>
-      <div>
-        <label className="text-xs opacity-70">To</label>
-        <input type="date" value={to} onChange={(e)=> setTo(e.target.value)} className="block p-2 rounded border bg-white/80 text-sm" />
+      <div className="ml-auto">
+        <ResetRidesInline />
       </div>
-      <a className="rounded border px-3 py-2 text-sm" href={href}>Export Rides (CSV)</a>
     </div>
   );
 }
 
-function ResetRidesPanel(){
+function ResetRidesInline(){
   const [open, setOpen] = useState(false);
   const [token, setToken] = useState('');
   const [phrase, setPhrase] = useState('');
@@ -124,21 +126,20 @@ function ResetRidesPanel(){
   }
 
   return (
-    <div className="space-y-2">
-      <p className="text-sm">Reset all ride data. This permanently deletes all rides and clears live van state. Users and vans remain.</p>
-      <button onClick={prepare} className="rounded px-3 py-2 border border-red-400 text-red-700 dark:text-red-300">Reset Ride Data…</button>
+    <div className="relative">
+      <button onClick={prepare} className="rounded border px-3 py-2 text-sm border-red-400 text-red-700 dark:text-red-300">Reset Ride Data…</button>
       {open && (
-        <div className="p-3 mt-2 rounded border bg-white text-black dark:bg-neutral-900 dark:text-white">
-          <div className="text-sm mb-2">Type <span className="font-semibold">RESET ALL RIDES</span> to confirm.</div>
-          <input value={phrase} onChange={(e)=> setPhrase(e.target.value)} className="w-full p-2 rounded border mb-2" placeholder="RESET ALL RIDES" />
-          <div className="flex gap-2">
-            <button disabled={busy || phrase!== 'RESET ALL RIDES'} onClick={confirm} className="rounded px-3 py-2 border">Confirm Reset</button>
-            <button onClick={()=> setOpen(false)} className="rounded px-3 py-2 border">Cancel</button>
+        <div className="absolute right-0 mt-2 w-72 p-3 rounded border bg-white text-black dark:bg-neutral-900 dark:text-white shadow">
+          <div className="text-xs opacity-80 mb-2">Type <span className="font-semibold">RESET ALL RIDES</span> to confirm. This deletes all rides and clears live van state.</div>
+          <input value={phrase} onChange={(e)=> setPhrase(e.target.value)} className="w-full p-2 rounded border mb-2 text-sm" placeholder="RESET ALL RIDES" />
+          <div className="flex gap-2 justify-end">
+            <button onClick={()=> setOpen(false)} className="rounded px-3 py-1 border text-sm">Cancel</button>
+            <button disabled={busy || phrase!== 'RESET ALL RIDES'} onClick={confirm} className="rounded px-3 py-1 border text-sm">Confirm</button>
           </div>
+          {error && <div className="mt-2 text-xs text-red-600">{error}</div>}
+          {ok && <div className="mt-2 text-xs text-green-700">All rides cleared.</div>}
         </div>
       )}
-      {error && <div className="text-sm text-red-600">{error}</div>}
-      {ok && <div className="text-sm text-green-700">All rides cleared.</div>}
     </div>
   );
 }
