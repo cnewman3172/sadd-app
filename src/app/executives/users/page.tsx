@@ -35,6 +35,7 @@ export default function UsersPage(){
               <th className="px-2">Name</th>
               <th className="px-2">Role</th>
               <th className="px-2">Created</th>
+              <th className="px-2"></th>
             </tr>
           </thead>
           <tbody>
@@ -56,6 +57,14 @@ export default function UsersPage(){
                   </select>
                 </td>
                 <td className="px-2 whitespace-nowrap">{new Date(u.createdAt).toLocaleDateString()}</td>
+                <td className="px-2 text-right">
+                  <button className="rounded border px-2 py-1 text-xs" onClick={async()=>{
+                    if (!confirm(`Delete ${u.email}? This cannot be undone.`)) return;
+                    const res = await fetch(`/api/admin/users/${u.id}`, { method:'DELETE' });
+                    if (!res.ok){ const d = await res.json().catch(()=>({error:'failed'})); alert(d.error||'Delete failed'); return; }
+                    setUsers(prev=> prev.filter(x=> x.id!==u.id));
+                  }}>Delete</button>
+                </td>
               </tr>
             ))}
             {users.length===0 && !loading && (

@@ -10,8 +10,9 @@ import bcrypt from 'bcryptjs';
 export const runtime = 'nodejs';
 
 const schema = z.object({
-  name: z.string().min(1),
-  phone: z.string().min(7),
+  riderId: z.string().uuid(),
+  name: z.string().min(1).optional(),
+  phone: z.string().min(7).optional(),
   dropAddr: z.string().min(1),
   dropLat: z.number().optional(),
   dropLng: z.number().optional(),
@@ -40,20 +41,9 @@ export async function POST(req: Request){
     }
     if (!task) return NextResponse.json({ error:'no active task to derive pickup' }, { status: 400 });
 
-    // Find or create rider by phone
-    const [firstName, ...rest] = body.name.trim().split(/\s+/);
-    const lastName = rest.join(' ');
-    let rider = await prisma.user.findFirst({ where: { phone: body.phone } });
-    if (!rider){
-      const digits = body.phone.replace(/\D/g,'') || `guest${Date.now()}`;
-      const emailBase = `${digits}@walkon.sadd.local`;
-      const hash = await bcrypt.hash(Math.random().toString(36).slice(2), 10);
-      try{
-        rider = await prisma.user.create({ data: { email: emailBase, password: hash, firstName: firstName || 'Guest', lastName: lastName || 'WalkOn', phone: body.phone, role: 'RIDER' } });
-      }catch{
-        rider = await prisma.user.create({ data: { email: `${digits}-${Date.now()}@walkon.sadd.local`, password: hash, firstName: firstName || 'Guest', lastName: lastName || 'WalkOn', phone: body.phone, role: 'RIDER' } });
-      }
-    }
+    // Require existing rider account
+    const rider = await prisma.user.findUnique({ where: { id: body.riderId } });
+    if (!rider) return NextResponse.json({ error:'rider not found' }, { status: 404 });
     // Ensure rider phone matches walk-on entry
     else if (rider.phone !== body.phone){
       try{ await prisma.user.update({ where:{ id: rider.id }, data:{ phone: body.phone } }); }catch{}

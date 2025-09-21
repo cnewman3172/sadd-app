@@ -284,6 +284,7 @@ export default function Dashboard(){
                 <input className="p-2 rounded border bg-white/80 dark:bg-neutral-800 text-sm text-black dark:text-white" placeholder="Caller Name" value={manual.name||''} onChange={(e)=> setManual({...manual, name:e.target.value})} />
                 <input className="p-2 rounded border bg-white/80 dark:bg-neutral-800 text-sm text-black dark:text-white" placeholder="Phone" value={manual.phone||''} onChange={(e)=> setManual({...manual, phone:e.target.value})} />
               </div>
+              <UserLookup onSelect={(u)=> setManual((m:any)=> ({ ...m, riderId: u.id, name: `${u.firstName} ${u.lastName}`, phone: (u as any).phone||m.phone }))} />
               <AddressInput label="Pickup" value={manual.pickupAddr||''} onChange={(t)=> setManual({...manual, pickupAddr: t})} onSelect={(o)=> setManual({...manual, pickupAddr:o.label, pickupLat:o.lat, pickupLng:o.lon})} />
               <AddressInput label="Drop Off" value={manual.dropAddr||''} onChange={(t)=> setManual({...manual, dropAddr: t})} onSelect={(o)=> setManual({...manual, dropAddr:o.label, dropLat:o.lat, dropLng:o.lon})} />
               <div className="grid grid-cols-2 gap-2">
