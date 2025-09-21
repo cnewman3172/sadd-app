@@ -83,6 +83,8 @@ export async function GET(req: Request){
     'rider_name',
     'rider_email',
     'rider_phone',
+    'contact_name',
+    'contact_phone',
     'rider_rank',
     'rider_unit',
     'truck_commander_name',
@@ -100,12 +102,22 @@ export async function GET(req: Request){
   for (const r of rides){
     const riderName = [r.rider?.firstName, r.rider?.lastName].filter(Boolean).join(' ');
     const tcName = [r.driver?.firstName, r.driver?.lastName].filter(Boolean).join(' ');
+    let contactName = '';
+    let contactPhone = '';
+    try{
+      if (typeof r.notes === 'string' && r.notes.trim().startsWith('{')){
+        const meta = JSON.parse(r.notes);
+        if (meta?.manualContact){ contactName = meta.manualContact.name || ''; contactPhone = meta.manualContact.phone || ''; }
+      }
+    }catch{}
     rows.push([
       String(r.rideCode),
       r.id,
       riderName,
       r.rider?.email || '',
       r.rider?.phone || '',
+      contactName,
+      contactPhone,
       r.rider?.rank || '',
       r.rider?.unit || '',
       tcName,

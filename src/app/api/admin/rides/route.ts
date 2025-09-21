@@ -45,6 +45,15 @@ export async function POST(req: Request){
       try{ await prisma.user.update({ where:{ id: rider.id }, data:{ phone: body.phone } }); }catch{}
     }
 
+    // Attach manual contact info into notes as JSON if provided
+    let notes: string | undefined = body.notes;
+    if (body.name || body.phone){
+      try{
+        const meta: any = { manualContact: { name: body.name, phone: body.phone } };
+        if (notes) meta.memo = notes;
+        notes = JSON.stringify(meta);
+      }catch{}
+    }
     const ride = await prisma.ride.create({ data: {
       riderId: riderId!,
       pickupAddr: body.pickupAddr,
@@ -54,7 +63,7 @@ export async function POST(req: Request){
       dropLat: body.dropLat ?? 0,
       dropLng: body.dropLng ?? 0,
       passengers: Number(body.passengers) || 1,
-      notes: body.notes,
+      notes,
       source: 'REQUEST',
     }});
     publish('ride:update', { id: ride.id, status: ride.status, code: ride.rideCode });

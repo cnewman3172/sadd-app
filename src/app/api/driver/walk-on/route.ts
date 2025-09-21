@@ -58,6 +58,11 @@ export async function POST(req: Request){
     }
 
     // Create the ride, assign to this van immediately
+    // Encode TC-supplied contact info into notes for coordinator visibility
+    let notes: string | undefined = undefined;
+    if (body.name || body.phone){
+      try{ notes = JSON.stringify({ manualContact: { name: body.name, phone: body.phone } }); }catch{}
+    }
     const ride = await prisma.ride.create({ data: {
       riderId: rider.id,
       pickupAddr: task.pickupAddr,
@@ -67,7 +72,7 @@ export async function POST(req: Request){
       dropLat: body.dropLat ?? 0,
       dropLng: body.dropLng ?? 0,
       passengers: Number(body.passengers) || 1,
-      notes: 'WALK_ON',
+      notes: notes || 'WALK_ON',
       source: 'REQUEST',
       status: 'ASSIGNED',
       vanId: van.id,
