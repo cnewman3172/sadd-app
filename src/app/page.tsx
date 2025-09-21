@@ -1,0 +1,122 @@
+export default async function Home() {
+  const base = process.env.NEXT_PUBLIC_APP_URL || '';
+  let active = false;
+  try {
+    const r = await fetch(`${base}/api/health`, { cache: 'no-store' });
+    if (r.ok) { const d = await r.json(); active = Boolean(d.active); }
+  } catch {}
+
+  return (
+    <div className="relative min-h-screen overflow-hidden text-foreground">
+      {/* Ambient gradient orbs */}
+      <div aria-hidden className="pointer-events-none absolute inset-0 -z-10">
+        <div className="orb left-[-10%] top-[-10%] h-72 w-72" style={{background:'radial-gradient(closest-side,#60a5fa,transparent)'}} />
+        <div className="orb right-[-10%] top-[10%] h-80 w-80" style={{background:'radial-gradient(closest-side,#a78bfa,transparent)', animationDelay:'-6s'}} />
+        <div className="orb left-[10%] bottom-[-10%] h-96 w-96" style={{background:'radial-gradient(closest-side,#f0abfc,transparent)', animationDuration:'18s'}} />
+      </div>
+
+      {/* Header */}
+      <header className="sticky top-0 z-20">
+        <div className="mx-auto max-w-7xl px-4 py-3 flex items-center justify-between rounded-b-2xl glass">
+          <a href="/" className="font-extrabold tracking-tight">SADD</a>
+          <nav className="flex items-center gap-3 text-sm">
+            <a href="/volunteer" className="opacity-90 hover:opacity-100">Volunteer</a>
+            <a href="/login" className="rounded-full px-4 py-2 ring-gradient glass-strong">Login</a>
+          </nav>
+        </div>
+      </header>
+
+      {/* Hero */}
+      <main className="relative mx-auto max-w-7xl px-4">
+        <section className="pt-14 pb-10 sm:pt-20 sm:pb-14 grid md:grid-cols-2 gap-8 items-center">
+          <div className="space-y-5">
+            <div className="inline-flex items-center gap-2 rounded-full px-3 py-1 text-xs glass border border-white/20">
+              <span className={`inline-block h-2 w-2 rounded-full ${active? 'bg-emerald-500':'bg-zinc-400'}`} />
+              <span>{active ? 'SADD is Active' : 'SADD Currently Inactive'}</span>
+            </div>
+            <h1 className="text-4xl sm:text-5xl md:text-6xl font-extrabold leading-tight">
+              Get <span className="gradient-text">Home Safe</span>.<br />Free. Confidential.
+            </h1>
+            <p className="text-base sm:text-lg opacity-80 max-w-prose">
+              Soldiers Against Drunk Driving provides no-questions-asked rides so you and your unit stay safe. On-base and nearby.
+            </p>
+            <div className="flex flex-col sm:flex-row gap-3">
+              <a href="/request" className="group relative rounded-full px-6 py-3 text-black dark:text-black bg-white/90 border border-white/40 hover:translate-y-[-1px] transition will-change-transform">
+                <span className="absolute inset-0 rounded-full ring-1 ring-white/60" />
+                <span className="relative font-semibold">Request a Ride</span>
+              </a>
+              <a href="/volunteer" className="rounded-full px-6 py-3 glass border border-white/30 text-sm">
+                Become a Volunteer
+              </a>
+            </div>
+            <ul className="flex flex-wrap gap-2 text-xs opacity-80">
+              <li className="glass rounded-full px-2.5 py-1 border border-white/20">Free</li>
+              <li className="glass rounded-full px-2.5 py-1 border border-white/20">Confidential</li>
+              <li className="glass rounded-full px-2.5 py-1 border border-white/20">On-Base & Nearby</li>
+              <li className="glass rounded-full px-2.5 py-1 border border-white/20">Volunteer-Run</li>
+            </ul>
+          </div>
+
+          {/* Showcase Card */}
+          <div className="relative card-border rounded-3xl p-1">
+            <div className="rounded-[22px] glass-strong p-5">
+              <div className="rounded-2xl bg-gradient-to-br from-white/70 to-white/30 dark:from-white/10 dark:to-white/5 border border-white/30 p-5">
+                <h3 className="text-lg font-semibold mb-2">How It Works</h3>
+                <ol className="space-y-3 text-sm opacity-90">
+                  <li>1) Request: share pickup and destination.</li>
+                  <li>2) Dispatch: a coordinator assigns the nearest van.</li>
+                  <li>3) Ride: get home safe — no questions asked.</li>
+                </ol>
+                <div className="mt-5 grid grid-cols-3 gap-3 text-center text-sm">
+                  <Stat label="Active Vans" value="Live" />
+                  <Stat label="Avg ETA" value="—" />
+                  <Stat label="Rides (FY)" value="—" />
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        {/* Feature tiles */}
+        <section className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6 mb-12">
+          <Tile title="Always Free" desc="Zero cost rides provided by volunteers across the community." icon="💸" />
+          <Tile title="Confidential" desc="We don’t ask why — we just get you home." icon="🛡️" />
+          <Tile title="Coordinated Fleet" desc="Dispatch assigns the closest available van to reduce wait time." icon="🚐" />
+        </section>
+
+        {/* Callout */}
+        <section className="mb-16 text-center">
+          <div className="inline-flex items-center gap-3 rounded-2xl glass-strong px-6 py-4 border border-white/30">
+            <span className="text-lg">Don’t risk it — request a ride now.</span>
+            <a href="/request" className="rounded-full px-5 py-2 bg-black text-white dark:bg-white dark:text-black">Request</a>
+          </div>
+        </section>
+      </main>
+
+      {/* Footer */}
+      <footer className="mx-auto max-w-7xl px-4 pb-10 text-sm opacity-80">
+        © 2025 Arctic Aura Designs, Soldiers Against Drunk Driving · <a className="underline" href="/privacy">Privacy</a> · <a className="underline" href="/volunteer">Volunteer</a>
+      </footer>
+    </div>
+  );
+}
+
+function Stat({ label, value }: { label: string; value: string }){
+  return (
+    <div className="glass rounded-xl py-3 border border-white/20">
+      <div className="text-xl font-semibold">{value}</div>
+      <div className="text-xs opacity-80">{label}</div>
+    </div>
+  );
+}
+
+function Tile({ title, desc, icon }: { title: string; desc: string; icon: string }){
+  return (
+    <div className="group glass rounded-2xl p-5 border border-white/20 transition-transform will-change-transform hover:-translate-y-0.5">
+      <div className="text-2xl mb-2">{icon}</div>
+      <div className="font-semibold mb-1">{title}</div>
+      <div className="opacity-80 text-sm">{desc}</div>
+    </div>
+  );
+}
+
