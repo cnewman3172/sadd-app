@@ -3,6 +3,10 @@
 :root {
   --background: #ffffff;
   --foreground: #171717;
+  --glass-bg: rgba(255,255,255,.70);
+  --glass-border: rgba(0,0,0,.06);
+  --glass-inner: rgba(255,255,255,.55);
+  --glass-shadow: 0 10px 30px rgba(0,0,0,.08);
 }
 
 @theme inline {
@@ -16,6 +20,10 @@
   :root:not([data-theme]) {
     --background: #0a0a0a;
     --foreground: #ededed;
+    --glass-bg: rgba(255,255,255,.08);
+    --glass-border: rgba(255,255,255,.22);
+    --glass-inner: rgba(255,255,255,.20);
+    --glass-shadow: 0 10px 30px rgba(0,0,0,.45);
   }
 }
 
@@ -23,10 +31,18 @@
 :root[data-theme='light'] {
   --background: #ffffff;
   --foreground: #171717;
+  --glass-bg: rgba(255,255,255,.70);
+  --glass-border: rgba(0,0,0,.06);
+  --glass-inner: rgba(255,255,255,.55);
+  --glass-shadow: 0 10px 30px rgba(0,0,0,.08);
 }
 :root[data-theme='dark'] {
   --background: #0a0a0a;
   --foreground: #ededed;
+  --glass-bg: rgba(255,255,255,.08);
+  --glass-border: rgba(255,255,255,.22);
+  --glass-inner: rgba(255,255,255,.20);
+  --glass-shadow: 0 10px 30px rgba(0,0,0,.45);
 }
 
 /* Improve contrast when toggling themes even if legacy utility classes are used */
@@ -41,18 +57,18 @@ body {
 
 /* Glass + motion helpers (iOS-style) */
 .glass {
-  background: color-mix(in oklab, white 12%, transparent);
+  background: var(--glass-bg);
   backdrop-filter: blur(18px) saturate(160%);
   -webkit-backdrop-filter: blur(18px) saturate(160%);
-  border: 1px solid color-mix(in oklab, white 25%, transparent);
-  box-shadow: 0 10px 30px rgba(0,0,0,.12), inset 0 1px 0 rgba(255,255,255,.25);
+  border: 1px solid var(--glass-border);
+  box-shadow: var(--glass-shadow), inset 0 1px 0 var(--glass-inner);
 }
 
 .glass-strong {
-  background: color-mix(in oklab, white 20%, transparent);
+  background: color-mix(in oklab, var(--glass-bg) 115%, transparent);
   backdrop-filter: blur(22px) saturate(180%);
   -webkit-backdrop-filter: blur(22px) saturate(180%);
-  border: 1px solid color-mix(in oklab, white 30%, transparent);
+  border: 1px solid var(--glass-border);
 }
 
 .gradient-text {
