@@ -102,17 +102,30 @@ export default function RequestPage(){
       }catch{}
     };
     es.addEventListener('ride:update', onUpdate as any);
+
+    // Throttle van location events into 5s batches
+    let buffer: Record<string,{lat:number,lng:number}> = {};
+    let timer: number | null = null;
+    const flush = ()=>{
+      const buf = buffer; buffer = {};
+      if (status?.vanId && buf[status.vanId]){
+        setVanPos({ lat: buf[status.vanId].lat, lng: buf[status.vanId].lng });
+      }
+      setVans(prev=> prev.map(x=> buf[x.id] ? { ...x, currentLat: buf[x.id].lat, currentLng: buf[x.id].lng } : x));
+      if (timer!==null){ window.clearTimeout(timer); timer=null; }
+    };
     const onVanPing = (ev: MessageEvent)=>{
       try{
         const v = JSON.parse(ev.data);
-        if (v?.id && v.id === status?.vanId){ setVanPos({ lat: v.lat, lng: v.lng }); }
-        // Also update the general vans overlay
-        setVans(prev=> prev.map(x=> x.id===v.id ? { ...x, currentLat: v.lat, currentLng: v.lng } : x));
+        if (v?.id && typeof v.lat==='number' && typeof v.lng==='number'){
+          buffer[v.id] = { lat: v.lat, lng: v.lng };
+          if (timer===null){ timer = window.setTimeout(flush, 5000); }
+        }
       }catch{}
     };
     es.addEventListener('vans:location', onVanPing as any);
     setSse(es);
-    return ()=>{ try{ es.close(); }catch{} };
+    return ()=>{ try{ es.close(); if (timer!==null){ window.clearTimeout(timer); } }catch{} };
   }, [status?.id]);
 
   // Whenever a van is assigned, fetch its current position initially

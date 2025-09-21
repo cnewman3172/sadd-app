@@ -2,6 +2,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { showToast } from '@/components/Toast';
 import type { Van, Ride } from '@/types';
+import AddressInput from '@/components/AddressInput';
 
 export default function Driving(){
   const [vans, setVans] = useState<Van[]>([]);
@@ -10,6 +11,9 @@ export default function Driving(){
   const [selected, setSelected] = useState('');
   const [sseStatus, setSseStatus] = useState<'connecting'|'online'|'offline'>('connecting');
   const [userId, setUserId] = useState<string>('');
+  const [walkOpen, setWalkOpen] = useState(false);
+  const [walkTaskId, setWalkTaskId] = useState<string>('');
+  const [walkForm, setWalkForm] = useState<any>({ name:'', phone:'', dropAddr:'', dropLat: undefined as number|undefined, dropLng: undefined as number|undefined });
 
   async function refreshVans(){
     const v = await fetch('/api/vans').then(r=>r.json());
@@ -130,11 +134,43 @@ export default function Driving(){
                 {(t.status==='ASSIGNED' || t.status==='EN_ROUTE') && (
                   <button onClick={async()=>{ if (!confirm(`Mark #${t.rideCode} as No Show and cancel?`)) return; await fetch(`/api/rides/${t.id}`, { method:'PUT', body: JSON.stringify({ status:'CANCELED', notes:'No Show' }) }); refreshTasks(); }} className="rounded border px-3 py-1 text-sm border-red-500 text-red-600">No Show</button>
                 )}
+                <button onClick={()=>{ setWalkTaskId(t.id); setWalkForm({ name:'', phone:'', dropAddr:'', dropLat: undefined, dropLng: undefined }); setWalkOpen(true); }} className="rounded border px-3 py-1 text-sm">Walk On…</button>
               </div>
             </div>
           ))}
         </div>
       </section>
+      {walkOpen && (
+        <div className="fixed inset-0 bg-black/40 grid place-items-center p-4" role="dialog" aria-modal="true">
+          <div className="w-full max-w-md rounded-xl bg-white dark:bg-neutral-900 border border-white/20 p-4">
+            <div className="flex items-center justify-between mb-2">
+              <h3 className="font-semibold">Add Walk-On Passenger</h3>
+              <button onClick={()=> setWalkOpen(false)} aria-label="Close">✕</button>
+            </div>
+            {(() => {
+              const t = tasks.find(x=> x.id===walkTaskId);
+              return (
+                <div className="grid gap-2">
+                  <div className="text-xs opacity-70">Pickup: {t?.pickupAddr || '—'}</div>
+                  <input className="p-2 rounded border text-sm" placeholder="Name" value={walkForm.name} onChange={(e)=> setWalkForm((f:any)=> ({ ...f, name: e.target.value }))} />
+                  <input className="p-2 rounded border text-sm" placeholder="Cell Number" value={walkForm.phone} onChange={(e)=> setWalkForm((f:any)=> ({ ...f, phone: e.target.value }))} />
+                  <AddressInput label="Drop Off" value={walkForm.dropAddr} onChange={(t)=> setWalkForm((f:any)=> ({ ...f, dropAddr: t }))} onSelect={(o)=> setWalkForm((f:any)=> ({ ...f, dropAddr: o.label, dropLat: o.lat, dropLng: o.lon }))} />
+                  <div className="flex justify-end gap-2 mt-2">
+                    <button onClick={()=> setWalkOpen(false)} className="rounded border px-3 py-1 text-sm">Cancel</button>
+                    <button onClick={async()=>{
+                      try{
+                        const res = await fetch('/api/driver/walk-on', { method:'POST', headers:{ 'Content-Type':'application/json' }, body: JSON.stringify({ ...walkForm, taskId: walkTaskId }) });
+                        if (!res.ok){ const d = await res.json().catch(()=>({error:'Failed'})); throw new Error(d.error||'Failed'); }
+                        showToast('Walk-on added'); setWalkOpen(false); setWalkTaskId(''); setWalkForm({ name:'', phone:'', dropAddr:'' }); refreshTasks();
+                      }catch(e:any){ showToast(e.message||'Failed'); }
+                    }} className="rounded bg-black text-white px-3 py-1 text-sm">Add</button>
+                  </div>
+                </div>
+              );
+            })()}
+          </div>
+        </div>
+      )}
     </div>
   );
 }
