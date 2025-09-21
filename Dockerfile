@@ -10,6 +10,9 @@ WORKDIR /app
 RUN apk add --no-cache openssl
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
+# prisma generate needs a DATABASE_URL at build time to parse schema,
+# but it does not connect. Provide a dummy Postgres URL so CI/buildx succeeds.
+ENV DATABASE_URL="postgresql://postgres:postgres@localhost:5432/postgres?schema=public"
 RUN npx prisma generate && npm run build
 
 FROM node:20-alpine AS runner
