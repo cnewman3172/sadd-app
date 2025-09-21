@@ -57,10 +57,12 @@ export async function GET(req: Request){
     });
     let bestSec = Number.POSITIVE_INFINITY;
     for (let i=0;i<=stopsOnly.length;i++){
-      const seq: Array<[number,number]> = [[v.currentLat!, v.currentLng!]]
-        .concat(stopsOnly.slice(0,i))
-        .concat([[pLat,pLng] as [number,number]])
-        .concat(stopsOnly.slice(i));
+      const seq: Array<[number,number]> = [
+        [v.currentLat!, v.currentLng!] as [number,number],
+        ...stopsOnly.slice(0,i),
+        [pLat,pLng] as [number,number],
+        ...stopsOnly.slice(i),
+      ];
       const legs = await osrmLegs(seq);
       if (!legs || legs.length===0) continue;
       // Sum from start to the leg that arrives at pickup (which is leg index i)
