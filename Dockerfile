@@ -7,7 +7,7 @@ RUN if [ -f package-lock.json ]; then npm ci --no-audit --no-fund; else npm inst
 FROM node:20-alpine AS builder
 ARG BUILD_SHA="dev"
 WORKDIR /app
-RUN apk add --no-cache openssl
+RUN apk add --no-cache openssl libc6-compat
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
 # prisma generate needs a DATABASE_URL at build time to parse schema,
