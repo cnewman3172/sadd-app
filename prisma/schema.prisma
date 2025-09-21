@@ -31,6 +31,8 @@ model User {
   activeTcOf     Van[]
   // Back-relation for PasswordReset.user
   passwordResets PasswordReset[]
+  // Back-relation for ShiftSignup.user
+  shiftSignups   ShiftSignup[]
 }
 
 model Van {
@@ -117,6 +119,37 @@ model Audit {
   action    String
   subject   String?
   details   Json?
+}
+
+// Shift scheduling for staffing coordinators (future: roles TC/VOLUNTEER)
+enum ShiftRole {
+  COORDINATOR
+}
+
+model Shift {
+  id        String        @id @default(uuid())
+  title     String?
+  role      ShiftRole     @default(COORDINATOR)
+  startsAt  DateTime
+  endsAt    DateTime
+  needed    Int           @default(1)
+  notes     String?
+  createdAt DateTime      @default(now())
+  updatedAt DateTime      @updatedAt
+  signups   ShiftSignup[]
+
+  @@index([startsAt])
+}
+
+model ShiftSignup {
+  id        String   @id @default(uuid())
+  shift     Shift    @relation(fields: [shiftId], references: [id])
+  shiftId   String
+  user      User     @relation(fields: [userId], references: [id])
+  userId    String
+  createdAt DateTime @default(now())
+
+  @@unique([shiftId, userId])
 }
 
 enum Role {
