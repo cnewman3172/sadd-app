@@ -29,16 +29,15 @@ export default function Profile() {
       <h1 className="text-2xl font-semibold">Profile</h1>
       <form onSubmit={save} className="grid gap-3">
         <div className="grid grid-cols-2 gap-2">
-          <input className="p-3 rounded border bg-white/80" value={form.firstName||''} onChange={(e)=>setForm({...form, firstName:e.target.value})} />
-          <input className="p-3 rounded border bg-white/80" value={form.lastName||''} onChange={(e)=>setForm({...form, lastName:e.target.value})} />
+          <input className="p-3 rounded border bg-white/80 dark:bg-neutral-800 text-black dark:text-white" value={form.firstName||''} onChange={(e)=>setForm({...form, firstName:e.target.value})} />
+          <input className="p-3 rounded border bg-white/80 dark:bg-neutral-800 text-black dark:text-white" value={form.lastName||''} onChange={(e)=>setForm({...form, lastName:e.target.value})} />
         </div>
-        <input className="p-3 rounded border bg-white/80" value={form.rank||''} onChange={(e)=>setForm({...form, rank:e.target.value})} />
-        <input className="p-3 rounded border bg-white/80" value={form.unit||''} onChange={(e)=>setForm({...form, unit:e.target.value})} />
-        <input className="p-3 rounded border bg-white/80" value={form.phone||''} onChange={(e)=>setForm({...form, phone:e.target.value})} />
+        <input className="p-3 rounded border bg-white/80 dark:bg-neutral-800 text-black dark:text-white" value={form.rank||''} onChange={(e)=>setForm({...form, rank:e.target.value})} />
+        <input className="p-3 rounded border bg-white/80 dark:bg-neutral-800 text-black dark:text-white" value={form.unit||''} onChange={(e)=>setForm({...form, unit:e.target.value})} />
+        <input className="p-3 rounded border bg-white/80 dark:bg-neutral-800 text-black dark:text-white" value={form.phone||''} onChange={(e)=>setForm({...form, phone:e.target.value})} />
         <button className="rounded bg-black text-white py-3">Save</button>
       </form>
       <button onClick={changePassword} className="rounded border py-2 px-4">Change Password</button>
     </div>
   );
 }
-

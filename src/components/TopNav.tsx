@@ -5,12 +5,9 @@ type User = { id:string; firstName?:string; lastName?:string; role?: 'ADMIN'|'CO
 
 const LINKS: Array<{ href:string; label:string; roles: User['role'][] }> = [
   { href:'/executives', label:'Executives', roles:['ADMIN'] },
-  { href:'/executives/analytics', label:'Analytics', roles:['ADMIN'] },
-  { href:'/executives/activity', label:'Activity', roles:['ADMIN'] },
-  { href:'/dashboard', label:'Coordinator', roles:['ADMIN','COORDINATOR'] },
-  { href:'/driving', label:'Driving', roles:['ADMIN','COORDINATOR','TC'] },
-  { href:'/request', label:'Request', roles:['ADMIN','COORDINATOR','TC','RIDER'] },
-  { href:'/profile', label:'Profile', roles:['ADMIN','COORDINATOR','TC','RIDER'] },
+  { href:'/dashboard', label:'Coordinators', roles:['ADMIN','COORDINATOR'] },
+  { href:'/driving', label:'Truck Commanders', roles:['ADMIN','COORDINATOR','TC'] },
+  { href:'/request', label:'Request a Ride', roles:['ADMIN','COORDINATOR','TC','RIDER'] },
 ];
 
 export default function TopNav(){
@@ -53,4 +50,3 @@ export default function TopNav(){
     </header>
   );
 }
-
