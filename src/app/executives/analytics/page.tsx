@@ -6,11 +6,17 @@ type Summary = { totalUsers:number; totalRides:number; activeRides:number; rides
 export default function AnalyticsPage(){
   const [summary, setSummary] = useState<Summary | null>(null);
   const [statusCounts, setStatusCounts] = useState<Record<string, number>>({});
+  const [smtpConfigured, setSmtpConfigured] = useState<boolean|null>(null);
 
   useEffect(()=>{
     (async()=>{
       const s = await fetch('/api/admin/summary', { cache: 'no-store' }).then(r=>r.json());
       setSummary(s);
+      try{
+        const ping = await fetch('/api/admin/smtp-test', { cache: 'no-store' });
+        if (ping.ok){ const d = await ping.json(); setSmtpConfigured(Boolean(d?.configured)); }
+        else setSmtpConfigured(false);
+      }catch{ setSmtpConfigured(false); }
       const statuses = ['PENDING','ASSIGNED','EN_ROUTE','PICKED_UP','DROPPED','CANCELED'];
       const results = await Promise.all(statuses.map(st => fetch(`/api/rides?status=${st}&take=200`, { cache: 'no-store' }).then(r=>r.json()).then((arr:any[])=>[st, arr.length] as const)));
       setStatusCounts(Object.fromEntries(results));
@@ -32,6 +38,9 @@ export default function AnalyticsPage(){
           <Metric title="Avg Rating" value={summary?.ratings?.average ? summary!.ratings!.average!.toFixed(2) + ' ★' : '—'} />
           <Metric title="High Reviews (4–5★)" value={String(summary?.ratings?.highCount ?? '—')} />
           <Metric title="Low Reviews (1–3★)" value={String(summary?.ratings?.lowCount ?? '—')} />
+        </div>
+        <div className="mt-3 text-xs opacity-70">
+          SMTP: {smtpConfigured==null ? 'Checking…' : smtpConfigured ? 'Configured' : 'Not configured'}
         </div>
         <ExportAndResetRow />
       </section>
