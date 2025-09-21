@@ -61,9 +61,14 @@ export async function POST(req: Request){
       }
       riderId = u.id;
     }
-    // Ensure rider phone matches manual entry
-    else if (rider.phone !== body.phone){
-      try{ await prisma.user.update({ where:{ id: rider.id }, data:{ phone: body.phone } }); }catch{}
+    // Ensure rider phone matches manual entry (if provided)
+    else if (body.phone){
+      try{
+        const existing = await prisma.user.findUnique({ where:{ id: riderId } });
+        if (existing && existing.phone !== body.phone){
+          await prisma.user.update({ where:{ id: riderId }, data:{ phone: body.phone } });
+        }
+      }catch{}
     }
 
     // Attach manual contact info into notes as JSON if provided
