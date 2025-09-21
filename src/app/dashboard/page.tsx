@@ -33,18 +33,29 @@ export default function Dashboard(){
     es.addEventListener('hello', ()=> setSseStatus('online'));
     es.addEventListener('ride:update', ()=> refresh());
     es.addEventListener('vans:update', ()=> refresh());
-    es.addEventListener('vans:location', (e)=>{
+    // Throttle location updates to ~5s batches
+    const buffer: Record<string,{lat:number,lng:number}> = {};
+    let timer: number | null = null;
+    const flush = ()=>{
+      setVans((prev:any[])=> prev.map(v=> buffer[v.id] ? { ...v, currentLat: buffer[v.id].lat, currentLng: buffer[v.id].lng } : v));
+      for (const k in buffer) delete buffer[k];
+      if (timer!==null){ window.clearTimeout(timer); timer=null; }
+    };
+    const onLoc = (e: MessageEvent)=>{
       try{
-        const d = JSON.parse((e as MessageEvent).data);
-        setVans((prev:any[])=> prev.map(v=> v.id===d.id ? { ...v, currentLat:d.lat, currentLng:d.lng } : v));
+        const d = JSON.parse(e.data);
+        if (d?.id){ buffer[d.id] = { lat: d.lat, lng: d.lng }; }
+        if (timer===null){ timer = window.setTimeout(flush, 5000); }
       }catch{}
-    });
+    };
+    es.addEventListener('vans:location', onLoc as any);
     es.onerror = ()=> setSseStatus('offline');
-    return ()=>{ es.close(); setSseStatus('offline'); };
+    return ()=>{ es.close(); if (timer!==null){ window.clearTimeout(timer); } setSseStatus('offline'); };
   },[]);
 
   const pending = useMemo(()=> rides.filter((r:Ride)=>r.status==='PENDING'),[rides]);
   const active = useMemo(()=> rides.filter((r:Ride)=>['ASSIGNED','EN_ROUTE','PICKED_UP'].includes(r.status)),[rides]);
+  const activeVans = useMemo(()=> vans.filter((v:any)=> v.status==='ACTIVE'), [vans]);
   function candidateCount(r: Ride){
     return vans.filter(v=> v.status==='ACTIVE' && typeof v.currentLat==='number' && typeof v.currentLng==='number' && (v.capacity||0) >= (r.passengers||1)).length;
   }
@@ -80,7 +91,7 @@ export default function Dashboard(){
       <div className="md:col-span-1 space-y-4">
         <Card title="Live Ops">
           <div className="text-sm space-y-1">
-            <div>Active Vans: {vans.length}</div>
+            <div>Active Vans: {activeVans.length}</div>
             <div>Pickups In Progress: {active.length}</div>
             <div>Pending Requests: {pending.length}</div>
           </div>
