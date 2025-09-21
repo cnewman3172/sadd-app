@@ -1,5 +1,6 @@
 "use client";
 import { useEffect, useState } from 'react';
+import { showToast } from '@/components/Toast';
 
 type User = { id:string; firstName?:string; lastName?:string; role?: 'ADMIN'|'COORDINATOR'|'TC'|'RIDER' };
 
@@ -15,7 +16,19 @@ export default function TopNav(){
   const [menuOpen, setMenuOpen] = useState(false);
   const [acctOpen, setAcctOpen] = useState(false);
   useEffect(()=>{
-    fetch('/api/me', { cache:'no-store' }).then(r=> r.ok ? r.json() : {}).then(setUser).catch(()=>{});
+    fetch('/api/me', { cache:'no-store' })
+      .then(r=> r.ok ? r.json() : {})
+      .then((u)=>{
+        setUser(u);
+        try{
+          const prev = window.localStorage.getItem('sadd_role');
+          if (u?.role){
+            if (prev && prev !== u.role){ showToast('Permissions updated'); }
+            window.localStorage.setItem('sadd_role', u.role);
+          }
+        }catch{}
+      })
+      .catch(()=>{});
   },[]);
   const name = user ? [user.firstName, user.lastName].filter(Boolean).join(' ') || 'Account' : 'Account';
   const links = (user?.role ? LINKS.filter(l=> l.roles.includes(user.role!)) : []).filter((v,i,a)=> a.findIndex(x=>x.href===v.href)===i);
