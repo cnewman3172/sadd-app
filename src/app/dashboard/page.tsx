@@ -27,6 +27,8 @@ export default function Dashboard(){
     ]);
     setRides(r);
     setVans(v);
+    // Compute ETAs right after data loads
+    try{ await computeActiveEtas(r as any, v as any); }catch{}
   }
 
   useEffect(()=>{ refresh(); const id = setInterval(refresh, 5000); return ()=>clearInterval(id); },[]);
