@@ -1,6 +1,5 @@
 "use client";
 import { useEffect, useState } from 'react';
-import AuditLog from '@/components/admin/AuditLog';
 
 type Summary = { totalUsers:number; totalRides:number; activeRides:number; ridesToday:number; activeVans:number; ratings?: { average:number|null; lowCount:number; highCount:number; totalReviews:number } };
 
@@ -45,11 +44,6 @@ export default function AnalyticsPage(){
           ))}
           {Object.keys(statusCounts).length===0 && <div className="text-sm opacity-70">Loading…</div>}
         </div>
-      </section>
-
-      <section className="space-y-2">
-        <h2 className="font-semibold">Recent Activity</h2>
-        <AuditLog />
       </section>
 
       <section className="rounded-xl p-4 bg-red-50 text-red-900 dark:bg-red-900/20 dark:text-red-200 border border-red-300/50 dark:border-red-700/50">
