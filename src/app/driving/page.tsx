@@ -292,30 +292,4 @@ function getTaskCallPhone(t:any){
 }
 
 
-function UserLookup({ onSelect }:{ onSelect:(u:any)=>void }){
-  const [q, setQ] = useState('');
-  const [opts, setOpts] = useState<any[]>([]);
-  const [open, setOpen] = useState(false);
-  useEffect(()=>{
-    const t = setTimeout(async()=>{
-      if (!q || q.length<2){ setOpts([]); setOpen(false); return; }
-      try{ const r = await fetch(`/api/admin/users?q=${encodeURIComponent(q)}`, { cache:'no-store' }); const d = await r.json(); setOpts(d||[]); setOpen(true); }catch{}
-    }, 250);
-    return ()=> clearTimeout(t);
-  }, [q]);
-  return (
-    <div className="relative">
-      <input className="p-2 rounded border text-sm w-full" placeholder="Search existing rider (name/email)" value={q} onChange={(e)=> setQ(e.target.value)} onFocus={()=>{ if (opts.length>0) setOpen(true); }} />
-      {open && opts.length>0 && (
-        <div className="absolute z-10 mt-1 w-full max-h-56 overflow-auto rounded border bg-white text-black shadow-lg">
-          {opts.map((u:any)=> (
-            <button key={u.id} type="button" className="block w-full text-left px-3 py-2 hover:bg-black/5" onMouseDown={(e)=> e.preventDefault()} onClick={()=>{ onSelect(u); setOpen(false); setQ(`${u.firstName} ${u.lastName} <${u.email}>`); }}>
-              <div className="text-sm">{u.firstName} {u.lastName}</div>
-              <div className="text-xs opacity-60">{u.email}</div>
-            </button>
-          ))}
-        </div>
-      )}
-    </div>
-  );
-}
+// (inline name suggestions implemented directly in the Name input above)
