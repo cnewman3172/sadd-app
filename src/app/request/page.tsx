@@ -14,12 +14,15 @@ export default function RequestPage(){
   const ICE_URL = 'https://ice.disa.mil/index.cfm?fa=card&sp=86951&s=360&dep=*DoD';
   const [vanPos, setVanPos] = useState<{lat:number,lng:number}|null>(null);
   const [etaSec, setEtaSec] = useState<number|null>(null);
+  const [vans, setVans] = useState<any[]>([]);
 
   async function reloadHistory(){
     const data = await fetch('/api/my-rides?limit=3').then(r=>r.json());
     setHistory(data);
   }
   useEffect(()=>{ reloadHistory(); },[]);
+  useEffect(()=>{ refreshVans(); const id = setInterval(refreshVans, 10000); return ()=> clearInterval(id); },[]);
+  async function refreshVans(){ try{ const v = await fetch('/api/vans', { cache:'no-store' }).then(r=>r.json()); setVans(v||[]); }catch{} }
 
   function useMyLocation(){ navigator.geolocation.getCurrentPosition(async (pos)=>{
     const { latitude, longitude } = pos.coords;
@@ -53,6 +56,8 @@ export default function RequestPage(){
       try{
         const v = JSON.parse(ev.data);
         if (v?.id && v.id === status?.vanId){ setVanPos({ lat: v.lat, lng: v.lng }); }
+        // Also update the general vans overlay
+        setVans(prev=> prev.map(x=> x.id===v.id ? { ...x, currentLat: v.lat, currentLng: v.lng } : x));
       }catch{}
     };
     es.addEventListener('vans:location', onVanPing as any);
@@ -222,9 +227,13 @@ function getDropMarkers(status:any){
 }
 
 function activeVansMarkers(){
-  // We rely on the server-provided vans list from /api/vans? In this page we didn't load all vans previously.
-  // Keep lightweight: no vans layer if not fetched; the assigned van is tracked separately via vanPos.
-  return [] as Array<{id:string,lat:number,lng:number,color:string}>;
+  const all = vans.filter((v:any)=> v.currentLat && v.currentLng);
+  return all.map((v:any)=>{
+    const pax = Number(v.passengers||0);
+    const cap = Number(v.capacity||8);
+    const color = pax<=0 ? '#16a34a' : pax<cap ? '#f59e0b' : '#dc2626';
+    return { id: v.id, lat: v.currentLat!, lng: v.currentLng!, color };
+  });
 }
 
 function formatEta(sec:number){
