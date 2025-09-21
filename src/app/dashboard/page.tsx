@@ -236,6 +236,26 @@ export default function Dashboard(){
                   </div>
                 </div>
                 <div className="text-sm opacity-80">{r.pickupAddr} → {r.dropAddr}</div>
+                {(() => {
+                  // Show manual contact pill and call link when rider is Unlinked and notes contain contact
+                  try{
+                    const isUnlinked = (r as any)?.rider?.email === 'unlinked@sadd.local';
+                    let name=''; let phone='';
+                    if (isUnlinked && typeof (r as any).notes === 'string' && (r as any).notes.trim().startsWith('{')){
+                      const meta = JSON.parse((r as any).notes);
+                      if (meta?.manualContact){ name = meta.manualContact.name||''; phone = meta.manualContact.phone||''; }
+                    }
+                    if (name || phone){
+                      return (
+                        <div className="text-xs inline-flex items-center gap-2 rounded-full border px-2 py-1 w-fit">
+                          <span className="opacity-70">{name || 'Unlinked'}</span>
+                          {phone && <a className="underline" href={`tel:${phone}`}>{phone}</a>}
+                        </div>
+                      );
+                    }
+                  }catch{}
+                  return null;
+                })()}
                 <div className="flex gap-2 items-center">
                   <button onClick={async()=>{ if (!confirm(`Cancel #${r.rideCode}?`)) return; await setStatus(r.id, 'CANCELED'); }} className="rounded border px-3 py-1 text-sm border-red-500 text-red-600">Cancel Ride</button>
                 </div>
