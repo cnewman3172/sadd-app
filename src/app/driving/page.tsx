@@ -97,9 +97,21 @@ export default function Driving(){
               </div>
               <div className="text-sm opacity-80">{t.pickupAddr} → {t.dropAddr} · Pax {t.passengers}</div>
               <div className="flex flex-wrap gap-2 text-xs mt-1">
-                <a className="rounded border px-2 py-1" target="_blank" href={`https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent((t as any).pickupLat?`${(t as any).pickupLat},${(t as any).pickupLng}`:t.pickupAddr)}`}>Directions to Pickup</a>
-                <a className="rounded border px-2 py-1" target="_blank" href={`https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent((t as any).dropLat?`${(t as any).dropLat},${(t as any).dropLng}`:t.dropAddr)}`}>Directions to Drop</a>
-                {t.rider?.phone && <a className="rounded border px-2 py-1" href={`tel:${t.rider.phone}`}>Call Rider</a>}
+                {(t.status==='ASSIGNED' || t.status==='EN_ROUTE') && (
+                  <a className="rounded border px-2 py-1" target="_blank" href={`https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent((t as any).pickupLat?`${(t as any).pickupLat},${(t as any).pickupLng}`:t.pickupAddr)}`}>
+                    Directions to Pickup
+                  </a>
+                )}
+                {t.status==='PICKED_UP' && (
+                  <a className="rounded border px-2 py-1" target="_blank" href={`https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent((t as any).dropLat?`${(t as any).dropLat},${(t as any).dropLng}`:t.dropAddr)}`}>
+                    Directions to Drop
+                  </a>
+                )}
+                {(t.status==='ASSIGNED' || t.status==='EN_ROUTE') && t.rider?.phone && (
+                  <a className="rounded border px-2 py-1" href={`tel:${t.rider.phone}`}>
+                    Call Rider
+                  </a>
+                )}
               </div>
               <div className="flex gap-2 mt-2">
                 {t.status==='ASSIGNED' && <button onClick={()=>setStatus(t.id,'EN_ROUTE')} className="rounded bg-black text-white px-3 py-1 text-sm">En Route</button>}
