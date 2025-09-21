@@ -1,18 +1,31 @@
+import ScrollEffects from '@/components/ScrollEffects';
+
 export default async function Home() {
   const base = process.env.NEXT_PUBLIC_APP_URL || '';
   let active = false;
+  let avgPickupSeconds: number | null = null;
   try {
     const r = await fetch(`${base}/api/health`, { cache: 'no-store' });
     if (r.ok) { const d = await r.json(); active = Boolean(d.active); }
+  } catch {}
+  try {
+    const s = await fetch(`${base}/api/stats/pickup`, { cache: 'no-store' });
+    if (s.ok) { const d = await s.json(); avgPickupSeconds = typeof d.avgSeconds==='number' ? d.avgSeconds : null; }
   } catch {}
 
   return (
     <div className="relative min-h-screen overflow-hidden text-foreground">
       {/* Ambient gradient orbs */}
       <div aria-hidden className="pointer-events-none absolute inset-0 -z-10">
-        <div className="orb left-[-10%] top-[-10%] h-72 w-72" style={{background:'radial-gradient(closest-side,#60a5fa,transparent)'}} />
-        <div className="orb right-[-10%] top-[10%] h-80 w-80" style={{background:'radial-gradient(closest-side,#a78bfa,transparent)', animationDelay:'-6s'}} />
-        <div className="orb left-[10%] bottom-[-10%] h-96 w-96" style={{background:'radial-gradient(closest-side,#f0abfc,transparent)', animationDuration:'18s'}} />
+        <div data-orb data-speed="0.10" className="absolute left-[-10%] top-[-10%]">
+          <div className="orb h-72 w-72" style={{background:'radial-gradient(closest-side,#60a5fa,transparent)'}} />
+        </div>
+        <div data-orb data-speed="0.14" className="absolute right-[-10%] top-[10%]">
+          <div className="orb h-80 w-80" style={{background:'radial-gradient(closest-side,#a78bfa,transparent)', animationDelay:'-6s'}} />
+        </div>
+        <div data-orb data-speed="0.12" className="absolute left-[10%] bottom-[-10%]">
+          <div className="orb h-96 w-96" style={{background:'radial-gradient(closest-side,#f0abfc,transparent)', animationDuration:'18s'}} />
+        </div>
       </div>
 
       {/* Header */}
@@ -28,8 +41,9 @@ export default async function Home() {
 
       {/* Hero */}
       <main className="relative mx-auto max-w-7xl px-4">
+        <ScrollEffects />
         <section className="pt-14 pb-10 sm:pt-20 sm:pb-14 grid md:grid-cols-2 gap-8 items-center">
-          <div className="space-y-5">
+          <div className="space-y-5" data-reveal>
             <div className="inline-flex items-center gap-2 rounded-full px-3 py-1 text-xs glass border border-white/20">
               <span className={`inline-block h-2 w-2 rounded-full ${active? 'bg-emerald-500':'bg-zinc-400'}`} />
               <span>{active ? 'SADD is Active' : 'SADD Currently Inactive'}</span>
@@ -58,7 +72,7 @@ export default async function Home() {
           </div>
 
           {/* Showcase Card */}
-          <div className="relative card-border rounded-3xl p-1">
+          <div className="relative card-border rounded-3xl p-1" data-reveal>
             <div className="rounded-[22px] glass-strong p-5">
               <div className="rounded-2xl bg-gradient-to-br from-white/70 to-white/30 dark:from-white/10 dark:to-white/5 border border-white/30 p-5">
                 <h3 className="text-lg font-semibold mb-2">How It Works</h3>
@@ -69,7 +83,7 @@ export default async function Home() {
                 </ol>
                 <div className="mt-5 grid grid-cols-3 gap-3 text-center text-sm">
                   <Stat label="Active Vans" value="Live" />
-                  <Stat label="Avg ETA" value="—" />
+                  <Stat label="Average Pickup Time" value={formatAvg(avgPickupSeconds)} />
                   <Stat label="Rides (FY)" value="—" />
                 </div>
               </div>
@@ -78,14 +92,14 @@ export default async function Home() {
         </section>
 
         {/* Feature tiles */}
-        <section className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6 mb-12">
+        <section className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6 mb-12" data-reveal>
           <Tile title="Always Free" desc="Zero cost rides provided by volunteers across the community." icon="💸" />
           <Tile title="Confidential" desc="We don’t ask why — we just get you home." icon="🛡️" />
           <Tile title="Coordinated Fleet" desc="Dispatch assigns the closest available van to reduce wait time." icon="🚐" />
         </section>
 
         {/* Callout */}
-        <section className="mb-16 text-center">
+        <section className="mb-16 text-center" data-reveal>
           <div className="inline-flex items-center gap-3 rounded-2xl glass-strong px-6 py-4 border border-white/30">
             <span className="text-lg">Don’t risk it — request a ride now.</span>
             <a href="/request" className="rounded-full px-5 py-2 bg-black text-white dark:bg-white dark:text-black">Request</a>
@@ -120,3 +134,9 @@ function Tile({ title, desc, icon }: { title: string; desc: string; icon: string
   );
 }
 
+function formatAvg(seconds: number | null): string {
+  if (!seconds || seconds <= 0 || !isFinite(seconds)) return '—';
+  const mins = Math.round(seconds / 60);
+  if (mins < 1) return '<1 min';
+  return `${mins} min`;
+}

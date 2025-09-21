@@ -84,3 +84,15 @@ body {
   -webkit-mask-composite: xor;
           mask-composite: exclude;
 }
+
+/* Reveal on scroll */
+[data-reveal] {
+  opacity: .001;
+  transform: translateY(8px) scale(.98);
+  transition: opacity .6s ease, transform .6s ease;
+  will-change: opacity, transform;
+}
+[data-reveal].is-visible {
+  opacity: 1;
+  transform: none;
+}
