@@ -51,6 +51,11 @@ export default function AnalyticsPage(){
         <h2 className="font-semibold">Recent Activity</h2>
         <AuditLog />
       </section>
+
+      <section className="rounded-xl p-4 bg-red-50 text-red-900 dark:bg-red-900/20 dark:text-red-200 border border-red-300/50 dark:border-red-700/50">
+        <h2 className="font-semibold mb-2">Danger Zone</h2>
+        <ResetRidesPanel />
+      </section>
     </div>
   );
 }
@@ -93,6 +98,53 @@ function ExportPanel(){
         <input type="date" value={to} onChange={(e)=> setTo(e.target.value)} className="block p-2 rounded border bg-white/80 text-sm" />
       </div>
       <a className="rounded border px-3 py-2 text-sm" href={href}>Export Rides (CSV)</a>
+    </div>
+  );
+}
+
+function ResetRidesPanel(){
+  const [open, setOpen] = useState(false);
+  const [token, setToken] = useState('');
+  const [phrase, setPhrase] = useState('');
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string|null>(null);
+  const [ok, setOk] = useState(false);
+
+  async function prepare(){
+    setError(null); setOk(false);
+    const r = await fetch('/api/admin/reset-rides');
+    if (!r.ok){ setError('Not authorized'); return; }
+    const d = await r.json();
+    setToken(d.token);
+    setOpen(true);
+  }
+  async function confirm(){
+    if (!token) return;
+    setBusy(true); setError(null);
+    try{
+      const r = await fetch('/api/admin/reset-rides', { method:'POST', headers:{ 'Content-Type':'application/json' }, body: JSON.stringify({ token, phrase }) });
+      if (!r.ok){ const d = await r.json().catch(()=>({error:'failed'})); throw new Error(d.error||'failed'); }
+      setOk(true); setOpen(false);
+    }catch(e:any){ setError(e.message||'failed'); }
+    finally{ setBusy(false); }
+  }
+
+  return (
+    <div className="space-y-2">
+      <p className="text-sm">Reset all ride data. This permanently deletes all rides and clears live van state. Users and vans remain.</p>
+      <button onClick={prepare} className="rounded px-3 py-2 border border-red-400 text-red-700 dark:text-red-300">Reset Ride Data…</button>
+      {open && (
+        <div className="p-3 mt-2 rounded border bg-white text-black dark:bg-neutral-900 dark:text-white">
+          <div className="text-sm mb-2">Type <span className="font-semibold">RESET ALL RIDES</span> to confirm.</div>
+          <input value={phrase} onChange={(e)=> setPhrase(e.target.value)} className="w-full p-2 rounded border mb-2" placeholder="RESET ALL RIDES" />
+          <div className="flex gap-2">
+            <button disabled={busy || phrase!== 'RESET ALL RIDES'} onClick={confirm} className="rounded px-3 py-2 border">Confirm Reset</button>
+            <button onClick={()=> setOpen(false)} className="rounded px-3 py-2 border">Cancel</button>
+          </div>
+        </div>
+      )}
+      {error && <div className="text-sm text-red-600">{error}</div>}
+      {ok && <div className="text-sm text-green-700">All rides cleared.</div>}
     </div>
   );
 }
