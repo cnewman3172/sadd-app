@@ -185,7 +185,7 @@ export default function Dashboard(){
             {pending.map((r)=> (
               <div key={r.id} className="rounded border p-3 flex flex-col gap-2">
                 <div className="flex items-center justify-between">
-                  <div className="font-medium">#{r.rideCode} · {r.rider?.firstName} {r.rider?.lastName}</div>
+                  <div className="font-medium">#{r.rideCode} · {displayName(r as any)}</div>
                   <div className="text-xs opacity-70">{new Date(r.requestedAt).toLocaleString()}</div>
                 </div>
                 <div className="text-sm opacity-80 flex items-center gap-2">
@@ -220,7 +220,7 @@ export default function Dashboard(){
             {active.map((r)=> (
               <div key={r.id} className="rounded border p-3 flex flex-col gap-2">
                 <div className="flex items-center justify-between">
-                  <div className="font-medium">#{r.rideCode} · {r.rider?.firstName} {r.rider?.lastName}</div>
+                  <div className="font-medium">#{r.rideCode} · {displayName(r as any)}</div>
                   <div className="text-xs opacity-70">
                     {r.status}
                     {(() => {
@@ -385,6 +385,18 @@ function ManualEta({ pickupLat, pickupLng, pax, onEta }:{ pickupLat?:number; pic
   }, [pickupLat, pickupLng, pax]);
   if (!text) return null;
   return <div className="text-xs opacity-70">{text}</div>;
+}
+
+function displayName(r: any){
+  try{
+    const isUnlinked = r?.rider?.email === 'unlinked@sadd.local';
+    if (isUnlinked && typeof r?.notes === 'string' && r.notes.trim().startsWith('{')){
+      const meta = JSON.parse(r.notes);
+      const n = meta?.manualContact?.name;
+      if (n) return n;
+    }
+  }catch{}
+  return `${r?.rider?.firstName||''} ${r?.rider?.lastName||''}`.trim();
 }
 
 function UserLookup({ onSelect }:{ onSelect:(u:any)=>void }){

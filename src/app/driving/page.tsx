@@ -171,7 +171,7 @@ export default function Driving(){
                 <div className="text-xs opacity-70">{t.status}</div>
               </div>
               <div className="text-sm opacity-90">
-                Rider: {(t.rider?.firstName||'').toString()} {(t.rider?.lastName||'').toString()}
+                Rider: {taskDisplayName(t as any)}
               </div>
               <div className="text-sm opacity-80">{t.pickupAddr} → {t.dropAddr} · Pax {t.passengers}</div>
               <div className="flex flex-wrap gap-2 text-xs mt-1">
@@ -185,8 +185,8 @@ export default function Driving(){
                     Directions to Drop
                   </a>
                 )}
-                {(t.status==='ASSIGNED' || t.status==='EN_ROUTE') && t.rider?.phone && (
-                  <a className="rounded border px-2 py-1" href={`tel:${t.rider.phone}`}>
+                {(t.status==='ASSIGNED' || t.status==='EN_ROUTE') && getTaskCallPhone(t as any) && (
+                  <a className="rounded border px-2 py-1" href={`tel:${getTaskCallPhone(t as any)}` }>
                     Call Rider
                   </a>
                 )}
@@ -245,6 +245,29 @@ export default function Driving(){
     </div>
   );
 }
+
+function taskDisplayName(t:any){
+  try{
+    const isUnlinked = t?.rider?.email === 'unlinked@sadd.local';
+    if (isUnlinked && typeof t?.notes === 'string' && t.notes.trim().startsWith('{')){
+      const meta = JSON.parse(t.notes);
+      const n = meta?.manualContact?.name; if (n) return n;
+    }
+  }catch{}
+  return `${t?.rider?.firstName||''} ${t?.rider?.lastName||''}`.trim();
+}
+
+function getTaskCallPhone(t:any){
+  try{
+    const isUnlinked = t?.rider?.email === 'unlinked@sadd.local';
+    if (isUnlinked && typeof t?.notes === 'string' && t.notes.trim().startsWith('{')){
+      const meta = JSON.parse(t.notes);
+      const p = meta?.manualContact?.phone; if (p) return p;
+    }
+  }catch{}
+  return t?.rider?.phone || '';
+}
+
 
 function UserLookup({ onSelect }:{ onSelect:(u:any)=>void }){
   const [q, setQ] = useState('');

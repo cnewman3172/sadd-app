@@ -29,6 +29,27 @@ export async function POST(req: Request){
   if (!payload || !['ADMIN','COORDINATOR'].includes(payload.role)) return NextResponse.json({ error:'forbidden' }, { status: 403 });
   try{
     const body = schema.parse(await req.json());
+    // Ensure coordinates by geocoding when only address provided
+    async function geocode(addr?: string){
+      if (!addr) return null as null | { lat:number; lon:number };
+      try{
+        const endpoint = process.env.NOMINATIM_URL || 'https://nominatim.openstreetmap.org';
+        const r = await fetch(`${endpoint}/search?format=jsonv2&q=${encodeURIComponent(addr)}`, { headers: { 'User-Agent':'SADD/1.0 (admin-create)' } });
+        if (!r.ok) return null;
+        const d = await r.json();
+        const first = Array.isArray(d) && d[0];
+        if (first && first.lat && first.lon) return { lat: Number(first.lat), lon: Number(first.lon) };
+      }catch{}
+      return null;
+    }
+    if ((body.pickupLat==null || body.pickupLng==null) && body.pickupAddr){
+      const g = await geocode(body.pickupAddr);
+      if (g){ (body as any).pickupLat = g.lat; (body as any).pickupLng = g.lon; }
+    }
+    if ((body.dropLat==null || body.dropLng==null) && body.dropAddr){
+      const g = await geocode(body.dropAddr);
+      if (g){ (body as any).dropLat = g.lat; (body as any).dropLng = g.lon; }
+    }
     let riderId = body.riderId as string | undefined;
     if (!riderId){
       // Attach to a shared unlinked rider account (not per-person)
