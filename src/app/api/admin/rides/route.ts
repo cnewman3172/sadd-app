@@ -5,6 +5,7 @@ import { z } from 'zod';
 import { captureError } from '@/lib/obs';
 import { publish } from '@/lib/events';
 import { logAudit } from '@/lib/audit';
+import bcrypt from 'bcryptjs';
 
 export const runtime = 'nodejs';
 
@@ -28,8 +29,16 @@ export async function POST(req: Request){
   if (!payload || !['ADMIN','COORDINATOR'].includes(payload.role)) return NextResponse.json({ error:'forbidden' }, { status: 403 });
   try{
     const body = schema.parse(await req.json());
-    if (!body.riderId){
-      return NextResponse.json({ error:'Select an existing rider account (no new accounts are created for manual entries).' }, { status: 400 });
+    let riderId = body.riderId as string | undefined;
+    if (!riderId){
+      // Attach to a shared unlinked rider account (not per-person)
+      const email = 'unlinked@sadd.local';
+      let u = await prisma.user.findUnique({ where: { email } });
+      if (!u){
+        const hash = await bcrypt.hash(Math.random().toString(36).slice(2), 10);
+        u = await prisma.user.create({ data: { email, password: hash, firstName: 'Unlinked', lastName: 'Rider', role: 'RIDER' } });
+      }
+      riderId = u.id;
     }
     // Ensure rider phone matches manual entry
     else if (rider.phone !== body.phone){
@@ -37,7 +46,7 @@ export async function POST(req: Request){
     }
 
     const ride = await prisma.ride.create({ data: {
-      riderId: body.riderId,
+      riderId: riderId!,
       pickupAddr: body.pickupAddr,
       dropAddr: body.dropAddr,
       pickupLat: body.pickupLat ?? 0,
@@ -60,7 +69,7 @@ export async function POST(req: Request){
         await logAudit('ride_auto_assign', payload.uid, updated.id, { vanId: best.vanId });
       }
     }catch{}
-    await logAudit('ride_create_manual', payload.uid, ride.id, { riderId: body.riderId });
+    await logAudit('ride_create_manual', payload.uid, ride.id, { riderId });
     return NextResponse.json(ride);
   }catch(e:any){
     captureError(e, { route: 'admin/rides#create', uid: payload?.uid });

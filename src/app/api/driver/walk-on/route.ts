@@ -10,7 +10,7 @@ import bcrypt from 'bcryptjs';
 export const runtime = 'nodejs';
 
 const schema = z.object({
-  riderId: z.string().uuid(),
+  riderId: z.string().uuid().optional(),
   name: z.string().min(1).optional(),
   phone: z.string().min(7).optional(),
   dropAddr: z.string().min(1),
@@ -42,8 +42,16 @@ export async function POST(req: Request){
     if (!task) return NextResponse.json({ error:'no active task to derive pickup' }, { status: 400 });
 
     // Require existing rider account
-    const rider = await prisma.user.findUnique({ where: { id: body.riderId } });
-    if (!rider) return NextResponse.json({ error:'rider not found' }, { status: 404 });
+    let rider = body.riderId ? await prisma.user.findUnique({ where: { id: body.riderId } }) : null;
+    if (!rider){
+      // Attach to shared unlinked rider
+      const email = 'unlinked@sadd.local';
+      rider = await prisma.user.findUnique({ where: { email } });
+      if (!rider){
+        const hash = await bcrypt.hash(Math.random().toString(36).slice(2), 10);
+        rider = await prisma.user.create({ data: { email, password: hash, firstName: 'Unlinked', lastName: 'Rider', role: 'RIDER' } });
+      }
+    }
     // Ensure rider phone matches walk-on entry
     else if (rider.phone !== body.phone){
       try{ await prisma.user.update({ where:{ id: rider.id }, data:{ phone: body.phone } }); }catch{}
