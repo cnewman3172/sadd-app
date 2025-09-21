@@ -16,6 +16,7 @@ export default function Driving(){
   const [walkOpen, setWalkOpen] = useState(false);
   const [walkTaskId, setWalkTaskId] = useState<string>('');
   const [walkForm, setWalkForm] = useState<any>({ riderId:'', name:'', phone:'', dropAddr:'', dropLat: undefined as number|undefined, dropLng: undefined as number|undefined });
+  const [walkSelRider, setWalkSelRider] = useState<any|null>(null);
 
   async function refreshVans(){
     const v = await fetch('/api/vans').then(r=>r.json());
@@ -215,13 +216,19 @@ export default function Driving(){
               return (
                 <div className="grid gap-2">
                   <div className="text-xs opacity-70">Pickup: {t?.pickupAddr || '—'}</div>
-                  <UserLookup onSelect={(u:any)=> setWalkForm((f:any)=> ({ ...f, riderId: u.id, name: `${u.firstName} ${u.lastName}`, phone: (u as any).phone||f.phone }))} />
+                  <UserLookup onSelect={(u:any)=> { setWalkSelRider(u); setWalkForm((f:any)=> ({ ...f, riderId: u.id, name: `${u.firstName} ${u.lastName}`, phone: (u as any).phone||f.phone })); }} />
+                  {walkSelRider && (
+                    <div className="text-xs inline-flex items-center gap-2 rounded-full border px-2 py-1 w-fit">
+                      <span className="opacity-70">{walkSelRider.rank || '—'}</span>
+                      <span className="opacity-60">{walkSelRider.phone || 'no phone'}</span>
+                    </div>
+                  )}
                   <input className="p-2 rounded border text-sm" placeholder="Name" value={walkForm.name} onChange={(e)=> setWalkForm((f:any)=> ({ ...f, name: e.target.value }))} />
                   <input className="p-2 rounded border text-sm" placeholder="Cell Number" value={walkForm.phone} onChange={(e)=> setWalkForm((f:any)=> ({ ...f, phone: e.target.value }))} />
                   <AddressInput label="Drop Off" value={walkForm.dropAddr} onChange={(t)=> setWalkForm((f:any)=> ({ ...f, dropAddr: t }))} onSelect={(o)=> setWalkForm((f:any)=> ({ ...f, dropAddr: o.label, dropLat: o.lat, dropLng: o.lon }))} />
                   <div className="flex justify-end gap-2 mt-2">
                     <button onClick={()=> setWalkOpen(false)} className="rounded border px-3 py-1 text-sm">Cancel</button>
-                    <button disabled={!walkForm.riderId} onClick={async()=>{
+                    <button onClick={async()=>{
                       try{
                         const res = await fetch('/api/driver/walk-on', { method:'POST', headers:{ 'Content-Type':'application/json' }, body: JSON.stringify({ ...walkForm, taskId: walkTaskId }) });
                         if (!res.ok){ const d = await res.json().catch(()=>({error:'Failed'})); throw new Error(d.error||'Failed'); }
