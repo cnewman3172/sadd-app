@@ -14,7 +14,7 @@ const schema = z.object({
   phone: z.string().min(7),
   pickupAddr: z.string().min(1),
   dropAddr: z.string().min(1),
-  passengers: z.coerce.number().int().min(1).max(8).default(1),
+  passengers: z.coerce.number().int().min(1).max(11).default(1),
   notes: z.string().max(500).optional(),
   pickupLat: z.number().optional(),
   pickupLng: z.number().optional(),

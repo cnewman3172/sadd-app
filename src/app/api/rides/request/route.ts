@@ -9,7 +9,7 @@ import { logAudit } from '@/lib/audit';
 const schema = z.object({
   pickupAddr: z.string().min(1).optional(),
   dropAddr: z.string().min(1).optional(),
-  passengers: z.number().int().min(1).max(8).optional(),
+  passengers: z.number().int().min(1).max(11).optional(),
   notes: z.string().max(500).optional(),
   pickupLat: z.number().optional(),
   pickupLng: z.number().optional(),

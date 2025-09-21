@@ -7,7 +7,7 @@ import AddressInput from '@/components/AddressInput';
 import StarRating from '@/components/StarRating';
 
 export default function RequestPage(){
-  const [form, setForm] = useState<any>({ passengers:1 });
+  const [form, setForm] = useState<any>({ passengers:'1' });
   const [status, setStatus] = useState<any>(null);
   const [history, setHistory] = useState<any[]>([]);
   const [pendingReview, setPendingReview] = useState<any|null>(null);
@@ -81,7 +81,8 @@ export default function RequestPage(){
 
   async function submit(e: React.FormEvent){
     e.preventDefault();
-    const res = await fetch('/api/rides/request', { method:'POST', body: JSON.stringify(form) });
+    const pax = Math.min(11, Math.max(1, parseInt(String(form.passengers||'1'), 10) || 1));
+    const res = await fetch('/api/rides/request', { method:'POST', body: JSON.stringify({ ...form, passengers: pax }) });
     const data = await res.json();
     setStatus(data);
     // Refresh recent list to include the new ride
@@ -192,7 +193,24 @@ export default function RequestPage(){
               onSelect={(opt)=> setForm((f:any)=> ({ ...f, dropAddr: opt.label, dropLat: opt.lat, dropLng: opt.lon }))}
             />
             <div className="grid grid-cols-2 gap-2">
-              <input type="number" min={1} className="p-3 rounded border" placeholder="# Passengers" value={form.passengers} onChange={(e)=>setForm({...form, passengers:Number(e.target.value)})} />
+              <input
+                type="text"
+                inputMode="numeric"
+                pattern="[0-9]*"
+                className="p-3 rounded border"
+                placeholder="# Passengers"
+                value={String(form.passengers ?? '')}
+                onChange={(e)=>{
+                  const v = e.target.value.replace(/\D/g,'');
+                  if (v === '') setForm({...form, passengers: ''});
+                  else setForm({...form, passengers: v});
+                }}
+                onBlur={()=>{
+                  const v = String(form.passengers||'');
+                  const n = Math.min(11, Math.max(1, parseInt(v||'0',10) || 1));
+                  setForm({...form, passengers: String(n)});
+                }}
+              />
               <input className="p-3 rounded border" placeholder="Notes (optional)" onChange={(e)=>setForm({...form, notes:e.target.value})} />
             </div>
             <button className="rounded bg-black text-white py-3">Submit Request</button>

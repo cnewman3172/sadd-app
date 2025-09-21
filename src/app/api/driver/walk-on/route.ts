@@ -15,7 +15,7 @@ const schema = z.object({
   dropAddr: z.string().min(1),
   dropLat: z.number().optional(),
   dropLng: z.number().optional(),
-  passengers: z.coerce.number().int().min(1).max(8).default(1),
+  passengers: z.coerce.number().int().min(1).max(11).default(1),
   taskId: z.string().uuid().optional(),
 });
 
@@ -79,4 +79,3 @@ export async function POST(req: Request){
     return NextResponse.json({ error: e?.message || 'failed' }, { status: 400 });
   }
 }
-
