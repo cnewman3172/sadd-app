@@ -47,6 +47,15 @@ function humanizeStatus(s?: string){
   }
 }
 
+function humanizeVanStatus(s?: string){
+  switch(String(s||'').toUpperCase()){
+    case 'ACTIVE': return 'Active';
+    case 'MAINTENANCE': return 'Maintenance';
+    case 'OFFLINE': return 'Offline';
+    default: return s||'';
+  }
+}
+
 export async function GET(req: Request){
   const token = (req.headers.get('cookie')||'').split('; ').find(c=>c.startsWith('sadd_token='))?.split('=')[1];
   const payload = await verifyJwt(token);
@@ -82,6 +91,7 @@ export async function GET(req: Request){
     include: {
       rider: { select: { firstName: true, lastName: true, email: true, phone: true, rank: true, unit: true } },
       driver: { select: { firstName: true, lastName: true, email: true } },
+      van: { select: { name: true, status: true, passengers: true } },
     }
   });
 
@@ -101,6 +111,9 @@ export async function GET(req: Request){
     'rider_unit',
     'truck_commander_name',
     'truck_commander_email',
+    'van_name',
+    'van_status',
+    'van_passengers',
     'requested_at',
     'picked_up_at',
     'dropped_at',
