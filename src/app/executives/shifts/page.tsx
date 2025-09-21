@@ -21,7 +21,9 @@ export default function ExecShifts(){
     try{
       if (!form.date) throw new Error('Pick a date');
       const startsAt = new Date(`${form.date}T${form.start}:00`);
-      const endsAt = new Date(`${form.date}T${form.end}:00`);
+      let endsAt = new Date(`${form.date}T${form.end}:00`);
+      // Overnight convenience: if end is earlier than start, roll to next day
+      if (endsAt <= startsAt) endsAt = new Date(endsAt.getTime() + 24*60*60*1000);
       const res = await fetch('/api/admin/shifts', { method:'POST', headers:{ 'Content-Type':'application/json' }, body: JSON.stringify({ title: form.title||undefined, startsAt: startsAt.toISOString(), endsAt: endsAt.toISOString(), needed: form.needed }) });
       if (!res.ok){ const d = await res.json().catch(()=>({error:'failed'})); throw new Error(d.error||'failed'); }
       setForm({ title:'', date:'', start:'20:00', end:'23:00', needed:2 });
@@ -44,6 +46,7 @@ export default function ExecShifts(){
         <div><label className="text-xs">Needed</label><input type="number" min={1} max={10} className="w-full p-2 rounded border glass" value={form.needed} onChange={e=> setForm(f=>({...f,needed:Number(e.target.value)}))} /></div>
         <button className="btn-primary" disabled={busy}>{busy?'Creating…':'Create Shift'}</button>
         {err && <div className="text-sm text-red-600">{err}</div>}
+        <div className="text-xs opacity-70 md:col-span-5">Overnight supported: if End is earlier than Start, it rolls to the next day.</div>
       </form>
 
       <div className="rounded-xl glass border overflow-x-auto">
@@ -81,4 +84,3 @@ function fmtRange(a:string,b:string){
     return sameDay ? `${dt} · ${t(s)} – ${t(e)}` : `${dt} ${t(s)} → ${new Intl.DateTimeFormat(undefined,{dateStyle:'medium'}).format(e)} ${t(e)}`;
   }catch{ return '—'; }
 }
-
