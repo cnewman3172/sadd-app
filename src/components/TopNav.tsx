@@ -17,9 +17,9 @@ export default function TopNav(){
   const [acctOpen, setAcctOpen] = useState(false);
   useEffect(()=>{
     fetch('/api/me', { cache:'no-store' })
-      .then(r=> r.ok ? r.json() : {})
-      .then((u)=>{
-        setUser(u);
+      .then(r=> r.ok ? r.json() : null)
+      .then((u: any)=>{
+        setUser(u as User|null);
         try{
           const prev = window.localStorage.getItem('sadd_role');
           if (u?.role){

@@ -42,7 +42,7 @@ export async function GET(req: Request){
   const tasksByVan = await prisma.ride.findMany({ where:{ status: { in:['ASSIGNED','EN_ROUTE','PICKED_UP'] } }, select:{ id:true, vanId:true, pickupLat:true, pickupLng:true, dropLat:true, dropLng:true } });
   const results: Array<{ vanId:string; name:string; seconds:number; meters:number }> = [];
 
-  const candidates = vans.filter(v=> typeof v.currentLat==='number' && typeof v.currentLng==='number' && (v.capacity||0) >= (ride.passengers||1) && (!v.singleTrip || !tasksByVan.some(t=> t.vanId===v.id)));
+  const candidates = vans.filter(v=> typeof v.currentLat==='number' && typeof v.currentLng==='number' && (v.capacity||0) >= (ride.passengers||1));
 
   await Promise.all(candidates.map(async v=>{
     const tasks = tasksByVan.filter(t=> t.vanId===v.id);

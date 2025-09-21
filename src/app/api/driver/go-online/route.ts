@@ -35,6 +35,7 @@ export async function POST(req: Request){
     return NextResponse.json({ error:'van already has an active TC' }, { status: 409 });
   }
   const van = await prisma.van.findUnique({ where: { id: vanId } });
+  if (!van) return NextResponse.json({ error: 'van not found' }, { status: 404 });
   publish('vans:update', { id: van.id });
   logAudit('driver_online', payload.uid, van.id);
   return NextResponse.json(van);

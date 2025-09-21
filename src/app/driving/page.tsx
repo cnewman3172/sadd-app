@@ -40,7 +40,9 @@ export default function Driving(){
     setTasks(r.tasks||[]);
   }
   useEffect(()=>{
-    fetch('/api/me').then(r=> r.ok ? r.json() : {}).then(d=> setUserId(d?.id || d?.uid || ''));
+    fetch('/api/me')
+      .then(r=> r.ok ? r.json() : null)
+      .then((d: any)=> setUserId(d?.id || d?.uid || ''));
     refreshVans();
     refreshTasks();
     const es = new EventSource('/api/stream');
