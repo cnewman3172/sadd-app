@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { verifyJwt } from '@/lib/jwt';
 import { z } from 'zod';
 import { captureError } from '@/lib/obs';
+import { prisma } from '@/lib/prisma';
 import { publish } from '@/lib/events';
 import { logAudit } from '@/lib/audit';
 import { prisma } from '@/lib/prisma';
@@ -22,9 +23,22 @@ export async function POST(req: Request){
   const payload = await verifyJwt(token);
   if (!payload) return NextResponse.json({ error:'auth required' }, { status: 401 });
   try{
-    // Block new requests when SADD is inactive
+    // Block new requests when SADD is inactive (consider auto-disable schedule)
     const setting = await prisma.setting.findUnique({ where:{ id:1 } }).catch(()=>null);
-    if (!setting?.active){
+    const isActive = (()=>{
+      const base = Boolean(setting?.active);
+      if (!base) return false;
+      if (!setting?.autoDisableEnabled) return base;
+      const tz = setting?.autoDisableTz || 'America/Anchorage';
+      const hhmm = String(setting?.autoDisableTime || '22:00');
+      const [sh, sm] = hhmm.split(':').map(x=> parseInt(x,10) || 0);
+      const parts = new Intl.DateTimeFormat('en-US', { timeZone: tz, hour:'2-digit', minute:'2-digit', hour12:false }).formatToParts(new Date());
+      const curH = parseInt((parts.find(p=>p.type==='hour')||{value:'0'}).value,10);
+      const curM = parseInt((parts.find(p=>p.type==='minute')||{value:'0'}).value,10);
+      const curMin = curH*60 + curM; const cutMin = sh*60 + sm;
+      return curMin < cutMin;
+    })();
+    if (!isActive){
       return NextResponse.json({ error:'SADD is currently inactive. Please try again later.' }, { status: 403 });
     }
     const { pickupAddr, dropAddr, passengers=1, notes, pickupLat, pickupLng, dropLat, dropLng } = schema.parse(await req.json());
