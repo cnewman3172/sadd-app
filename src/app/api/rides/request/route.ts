@@ -5,6 +5,7 @@ import { captureError } from '@/lib/obs';
 import { prisma } from '@/lib/prisma';
 import { publish } from '@/lib/events';
 import { logAudit } from '@/lib/audit';
+import { prisma } from '@/lib/prisma';
 
 const schema = z.object({
   pickupAddr: z.string().min(1).optional(),
@@ -22,6 +23,11 @@ export async function POST(req: Request){
   const payload = await verifyJwt(token);
   if (!payload) return NextResponse.json({ error:'auth required' }, { status: 401 });
   try{
+    // Block new requests when SADD is inactive
+    const setting = await prisma.setting.findUnique({ where:{ id:1 } }).catch(()=>null);
+    if (!setting?.active){
+      return NextResponse.json({ error:'SADD is currently inactive. Please try again later.' }, { status: 403 });
+    }
     const { pickupAddr, dropAddr, passengers=1, notes, pickupLat, pickupLng, dropLat, dropLng } = schema.parse(await req.json());
     // naive: if coords missing, leave zeros and let dispatcher edit later
     const ride = await prisma.ride.create({ data: {

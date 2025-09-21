@@ -9,6 +9,7 @@ import StarRating from '@/components/StarRating';
 export default function RequestPage(){
   const [form, setForm] = useState<any>({ passengers:'1' });
   const [status, setStatus] = useState<any>(null);
+  const [active, setActive] = useState<boolean|null>(null);
   const [history, setHistory] = useState<any[]>([]);
   const [pendingReview, setPendingReview] = useState<any|null>(null);
   const [showForm, setShowForm] = useState(true);
@@ -71,6 +72,7 @@ export default function RequestPage(){
     setShowForm(!pr);
   }
   useEffect(()=>{ reloadHistory(); },[]);
+  useEffect(()=>{ (async()=>{ try{ const h = await fetch('/api/health', { cache:'no-store' }).then(r=>r.json()); setActive(Boolean(h.active)); }catch{ setActive(null); } })(); },[]);
   useEffect(()=>{ refreshVans(); const id = setInterval(refreshVans, 5000); return ()=> clearInterval(id); },[]);
   async function refreshVans(){ try{ const v = await fetch('/api/vans', { cache:'no-store' }).then(r=>r.json()); setVans(v||[]); }catch{} }
 
@@ -175,6 +177,7 @@ export default function RequestPage(){
         {!status && showForm && (
           <form onSubmit={submit} className="grid gap-3 p-4 rounded-xl bg-white/70 dark:bg-white/10 backdrop-blur border border-white/20">
             <h1 className="text-xl font-semibold">Request a Ride</h1>
+            {active===false && <div className="text-sm text-red-700">SADD is currently inactive. Ride requests are disabled.</div>}
             <AddressInput
               label="Pickup"
               placeholder="Address or place"
@@ -213,7 +216,7 @@ export default function RequestPage(){
               />
               <input className="p-3 rounded border" placeholder="Notes (optional)" onChange={(e)=>setForm({...form, notes:e.target.value})} />
             </div>
-            <button className="rounded bg-black text-white py-3">Submit Request</button>
+            <button disabled={active===false} className="rounded bg-black text-white py-3 disabled:opacity-50 disabled:cursor-not-allowed">Submit Request</button>
           </form>
         )}
         {status && (

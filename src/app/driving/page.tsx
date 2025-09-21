@@ -39,12 +39,18 @@ export default function Driving(){
 
   async function goOnline(){
     if (!selected) return alert('Select a van');
-    const res = await fetch('/api/driver/go-online', { method:'POST', body: JSON.stringify({ vanId: selected }) });
-    if (res.ok) { setSelected(''); refreshTasks(); startPings(); }
-    else {
-      const d = await res.json().catch(()=>({error:'Failed to go online'}));
-      showToast(d.error || 'Failed to go online');
-    }
+    if (!navigator.geolocation){ showToast('Location required to go online'); return; }
+    navigator.geolocation.getCurrentPosition(async(pos)=>{
+      const { latitude, longitude } = pos.coords;
+      const res = await fetch('/api/driver/go-online', { method:'POST', body: JSON.stringify({ vanId: selected, lat: latitude, lng: longitude }) });
+      if (res.ok) { setSelected(''); refreshTasks(); startPings(); }
+      else {
+        const d = await res.json().catch(()=>({error:'Failed to go online'}));
+        showToast(d.error || 'Failed to go online');
+      }
+    }, ()=>{
+      showToast('Please allow location to go online.');
+    }, { enableHighAccuracy:true, maximumAge:10000, timeout:15000 });
   }
   async function goOffline(){
     const res = await fetch('/api/driver/go-offline', { method:'POST' });
@@ -58,9 +64,16 @@ export default function Driving(){
 
   // location pings every 5 seconds when online
   const pingTimer = useRef<number | null>(null);
+  const wakeRef = useRef<any>(null);
   function startPings(){
     if (typeof navigator === 'undefined' || !navigator.geolocation) return;
     if (pingTimer.current !== null) return;
+    // Try to keep the screen awake while online to improve location reliability
+    (async()=>{ try{ // @ts-ignore
+      if ('wakeLock' in navigator) { // @ts-ignore
+        wakeRef.current = await (navigator as any).wakeLock.request('screen');
+      }
+    }catch{} })();
     const sendOnce = () => {
       try{
         navigator.geolocation.getCurrentPosition((pos)=>{
@@ -77,6 +90,7 @@ export default function Driving(){
       window.clearInterval(pingTimer.current);
       pingTimer.current = null;
     }
+    try{ if (wakeRef.current) { wakeRef.current.release?.(); wakeRef.current = null; } }catch{}
   }
 
   return (

@@ -10,8 +10,12 @@ export async function POST(req: Request){
   const token = (req.headers.get('cookie')||'').split('; ').find(c=>c.startsWith('sadd_token='))?.split('=')[1];
   const payload = await verifyJwt(token);
   if (!payload || !['ADMIN','COORDINATOR','TC'].includes(payload.role)) return NextResponse.json({ error:'forbidden' }, { status: 403 });
-  const { vanId } = await req.json();
+  const body = await req.json().catch(()=>({}));
+  const { vanId, lat, lng } = body || {};
   if (!vanId) return NextResponse.json({ error:'vanId required' }, { status: 400 });
+  if (typeof lat !== 'number' || typeof lng !== 'number'){
+    return NextResponse.json({ error:'location required' }, { status: 400 });
+  }
 
   // Ensure only one TC per van.
   // First, check if the target van is already controlled by another TC.
@@ -25,7 +29,7 @@ export async function POST(req: Request){
   // Attempt to claim this van atomically; if someone else grabbed it, fail gracefully
   const result = await prisma.van.updateMany({
     where: { id: vanId, OR: [ { activeTcId: null }, { activeTcId: payload.uid } ] },
-    data: { activeTcId: payload.uid, status: 'ACTIVE' },
+    data: { activeTcId: payload.uid, status: 'ACTIVE', currentLat: lat, currentLng: lng, lastPing: new Date() },
   });
   if (result.count === 0){
     return NextResponse.json({ error:'van already has an active TC' }, { status: 409 });
