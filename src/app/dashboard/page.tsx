@@ -239,11 +239,13 @@ function CoordinatorMap({ vans }:{ vans: any[] }){
     setPanel({ name: van?.name || 'Van', pax: Number(van?.passengers||0), cap: Number(van?.capacity||0), tasks: tasks.length });
   }
 
-  const vanMarkers = vans.filter(v=> v.currentLat&&v.currentLng).map((v:any)=>{
-    const pax = Number(v.passengers||0);
-    const cap = Number(v.capacity||8);
-    const color = pax<=0 ? '#16a34a' : pax<cap ? '#f59e0b' : '#dc2626';
-    return { id:v.id, lat:v.currentLat!, lng:v.currentLng!, color };
+  const vanMarkers = vans
+    .filter(v=> v.status==='ACTIVE' && v.currentLat && v.currentLng)
+    .map((v:any)=>{
+      const pax = Number(v.passengers||0);
+      const cap = Number(v.capacity||8);
+      const color = pax<=0 ? '#16a34a' : pax<cap ? '#f59e0b' : '#dc2626';
+      return { id:v.id, lat:v.currentLat!, lng:v.currentLng!, color };
   });
 
   return (

@@ -13,7 +13,14 @@ export async function POST(req: Request){
   const { vanId } = await req.json();
   if (!vanId) return NextResponse.json({ error:'vanId required' }, { status: 400 });
 
-  // ensure only one TC per van; clear any previous TC relationships for this user
+  // Ensure only one TC per van.
+  // First, check if the target van is already controlled by another TC.
+  const existing = await prisma.van.findUnique({ where:{ id: vanId } });
+  if (!existing) return NextResponse.json({ error:'van not found' }, { status: 404 });
+  if (existing.activeTcId && existing.activeTcId !== payload.uid){
+    return NextResponse.json({ error:'van already has an active TC' }, { status: 409 });
+  }
+  // Clear any other van the current TC might be attached to
   await prisma.van.updateMany({ where:{ activeTcId: payload.uid }, data:{ activeTcId: null, status: 'OFFLINE', passengers: 0 } });
   const van = await prisma.van.update({ where:{ id: vanId }, data:{ activeTcId: payload.uid, status: 'ACTIVE' } });
   publish('vans:update', { id: van.id });

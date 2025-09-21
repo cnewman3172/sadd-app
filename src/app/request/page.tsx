@@ -41,7 +41,7 @@ export default function RequestPage(){
   function activeVansMarkers(){
     // For riders: only show the assigned van; otherwise hide other vans for privacy.
     if (!status?.vanId) return [] as Array<{id:string,lat:number,lng:number,color:string}>;
-    const v = vans.find((x:any)=> x.id===status.vanId && x.currentLat && x.currentLng);
+    const v = vans.find((x:any)=> x.id===status.vanId && x.status==='ACTIVE' && x.currentLat && x.currentLng);
     if (!v) return [] as Array<{id:string,lat:number,lng:number,color:string}>;
     const pax = Number(v.passengers||0);
     const cap = Number(v.capacity||8);
@@ -71,7 +71,7 @@ export default function RequestPage(){
     setShowForm(!pr);
   }
   useEffect(()=>{ reloadHistory(); },[]);
-  useEffect(()=>{ refreshVans(); const id = setInterval(refreshVans, 10000); return ()=> clearInterval(id); },[]);
+  useEffect(()=>{ refreshVans(); const id = setInterval(refreshVans, 5000); return ()=> clearInterval(id); },[]);
   async function refreshVans(){ try{ const v = await fetch('/api/vans', { cache:'no-store' }).then(r=>r.json()); setVans(v||[]); }catch{} }
 
   function useMyLocation(){ navigator.geolocation.getCurrentPosition(async (pos)=>{
