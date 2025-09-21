@@ -18,6 +18,12 @@ services:
       - VAPID_PRIVATE_KEY=${VAPID_PRIVATE_KEY}
       - OSRM_URL=${OSRM_URL}
       - NOMINATIM_URL=${NOMINATIM_URL}
+      - SMTP_HOST=${SMTP_HOST}
+      - SMTP_PORT=${SMTP_PORT}
+      - SMTP_USER=${SMTP_USER}
+      - SMTP_PASS=${SMTP_PASS}
+      - SMTP_FROM=${SMTP_FROM}
+      - SMTP_DEBUG=${SMTP_DEBUG}
     depends_on:
       db:
         condition: service_healthy
