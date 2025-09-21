@@ -26,6 +26,10 @@ export async function GET(){
       hasDatabaseUrl: Boolean(process.env.DATABASE_URL),
       hasJwtSecret: Boolean(process.env.JWT_SECRET),
       osrmUrl: process.env.OSRM_URL || 'default',
+      hasSmtpHost: Boolean(process.env.SMTP_HOST),
+      hasSmtpPort: Boolean(process.env.SMTP_PORT),
+      hasSmtpUser: Boolean(process.env.SMTP_USER),
+      hasSmtpFrom: Boolean(process.env.SMTP_FROM),
     }
   });
 }
