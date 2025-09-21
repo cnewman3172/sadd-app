@@ -63,8 +63,16 @@ export default function Login() {
                 const email = form?.email;
                 if (!email) { setError('Enter your email above first.'); return; }
                 const res = await fetch('/api/auth/forgot', { method:'POST', headers:{ 'Content-Type':'application/json' }, body: JSON.stringify({ email }) });
-                if (res.ok) alert('If the email exists, you will receive reset instructions.');
-                else setError('Please try again later.');
+                if (res.ok){
+                  const d = await res.json().catch(()=>({}));
+                  if (d?.link){
+                    // Dev helper: if server returned a reset link, open it for convenience
+                    try{ window.open(d.link, '_blank'); }catch{}
+                  }
+                  alert('If the email exists, you will receive reset instructions.');
+                } else {
+                  setError('Please try again later.');
+                }
               }}
               className="w-full text-sm underline"
             >Forgot password?</button>
