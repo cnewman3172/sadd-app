@@ -11,6 +11,8 @@ export default function Driving(){
   const [selected, setSelected] = useState('');
   const [sseStatus, setSseStatus] = useState<'connecting'|'online'|'offline'>('connecting');
   const [userId, setUserId] = useState<string>('');
+  const [wakeSupported, setWakeSupported] = useState(false);
+  const [wakeOn, setWakeOn] = useState(true);
   const [walkOpen, setWalkOpen] = useState(false);
   const [walkTaskId, setWalkTaskId] = useState<string>('');
   const [walkForm, setWalkForm] = useState<any>({ name:'', phone:'', dropAddr:'', dropLat: undefined as number|undefined, dropLng: undefined as number|undefined });
@@ -36,6 +38,7 @@ export default function Driving(){
     es.onerror = ()=> setSseStatus('offline');
     return ()=>{ es.close(); };
   },[]);
+  useEffect(()=>{ try{ setWakeSupported('wakeLock' in navigator); }catch{ setWakeSupported(false); } },[]);
 
   async function goOnline(){
     if (!selected) return alert('Select a van');
@@ -65,15 +68,24 @@ export default function Driving(){
   // location pings every 5 seconds when online
   const pingTimer = useRef<number | null>(null);
   const wakeRef = useRef<any>(null);
+  async function requestWake(){
+    if (!wakeOn) return;
+    try{
+      // @ts-ignore
+      if ('wakeLock' in navigator && !wakeRef.current){
+        // @ts-ignore
+        wakeRef.current = await (navigator as any).wakeLock.request('screen');
+        wakeRef.current.addEventListener?.('release', ()=>{ /* noop */ });
+      }
+    }catch{}
+  }
+  function releaseWake(){
+    try{ if (wakeRef.current){ wakeRef.current.release?.(); wakeRef.current = null; } }catch{}
+  }
   function startPings(){
     if (typeof navigator === 'undefined' || !navigator.geolocation) return;
     if (pingTimer.current !== null) return;
-    // Try to keep the screen awake while online to improve location reliability
-    (async()=>{ try{ // @ts-ignore
-      if ('wakeLock' in navigator) { // @ts-ignore
-        wakeRef.current = await (navigator as any).wakeLock.request('screen');
-      }
-    }catch{} })();
+    requestWake();
     const sendOnce = () => {
       try{
         navigator.geolocation.getCurrentPosition((pos)=>{
@@ -90,7 +102,7 @@ export default function Driving(){
       window.clearInterval(pingTimer.current);
       pingTimer.current = null;
     }
-    try{ if (wakeRef.current) { wakeRef.current.release?.(); wakeRef.current = null; } }catch{}
+    releaseWake();
   }
 
   return (
@@ -110,8 +122,21 @@ export default function Driving(){
           </div>
         )}
         {currentVan && (
-          <button onClick={goOffline} className="rounded px-4 py-2 border">Go Offline</button>
+          <div className="flex items-center gap-3">
+            <button onClick={goOffline} className="rounded px-4 py-2 border">Go Offline</button>
+            {wakeSupported && (
+              <label className="flex items-center gap-2 text-sm">
+                <input type="checkbox" checked={wakeOn} onChange={(e)=>{ setWakeOn(e.target.checked); if (e.target.checked) requestWake(); else releaseWake(); }} />
+                Keep screen awake
+              </label>
+            )}
+          </div>
         )}
+      </section>
+      <section className="rounded-xl p-3 bg-amber-100 text-amber-900 dark:bg-amber-900/30 dark:text-amber-200 border border-amber-200 dark:border-amber-700">
+        <div className="text-sm">
+          Keep this page open while you are Online so your location updates reliably every 5 seconds. Turning on “Keep screen awake” can help prevent the device from sleeping.
+        </div>
       </section>
       <section className="rounded-xl p-4 bg-white/70 dark:bg-white/10 border border-white/20">
         <h2 className="font-semibold mb-2">Tasks</h2>
