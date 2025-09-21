@@ -22,17 +22,17 @@ export default async function Home() {
   } catch {}
 
   return (
-    <div className="relative min-h-screen overflow-hidden text-foreground ambient-bg">
+    <div className={`relative min-h-screen overflow-hidden text-foreground ambient-bg ${active ? 'ambient-active' : 'ambient-inactive'}`}>
       {/* Ambient gradient orbs */}
       <div aria-hidden className="pointer-events-none absolute inset-0 -z-10">
         <div data-orb data-speed="0.10" className="absolute left-[-10%] top-[-10%]">
-          <div className="orb h-72 w-72" style={{background:'radial-gradient(closest-side,#60a5fa,transparent)'}} />
+          <div className="orb orb-bg1 h-72 w-72" />
         </div>
         <div data-orb data-speed="0.14" className="absolute right-[-10%] top-[10%]">
-          <div className="orb h-80 w-80" style={{background:'radial-gradient(closest-side,#a78bfa,transparent)', animationDelay:'-6s'}} />
+          <div className="orb orb-bg2 h-80 w-80" style={{ animationDelay:'-6s'}} />
         </div>
         <div data-orb data-speed="0.12" className="absolute left-[10%] bottom-[-10%]">
-          <div className="orb h-96 w-96" style={{background:'radial-gradient(closest-side,#f0abfc,transparent)', animationDuration:'18s'}} />
+          <div className="orb orb-bg3 h-96 w-96" style={{ animationDuration:'18s'}} />
         </div>
       </div>
 
