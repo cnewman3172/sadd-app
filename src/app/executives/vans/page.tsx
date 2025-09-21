@@ -1,6 +1,5 @@
-import dynamic from 'next/dynamic';
-
-const Fleet = dynamic(() => import('@/components/admin/Fleet'), { ssr: false });
+"use client";
+import Fleet from '@/components/admin/Fleet';
 
 export default function VansPage(){
   return (
