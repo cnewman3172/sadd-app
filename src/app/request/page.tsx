@@ -12,6 +12,8 @@ export default function RequestPage(){
   const [history, setHistory] = useState<any[]>([]);
   const [sse, setSse] = useState<EventSource | null>(null);
   const ICE_URL = 'https://ice.disa.mil/index.cfm?fa=card&sp=86951&s=360&dep=*DoD';
+  const [vanPos, setVanPos] = useState<{lat:number,lng:number}|null>(null);
+  const [etaSec, setEtaSec] = useState<number|null>(null);
 
   async function reloadHistory(){
     const data = await fetch('/api/my-rides?limit=3').then(r=>r.json());
@@ -47,9 +49,45 @@ export default function RequestPage(){
       }catch{}
     };
     es.addEventListener('ride:update', onUpdate as any);
+    const onVanPing = (ev: MessageEvent)=>{
+      try{
+        const v = JSON.parse(ev.data);
+        if (v?.id && v.id === status?.vanId){ setVanPos({ lat: v.lat, lng: v.lng }); }
+      }catch{}
+    };
+    es.addEventListener('vans:location', onVanPing as any);
     setSse(es);
     return ()=>{ try{ es.close(); }catch{} };
   }, [status?.id]);
+
+  // Whenever a van is assigned, fetch its current position initially
+  useEffect(()=>{
+    (async()=>{
+      if (!status?.vanId) { setVanPos(null); setEtaSec(null); return; }
+      try{
+        const vans = await fetch('/api/vans', { cache: 'no-store' }).then(r=>r.json());
+        const v = (vans||[]).find((x:any)=> x.id===status.vanId);
+        if (v?.currentLat && v?.currentLng){ setVanPos({ lat: v.currentLat, lng: v.currentLng }); }
+      }catch{}
+    })();
+  }, [status?.vanId]);
+
+  // Compute ETA when we have van position and the ride is active
+  useEffect(()=>{
+    (async()=>{
+      if (!vanPos || !status) { setEtaSec(null); return; }
+      const st = status.status;
+      if (st !== 'EN_ROUTE' && st !== 'PICKED_UP'){ setEtaSec(null); return; }
+      const toLat = st==='EN_ROUTE' ? status.pickupLat : status.dropLat;
+      const toLng = st==='EN_ROUTE' ? status.pickupLng : status.dropLng;
+      if (typeof toLat !== 'number' || typeof toLng !== 'number') { setEtaSec(null); return; }
+      try{
+        const url = `/api/eta?from=${vanPos.lat},${vanPos.lng}&to=${toLat},${toLng}`;
+        const d = await fetch(url, { cache: 'no-store' }).then(r=>r.json());
+        if (d?.seconds!=null) setEtaSec(Math.round(d.seconds));
+      }catch{}
+    })();
+  }, [vanPos?.lat, vanPos?.lng, status?.status]);
 
   return (
     <div className="grid md:grid-cols-3 gap-6 p-4 max-w-6xl mx-auto">
@@ -108,8 +146,14 @@ export default function RequestPage(){
       </div>
       <aside className="space-y-4">
         <div className="rounded-xl overflow-hidden border border-white/20">
-          <Map height={400} markers={[]} />
+          <Map height={400} markers={getMarkers(status, vanPos)} />
         </div>
+        {status && (status.status==='EN_ROUTE' || status.status==='PICKED_UP') && (
+          <div className="rounded-xl p-3 border border-white/20 bg-white/70 dark:bg-white/10">
+            <div className="text-sm">Assigned Van: {status.vanId ? `#${status.vanId.slice(0,8)}` : '—'}</div>
+            <div className="text-sm">ETA: {etaSec!=null ? formatEta(etaSec) : '—'}</div>
+          </div>
+        )}
       </aside>
     </div>
   );
@@ -153,4 +197,25 @@ function ReviewInline({ ride, iceUrl, onDone }:{ ride:any; iceUrl:string; onDone
       {error && <span className="text-red-600 text-xs">{error}</span>}
     </div>
   );
+}
+
+function getMarkers(status:any, vanPos: {lat:number,lng:number}|null){
+  const ms: Array<{lat:number,lng:number,color?:string}> = [];
+  if (!status) return ms;
+  if (status.status==='EN_ROUTE' && typeof status.pickupLat==='number' && typeof status.pickupLng==='number'){
+    ms.push({ lat: status.pickupLat, lng: status.pickupLng, color: 'green' });
+  }
+  if (status.status==='PICKED_UP' && typeof status.dropLat==='number' && typeof status.dropLng==='number'){
+    ms.push({ lat: status.dropLat, lng: status.dropLng, color: 'green' });
+  }
+  if ((status.status==='EN_ROUTE' || status.status==='PICKED_UP') && vanPos){
+    ms.push({ lat: vanPos.lat, lng: vanPos.lng, color: 'red' });
+  }
+  return ms;
+}
+
+function formatEta(sec:number){
+  const m = Math.floor(sec/60); const s = sec%60;
+  if (m>=60){ const h=Math.floor(m/60); const rm=m%60; return `${h}h ${rm}m`; }
+  return `${m}m ${s}s`;
 }
