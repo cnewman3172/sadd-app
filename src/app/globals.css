@@ -29,6 +29,10 @@
   --foreground: #ededed;
 }
 
+/* Improve contrast when toggling themes even if legacy utility classes are used */
+:root[data-theme='dark'] .text-black { color: var(--foreground) !important; }
+:root[data-theme='light'] .text-white { color: var(--foreground) !important; }
+
 body {
   background: var(--background);
   color: var(--foreground);

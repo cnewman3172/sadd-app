@@ -34,13 +34,13 @@ export default async function RootLayout({
   const base = process.env.NEXT_PUBLIC_APP_URL || '';
   let active = false;
   const cookieStore = await cookies();
-  const themeCookie = cookieStore.get('theme')?.value as 'light'|'dark'|undefined;
+  const themeCookie = cookieStore.get('theme')?.value as 'light'|'dark'|'system'|undefined;
   try {
     const r = await fetch(`${base}/api/health`, { cache: 'no-store' });
     if (r.ok) { const d = await r.json(); active = Boolean(d.active); }
   } catch {}
   return (
-    <html lang="en" suppressHydrationWarning data-theme={themeCookie}
+    <html lang="en" suppressHydrationWarning {...(themeCookie && themeCookie!=='system' ? { 'data-theme': themeCookie } : {})}
     >
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased min-h-screen bg-background text-foreground ambient-bg ${active ? 'ambient-active':'ambient-inactive'}`}
