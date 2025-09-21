@@ -16,6 +16,9 @@ export default function Dashboard(){
   const [manualOpen, setManualOpen] = useState(false);
   const [manual, setManual] = useState<any>({ passengers: '1' });
   const [manualBusy, setManualBusy] = useState(false);
+  const [manualEtaSec, setManualEtaSec] = useState<number|null>(null);
+  const [manualEtaVan, setManualEtaVan] = useState<string>('');
+  const [activeEtas, setActiveEtas] = useState<Record<string, number|null>>({});
 
   async function refresh(){
     const [r, v] = await Promise.all([
@@ -37,7 +40,12 @@ export default function Dashboard(){
     const buffer: Record<string,{lat:number,lng:number}> = {};
     let timer: number | null = null;
     const flush = ()=>{
-      setVans((prev:any[])=> prev.map(v=> buffer[v.id] ? { ...v, currentLat: buffer[v.id].lat, currentLng: buffer[v.id].lng } : v));
+      setVans((prev:any[])=> {
+        const next = prev.map(v=> buffer[v.id] ? { ...v, currentLat: buffer[v.id].lat, currentLng: buffer[v.id].lng } : v);
+        // Recompute ETAs for active trips when positions change
+        computeActiveEtas(rides, next);
+        return next;
+      });
       for (const k in buffer) delete buffer[k];
       if (timer!==null){ window.clearTimeout(timer); timer=null; }
     };
@@ -56,6 +64,25 @@ export default function Dashboard(){
   const pending = useMemo(()=> rides.filter((r:Ride)=>r.status==='PENDING'),[rides]);
   const active = useMemo(()=> rides.filter((r:Ride)=>['ASSIGNED','EN_ROUTE','PICKED_UP'].includes(r.status)),[rides]);
   const activeVans = useMemo(()=> vans.filter((v:any)=> v.status==='ACTIVE'), [vans]);
+
+  async function computeActiveEtas(rArr: Ride[], vArr: any[]){
+    const map: Record<string, number|null> = {};
+    await Promise.all(rArr.filter((r:any)=> ['ASSIGNED','EN_ROUTE','PICKED_UP'].includes(r.status) && r.vanId)
+      .map(async (r:any)=>{
+        const v = vArr.find((x:any)=> x.id===r.vanId);
+        if (!v || typeof v.currentLat!=='number' || typeof v.currentLng!=='number'){ map[r.id]=null; return; }
+        let toLat:number|undefined, toLng:number|undefined;
+        if (r.status==='PICKED_UP'){ toLat = r.dropLat; toLng = r.dropLng; }
+        else { toLat = r.pickupLat; toLng = r.pickupLng; }
+        if (typeof toLat!=='number' || typeof toLng!=='number'){ map[r.id]=null; return; }
+        try{
+          const url = `/api/eta?from=${v.currentLat},${v.currentLng}&to=${toLat},${toLng}`;
+          const d = await fetch(url, { cache:'no-store' }).then(r=>r.json());
+          map[r.id] = (d?.seconds!=null) ? Math.round(d.seconds) : null;
+        }catch{ map[r.id]=null; }
+      }));
+    setActiveEtas(map);
+  }
   function candidateCount(r: Ride){
     return vans.filter(v=> v.status==='ACTIVE' && typeof v.currentLat==='number' && typeof v.currentLng==='number' && (v.capacity||0) >= (r.passengers||1)).length;
   }
@@ -154,7 +181,7 @@ export default function Dashboard(){
               <div key={r.id} className="rounded border p-3 flex flex-col gap-2">
                 <div className="flex items-center justify-between">
                   <div className="font-medium">#{r.rideCode} · {r.rider?.firstName} {r.rider?.lastName}</div>
-                  <div className="text-xs opacity-70">{r.status}</div>
+                  <div className="text-xs opacity-70">{r.status} {activeEtas[r.id]!=null ? `· ETA ${Math.max(1,Math.round((activeEtas[r.id]||0)/60))} min` : ''}</div>
                 </div>
                 <div className="text-sm opacity-80">{r.pickupAddr} → {r.dropAddr}</div>
                 <div className="flex gap-2 items-center">
@@ -228,6 +255,7 @@ export default function Dashboard(){
                 />
                 <input className="p-2 rounded border bg-white/80 dark:bg-neutral-800 text-sm text-black dark:text-white" placeholder="Notes (optional)" value={manual.notes||''} onChange={(e)=> setManual({...manual, notes:e.target.value})} />
               </div>
+              <ManualEta pickupLat={manual.pickupLat} pickupLng={manual.pickupLng} pax={parseInt(String(manual.passengers||'1'),10)||1} onEta={(sec,van)=>{ setManualEtaSec(sec); setManualEtaVan(van); }} />
               <div className="flex justify-end gap-2 mt-2">
                 <button onClick={()=> setManualOpen(false)} className="rounded border px-3 py-1 text-sm">Cancel</button>
                 <button disabled={manualBusy} onClick={async()=>{
