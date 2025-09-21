@@ -35,6 +35,13 @@ export async function PUT(req: NextRequest, context: { params: Promise<{ id: str
   const { status, vanId, driverId, coordinatorId, notes } = schema.parse(await req.json());
   const { id } = await context.params;
   let data: any = { status, vanId, driverId, coordinatorId, notes };
+  const prev = await prisma.ride.findUnique({ where: { id } });
+  if (prev && status && status !== prev.status){
+    const now = new Date();
+    if (status === 'ASSIGNED' && !prev.acceptedAt){ data.acceptedAt = now; }
+    if (status === 'PICKED_UP' && !prev.pickupAt){ data.pickupAt = now; }
+    if (status === 'DROPPED' && !prev.dropAt){ data.dropAt = now; }
+  }
   if (vanId && !driverId){
     const van = await prisma.van.findUnique({ where: { id: vanId } });
     if (van?.activeTcId){
