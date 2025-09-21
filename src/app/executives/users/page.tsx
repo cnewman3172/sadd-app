@@ -23,7 +23,7 @@ export default function UsersPage(){
       <div className="flex items-center justify-between mb-2">
         <h2 className="font-semibold">Users</h2>
         <div className="flex items-center gap-2">
-          <input value={q} onChange={(e)=> setQ(e.target.value)} onKeyDown={(e)=>{ if(e.key==='Enter') load(q); }} placeholder="Search email or name" className="p-2 rounded border bg-white/80 text-sm" />
+          <input value={q} onChange={(e)=> setQ(e.target.value)} onKeyDown={(e)=>{ if(e.key==='Enter') load(q); }} placeholder="Search email or name" className="p-2 rounded border bg-white/80 dark:bg-neutral-800 text-sm text-black dark:text-white" />
           <button onClick={()=>load(q)} className="rounded border px-3 py-1 text-sm">Search</button>
         </div>
       </div>
@@ -43,7 +43,7 @@ export default function UsersPage(){
                 <td className="py-2 px-2 whitespace-nowrap">{u.email}</td>
                 <td className="px-2 whitespace-nowrap">{u.firstName} {u.lastName}</td>
                 <td className="px-2">
-                  <select defaultValue={u.role} className="p-1 rounded border bg-white/80" onChange={async(e)=>{
+                  <select defaultValue={u.role} className="p-1 rounded border bg-white/80 dark:bg-neutral-800 text-black dark:text-white" onChange={async(e)=>{
                     const role = e.target.value;
                     const res = await fetch(`/api/admin/users/${u.id}`, { method:'PUT', headers:{ 'Content-Type':'application/json' }, body: JSON.stringify({ role }) });
                     if (!res.ok) { alert('Update failed'); (e.target as HTMLSelectElement).value = u.role; return; }
@@ -67,4 +67,3 @@ export default function UsersPage(){
     </section>
   );
 }
-

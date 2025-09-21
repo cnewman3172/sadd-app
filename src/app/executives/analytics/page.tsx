@@ -79,18 +79,18 @@ function ExportAndResetRow(){
   const base = '/api/admin/export/rides?format=csv';
   const href = base + (from?`&from=${encodeURIComponent(from)}`:'') + (to?`&to=${encodeURIComponent(to)}`:'');
   return (
-    <div className="mt-4 flex items-end justify-between gap-3">
-      <div className="flex items-end gap-2">
-        <div>
-          <label className="text-xs opacity-70">From</label>
-          <input type="date" value={from} onChange={(e)=> setFrom(e.target.value)} className="block p-2 rounded border bg-white/80 text-sm" />
-        </div>
-        <div>
-          <label className="text-xs opacity-70">To</label>
-          <input type="date" value={to} onChange={(e)=> setTo(e.target.value)} className="block p-2 rounded border bg-white/80 text-sm" />
-        </div>
-        <a className="rounded border px-3 py-2 text-sm" href={href}>Export Rides (CSV)</a>
-      </div>
+        <div className="mt-4 flex items-end justify-between gap-3">
+          <div className="flex items-end gap-2">
+            <div>
+              <label className="text-xs opacity-70">From</label>
+          <input type="date" value={from} onChange={(e)=> setFrom(e.target.value)} className="block p-2 rounded border bg-white/80 dark:bg-neutral-800 text-sm text-black dark:text-white" />
+            </div>
+            <div>
+              <label className="text-xs opacity-70">To</label>
+          <input type="date" value={to} onChange={(e)=> setTo(e.target.value)} className="block p-2 rounded border bg-white/80 dark:bg-neutral-800 text-sm text-black dark:text-white" />
+            </div>
+            <a className="rounded border px-3 py-2 text-sm" href={href}>Export Rides (CSV)</a>
+          </div>
       <div className="ml-auto">
         <ResetRidesInline />
       </div>

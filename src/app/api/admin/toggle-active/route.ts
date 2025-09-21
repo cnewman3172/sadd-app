@@ -8,7 +8,9 @@ export async function POST(req: Request){
   const payload = await verifyJwt(token);
   if (!payload || payload.role !== 'ADMIN') return NextResponse.json({ error:'forbidden' }, { status: 403 });
   try{
-    const s = await prisma.setting.upsert({ where:{ id:1 }, update:{ active: { set: undefined } }, create:{ id:1, active:false } });
+    // Ensure row exists
+    let s = await prisma.setting.findUnique({ where: { id: 1 } });
+    if (!s){ s = await prisma.setting.create({ data: { id:1, active:false } }); }
     const toggled = await prisma.setting.update({ where:{ id:1 }, data:{ active: !s.active } });
     return NextResponse.json(toggled);
   }catch(e:any){
