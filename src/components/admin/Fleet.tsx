@@ -55,6 +55,7 @@ export default function Fleet(){
               <th>Capacity</th>
               <th>Status</th>
               <th>Passengers</th>
+              <th>Single Trip</th>
               <th></th>
             </tr>
           </thead>
@@ -75,6 +76,11 @@ export default function Fleet(){
                   </select>
                 </td>
                 <td>{v.passengers ?? 0}</td>
+                <td>
+                  <label className="inline-flex items-center gap-2 text-xs">
+                    <input type="checkbox" defaultChecked={Boolean(v.singleTrip)} onChange={(e)=> updateVan(v.id,{ singleTrip: e.target.checked })} /> Single Trip
+                  </label>
+                </td>
                 <td className="text-right">
                   <button onClick={()=>delVan(v.id)} className="rounded border px-3 py-1">Delete</button>
                 </td>
@@ -86,4 +92,3 @@ export default function Fleet(){
     </div>
   );
 }
-
