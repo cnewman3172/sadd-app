@@ -58,7 +58,7 @@ export default function AddressInput({
     <div className="relative" ref={rootRef}>
       <label className="text-sm">{label}</label>
       <input
-        className="w-full p-3 rounded border"
+        className="w-full p-3 rounded border bg-white/80 dark:bg-neutral-800 text-black dark:text-white"
         placeholder={placeholder || "Address or place"}
         value={q}
         onChange={(e)=>{ setQ(e.target.value); onChange?.(e.target.value); if (!e.target.value || e.target.value.length<3) setOpen(false); }}
@@ -67,12 +67,12 @@ export default function AddressInput({
         onKeyDown={(e)=>{ if (e.key==='Escape') setOpen(false); }}
       />
       {open && opts.length>0 && (
-        <div className="absolute z-10 mt-1 w-full max-h-56 overflow-auto rounded border bg-white text-black shadow-lg">
+        <div className="absolute z-10 mt-1 w-full max-h-56 overflow-auto rounded-xl popover text-black dark:text-white">
           {opts.map((o, i)=> (
             <button
               key={i}
               type="button"
-              className="block w-full text-left px-3 py-2 hover:bg-black/5"
+              className="block w-full text-left px-3 py-2 hover:bg-black/5 dark:hover:bg-white/10"
               onMouseDown={(e)=> e.preventDefault()}
               onClick={()=>{ setQ(o.label); setOpen(false); onSelect(o); }}
             >
