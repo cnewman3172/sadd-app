@@ -317,11 +317,11 @@ export default function Dashboard(){
             <div className="grid gap-2">
               <div className="grid grid-cols-2 gap-2">
                 <div className="relative">
-                  <input className="p-2 rounded border bg-white/80 dark:bg-neutral-800 text-sm text-black dark:text-white w-full" placeholder="Caller Name" value={manual.name||''} onChange={(e)=> { setManual({...manual, name:e.target.value}); }} onFocus={()=>{ if (nameOpts.length>0) setNameOpen(true); }} />
+                  <input className="p-2 rounded border bg-white/80 dark:bg-neutral-800 text-sm text-black dark:text-white w-full" placeholder="Caller Name" value={manual.name||''} onChange={(e)=> { setManual({...manual, name:e.target.value}); }} onFocus={()=>{ if (nameOpts.length>0) setNameOpen(true); }} onBlur={()=> setTimeout(()=> setNameOpen(false), 120)} onKeyDown={(e)=>{ if (e.key==='Escape') setNameOpen(false); }} />
                   {nameOpen && nameOpts.length>0 && (
-                    <div className="absolute z-10 mt-1 w-full max-h-56 overflow-auto rounded border bg-white text-black shadow-lg">
+                    <div className="absolute z-10 mt-1 w-full max-h-56 overflow-auto rounded-xl popover text-black dark:text-white">
                       {nameOpts.map((u:any)=> (
-                        <button key={u.id} type="button" className="block w-full text-left px-3 py-2 hover:bg-black/5" onMouseDown={(e)=> e.preventDefault()} onClick={()=>{ setSelRider(u); setManual((m:any)=> ({ ...m, riderId: u.id, name: `${u.firstName} ${u.lastName}`, phone: (u as any).phone||m.phone })); setNameOpen(false); }}>
+                        <button key={u.id} type="button" className="block w-full text-left px-3 py-2 hover:bg-black/5 dark:hover:bg-white/10" onMouseDown={(e)=> e.preventDefault()} onClick={()=>{ setSelRider(u); setManual((m:any)=> ({ ...m, riderId: u.id, name: `${u.firstName} ${u.lastName}`, phone: (u as any).phone||m.phone })); setNameOpen(false); }}>
                           <div className="text-sm">{u.firstName} {u.lastName} <span className="opacity-60">{u.email}</span></div>
                           <div className="text-xs opacity-60">{u.rank||'—'} · {u.phone||'no phone'}</div>
                         </button>
