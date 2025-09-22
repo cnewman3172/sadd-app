@@ -21,11 +21,9 @@ export default function Dropdown({ open, anchor, onClose, children }:{ open:bool
   return createPortal(
     <div className="fixed inset-0 z-[1500]" onClick={onClose}>
       <div className="absolute" style={{ top, right }} onClick={(e)=> e.stopPropagation()}>
-        <div className="w-56 rounded-xl glass border bg-white/60 dark:bg-white/10 shadow backdrop-blur-[10px]"
-             style={{ backdropFilter:'blur(10px) saturate(150%)', WebkitBackdropFilter:'blur(10px) saturate(150%)' }}>
+        <div className="w-56 rounded-xl popover">
           {children}
         </div>
       </div>
     </div>, document.body);
 }
-
