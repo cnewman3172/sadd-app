@@ -1,8 +1,9 @@
 "use client";
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
 import { showToast } from '@/components/Toast';
 import ThemeToggle from '@/components/ThemeToggle';
+import Dropdown from '@/components/Dropdown';
 
 type User = { id:string; firstName?:string; lastName?:string; role?: 'ADMIN'|'COORDINATOR'|'TC'|'VOLUNTEER'|'RIDER' };
 
@@ -18,6 +19,10 @@ export default function TopNav(){
   const [user, setUser] = useState<User|null>(null);
   const [menuOpen, setMenuOpen] = useState(false);
   const [acctOpen, setAcctOpen] = useState(false);
+  const menuBtnRef = useRef<HTMLButtonElement|null>(null);
+  const acctBtnRef = useRef<HTMLButtonElement|null>(null);
+  const [menuAnchor, setMenuAnchor] = useState<{top:number;left:number;right:number;bottom:number;width:number;height:number}|null>(null);
+  const [acctAnchor, setAcctAnchor] = useState<{top:number;left:number;right:number;bottom:number;width:number;height:number}|null>(null);
   useEffect(()=>{
     fetch('/api/me', { cache:'no-store' })
       .then(r=> r.ok ? r.json() : null)
@@ -33,6 +38,17 @@ export default function TopNav(){
       })
       .catch(()=>{});
   },[]);
+  useEffect(()=>{
+    if (menuOpen && menuBtnRef.current){ setMenuAnchor(menuBtnRef.current.getBoundingClientRect()); }
+    if (acctOpen && acctBtnRef.current){ setAcctAnchor(acctBtnRef.current.getBoundingClientRect()); }
+    const onResize = ()=>{
+      if (menuOpen && menuBtnRef.current){ setMenuAnchor(menuBtnRef.current.getBoundingClientRect()); }
+      if (acctOpen && acctBtnRef.current){ setAcctAnchor(acctBtnRef.current.getBoundingClientRect()); }
+    };
+    window.addEventListener('resize', onResize);
+    window.addEventListener('scroll', onResize, { passive:true });
+    return ()=>{ window.removeEventListener('resize', onResize); window.removeEventListener('scroll', onResize); };
+  },[menuOpen, acctOpen]);
   const name = user ? [user.firstName, user.lastName].filter(Boolean).join(' ') || 'Account' : 'Account';
   const links = (user?.role ? LINKS.filter(l=> l.roles.includes(user.role!)) : []).filter((v,i,a)=> a.findIndex(x=>x.href===v.href)===i);
   return (
@@ -43,24 +59,20 @@ export default function TopNav(){
           <ThemeToggle />
           {user && (
             <div className="relative">
-              <button onClick={()=>{ setMenuOpen(o=>!o); setAcctOpen(false); }} className="rounded-full px-3 py-1 text-sm glass border border-white/20">Menu</button>
-              {menuOpen && (
-                <div className="absolute right-0 mt-2 w-56 rounded-xl glass border border-white/20 bg-white/60 dark:bg-white/10 shadow z-[1300] backdrop-blur-sm">
-                  {links.map(l=> (
-                    <Link key={l.href} href={l.href} className="block px-3 py-2 text-sm hover:bg-black/5 dark:hover:bg-white/10" onClick={()=> setMenuOpen(false)}>{l.label}</Link>
-                  ))}
-                </div>
-              )}
+              <button ref={menuBtnRef} onClick={()=>{ setMenuOpen(o=>!o); setAcctOpen(false); }} className="rounded-full px-3 py-1 text-sm glass border border-white/20">Menu</button>
+              <Dropdown open={menuOpen} anchor={menuAnchor} onClose={()=> setMenuOpen(false)}>
+                {links.map(l=> (
+                  <Link key={l.href} href={l.href} className="block px-3 py-2 text-sm hover:bg-black/5 dark:hover:bg-white/10" onClick={()=> setMenuOpen(false)}>{l.label}</Link>
+                ))}
+              </Dropdown>
             </div>
           )}
           <div className="relative">
-            <button onClick={()=>{ setAcctOpen(o=>!o); setMenuOpen(false); }} className="rounded-full glass border border-white/20 px-3 py-1 text-sm">{name||'Account'}</button>
-            {acctOpen && (
-              <div className="absolute right-0 mt-2 w-56 rounded-xl glass border border-white/20 bg-white/60 dark:bg-white/10 shadow z-[1300] backdrop-blur-sm">
-                <Link href="/profile" className="block px-3 py-2 text-sm hover:bg-black/5 dark:hover:bg-white/10" onClick={()=> setAcctOpen(false)}>Settings</Link>
-                <button className="block w-full text-left px-3 py-2 text-sm hover:bg-black/5 dark:hover:bg-white/10" onClick={async()=>{ await fetch('/api/auth/logout',{ method:'POST' }); window.location.href='/login'; }}>Logout</button>
-              </div>
-            )}
+            <button ref={acctBtnRef} onClick={()=>{ setAcctOpen(o=>!o); setMenuOpen(false); }} className="rounded-full glass border border-white/20 px-3 py-1 text-sm">{name||'Account'}</button>
+            <Dropdown open={acctOpen} anchor={acctAnchor} onClose={()=> setAcctOpen(false)}>
+              <Link href="/profile" className="block px-3 py-2 text-sm hover:bg-black/5 dark:hover:bg-white/10" onClick={()=> setAcctOpen(false)}>Settings</Link>
+              <button className="block w-full text-left px-3 py-2 text-sm hover:bg-black/5 dark:hover:bg-white/10" onClick={async()=>{ await fetch('/api/auth/logout',{ method:'POST' }); window.location.href='/login'; }}>Logout</button>
+            </Dropdown>
           </div>
         </div>
       </div>
