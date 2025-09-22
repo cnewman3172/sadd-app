@@ -2,11 +2,11 @@
 import { useEffect, useState } from 'react';
 import Tabs from '@/app/executives/tabs';
 
-type Shift = { id:string; title?:string|null; startsAt:string; endsAt:string; needed:number; _count?:{ signups:number } };
+type Shift = { id:string; title?:string|null; role:'COORDINATOR'|'TC'; startsAt:string; endsAt:string; needed:number; _count?:{ signups:number } };
 
 export default function ExecShifts(){
   const [items, setItems] = useState<Shift[]>([]);
-  const [form, setForm] = useState<{ title:string; date:string; start:string; end:string; needed:number }>({ title:'', date:'', start:'20:00', end:'23:00', needed:2 });
+  const [form, setForm] = useState<{ title:string; role:'COORDINATOR'|'TC'; date:string; start:string; end:string; needed:number }>({ title:'', role:'COORDINATOR', date:'', start:'20:00', end:'23:00', needed:2 });
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState<string|null>(null);
 
@@ -24,9 +24,9 @@ export default function ExecShifts(){
       let endsAt = new Date(`${form.date}T${form.end}:00`);
       // Overnight convenience: if end is earlier than start, roll to next day
       if (endsAt <= startsAt) endsAt = new Date(endsAt.getTime() + 24*60*60*1000);
-      const res = await fetch('/api/admin/shifts', { method:'POST', headers:{ 'Content-Type':'application/json' }, body: JSON.stringify({ title: form.title||undefined, startsAt: startsAt.toISOString(), endsAt: endsAt.toISOString(), needed: form.needed }) });
+      const res = await fetch('/api/admin/shifts', { method:'POST', headers:{ 'Content-Type':'application/json' }, body: JSON.stringify({ title: form.title||undefined, role: form.role, startsAt: startsAt.toISOString(), endsAt: endsAt.toISOString(), needed: form.needed }) });
       if (!res.ok){ const d = await res.json().catch(()=>({error:'failed'})); throw new Error(d.error||'failed'); }
-      setForm({ title:'', date:'', start:'20:00', end:'23:00', needed:2 });
+      setForm({ title:'', role:'COORDINATOR', date:'', start:'20:00', end:'23:00', needed:2 });
       load();
     }catch(e:any){ setErr(e.message||'failed'); }
     finally{ setBusy(false); }
@@ -37,8 +37,15 @@ export default function ExecShifts(){
   return (
     <section className="rounded-xl p-4 glass border">
       <Tabs />
-      <h2 className="font-semibold my-3">Coordinator Shifts</h2>
-      <form onSubmit={create} className="grid md:grid-cols-5 gap-2 items-end mb-4">
+      <h2 className="font-semibold my-3">Shifts</h2>
+      <form onSubmit={create} className="grid md:grid-cols-6 gap-2 items-end mb-4">
+        <div>
+          <label className="text-xs">Role</label>
+          <select className="w-full p-2 rounded border glass" value={form.role} onChange={e=> setForm(f=>({...f, role: e.target.value as any}))}>
+            <option value="COORDINATOR">Coordinator</option>
+            <option value="TC">Truck Commander</option>
+          </select>
+        </div>
         <div><label className="text-xs">Title</label><input className="w-full p-2 rounded border glass" value={form.title} onChange={e=> setForm(f=>({...f,title:e.target.value}))} placeholder="Optional" /></div>
         <div><label className="text-xs">Date</label><input type="date" className="w-full p-2 rounded border glass" value={form.date} onChange={e=> setForm(f=>({...f,date:e.target.value}))} required /></div>
         <div><label className="text-xs">Start</label><input type="time" className="w-full p-2 rounded border glass" value={form.start} onChange={e=> setForm(f=>({...f,start:e.target.value}))} required /></div>
@@ -54,6 +61,7 @@ export default function ExecShifts(){
           <thead>
             <tr className="text-left opacity-70">
               <th className="py-2 px-2">When</th>
+              <th className="px-2">Role</th>
               <th className="px-2">Title</th>
               <th className="px-2">Needed</th>
               <th className="px-2"></th>
@@ -63,6 +71,7 @@ export default function ExecShifts(){
             {items.map(s=> (
               <tr key={s.id} className="border-t border-white/20">
                 <td className="py-2 px-2">{fmtRange(s.startsAt,s.endsAt)}</td>
+                <td className="px-2">{s.role==='COORDINATOR'?'Coordinator':'Truck Commander'}</td>
                 <td className="px-2">{s.title||'—'}</td>
                 <td className="px-2">{s._count?.signups ?? 0} / {s.needed}</td>
                 <td className="px-2 text-right"><button onClick={()=>del(s.id)} className="rounded border px-3 py-1">Delete</button></td>

@@ -14,6 +14,7 @@ export async function middleware(req: NextRequest) {
     { path: '/executives', roles: ['ADMIN'] },
     { path: '/dashboard', roles: ['ADMIN', 'COORDINATOR'] },
     { path: '/driving', roles: ['ADMIN', 'COORDINATOR', 'TC'] },
+    { path: '/shifts', roles: ['ADMIN', 'COORDINATOR', 'TC'] },
     { path: '/request', roles: ['ADMIN', 'COORDINATOR', 'TC', 'RIDER'] },
     { path: '/profile', roles: ['ADMIN', 'COORDINATOR', 'TC', 'RIDER'] },
   ];
@@ -60,5 +61,5 @@ export async function middleware(req: NextRequest) {
 }
 
 export const config = {
-  matcher: ['/executives/:path*', '/dashboard/:path*', '/driving/:path*', '/request/:path*', '/profile/:path*'],
+  matcher: ['/executives/:path*', '/dashboard/:path*', '/driving/:path*', '/shifts/:path*', '/request/:path*', '/profile/:path*'],
 };
