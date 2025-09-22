@@ -1,5 +1,6 @@
 "use client";
 import { useEffect, useState } from 'react';
+import Modal from '@/components/Modal';
 
 type Shift = { id:string; title?:string|null; role:'COORDINATOR'|'TC'; startsAt:string; endsAt:string; needed:number; _count?:{ signups:number } };
 
@@ -69,7 +70,6 @@ export function ExecShiftsWithModalWrapper(){
 }
 
 function BulkModal({ open, onClose, bulk, setBulk, onCreated }:{ open:boolean; onClose:()=>void; bulk:any; setBulk:(u:any)=>void; onCreated:()=>void }){
-  if (!open) return null;
   async function submit(e: React.FormEvent){
     e.preventDefault();
     try{
@@ -83,8 +83,8 @@ function BulkModal({ open, onClose, bulk, setBulk, onCreated }:{ open:boolean; o
     }catch(e:any){ alert(e.message||'Failed'); }
   }
   return (
-    <div className="fixed inset-0 z-[1400] bg-black/30 grid place-items-center p-4" role="dialog" aria-modal="true">
-      <form onSubmit={submit} className="w-full max-w-xl rounded-xl glass border backdrop-blur-sm p-4 grid md:grid-cols-4 gap-2">
+    <Modal open={open} onClose={onClose}>
+      <form onSubmit={submit} className="p-4 grid md:grid-cols-4 gap-2">
         <div className="md:col-span-4 text-lg font-semibold mb-2">Create Multi-Role Shifts</div>
         <div className="md:col-span-4"><label className="text-xs">Title</label><input className="w-full p-2 rounded border glass" value={bulk.title} onChange={e=> setBulk((b:any)=>({ ...b, title: e.target.value }))} placeholder="Optional" /></div>
         <div><label className="text-xs">Date</label><input type="date" className="w-full p-2 rounded border glass" value={bulk.date} onChange={e=> setBulk((b:any)=>({ ...b, date: e.target.value }))} required /></div>
@@ -100,6 +100,6 @@ function BulkModal({ open, onClose, bulk, setBulk, onCreated }:{ open:boolean; o
         </div>
         <div className="md:col-span-4 text-xs opacity-70">Overnight supported: if End is earlier than Start, it rolls to the next day.</div>
       </form>
-    </div>
+    </Modal>
   );
 }
