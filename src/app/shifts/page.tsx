@@ -1,7 +1,7 @@
 "use client";
 import { useEffect, useMemo, useState } from 'react';
 
-type ShiftItem = { id:string; title?:string|null; role:'COORDINATOR'|'TC'; startsAt:string; endsAt:string; needed:number; signupCount:number; isSigned:boolean };
+type ShiftItem = { id:string; title?:string|null; role:'COORDINATOR'|'TC'|'VOLUNTEER'; startsAt:string; endsAt:string; needed:number; signupCount:number; isSigned:boolean };
 
 export default function Shifts(){
   const [items, setItems] = useState<ShiftItem[]>([]);
@@ -25,7 +25,8 @@ export default function Shifts(){
   const groups = useMemo(()=>{
     const coord = items.filter(i=> i.role==='COORDINATOR');
     const tc = items.filter(i=> i.role==='TC');
-    return { coord, tc };
+    const vol = items.filter(i=> i.role==='VOLUNTEER');
+    return { coord, tc, vol };
   },[items]);
 
   return (
@@ -52,6 +53,17 @@ export default function Shifts(){
         </section>
       )}
 
+      {groups.vol.length>0 && (
+        <section>
+          <h2 className="font-semibold mb-2">Volunteer Shifts</h2>
+          <div className="grid md:grid-cols-2 gap-3">
+            {groups.vol.map(s=> (
+              <Card key={s.id} s={s} busy={busy===s.id} onToggle={toggle} />)
+            )}
+          </div>
+        </section>
+      )}
+
       {items.length===0 && (
         <div className="opacity-70 text-sm">No shifts posted yet.</div>
       )}
@@ -63,7 +75,7 @@ function Card({ s, busy, onToggle }:{ s:ShiftItem; busy:boolean; onToggle:(id:st
   return (
     <div className="rounded-xl glass border p-4">
       <div className="text-sm opacity-80">{fmtRange(s.startsAt, s.endsAt)}</div>
-      <div className="font-medium">{s.title || (s.role==='COORDINATOR'?'Coordinator Shift':'Truck Commander Shift')}</div>
+      <div className="font-medium">{s.title || (s.role==='COORDINATOR'?'Coordinator Shift': s.role==='TC'?'Truck Commander Shift':'Volunteer Shift')}</div>
       <div className="text-xs opacity-80 mb-2">Signed: {s.signupCount} / {s.needed}</div>
       <div className="flex gap-2">
         {!s.isSigned && s.signupCount < s.needed && (
@@ -89,4 +101,3 @@ function fmtRange(a:string,b:string){
     return sameDay ? `${dt} · ${t(s)} – ${t(e)}` : `${dt} ${t(s)} → ${new Intl.DateTimeFormat(undefined,{dateStyle:'medium'}).format(e)} ${t(e)}`;
   }catch{ return '—'; }
 }
-

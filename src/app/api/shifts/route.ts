@@ -7,17 +7,19 @@ export const runtime = 'nodejs';
 export async function GET(req: Request){
   const token = (req.headers.get('cookie')||'').split('; ').find(c=>c.startsWith('sadd_token='))?.split('=')[1];
   const payload = await verifyJwt(token);
-  if (!payload || !['ADMIN','COORDINATOR','TC'].includes(payload.role)) return NextResponse.json({ error:'forbidden' }, { status: 403 });
+  if (!payload || !['ADMIN','COORDINATOR','TC','VOLUNTEER'].includes(payload.role)) return NextResponse.json({ error:'forbidden' }, { status: 403 });
 
   // Determine which shift roles this user may view/signup for
   // - ADMIN: all roles
   // - COORDINATOR: COORDINATOR and roles below (TC)
   // - TC: only TC
   const allowedRoles = payload.role === 'ADMIN'
-    ? ['COORDINATOR','TC']
+    ? ['COORDINATOR','TC','VOLUNTEER']
     : payload.role === 'COORDINATOR'
-      ? ['COORDINATOR','TC']
-      : ['TC'];
+      ? ['COORDINATOR','TC','VOLUNTEER']
+      : payload.role === 'TC'
+        ? ['TC','VOLUNTEER']
+        : ['VOLUNTEER'];
 
   const from = new Date();
   const shifts = await prisma.shift.findMany({
