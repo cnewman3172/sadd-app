@@ -83,8 +83,8 @@ function BulkModal({ open, onClose, bulk, setBulk, onCreated }:{ open:boolean; o
     }catch(e:any){ alert(e.message||'Failed'); }
   }
   return (
-    <div className="fixed inset-0 bg-black/40 backdrop-blur-md grid place-items-center p-4" role="dialog" aria-modal="true">
-      <form onSubmit={submit} className="w-full max-w-xl rounded-xl glass border p-4 grid md:grid-cols-4 gap-2">
+    <div className="fixed inset-0 z-[1400] bg-black/30 grid place-items-center p-4" role="dialog" aria-modal="true">
+      <form onSubmit={submit} className="w-full max-w-xl rounded-xl glass border backdrop-blur-sm p-4 grid md:grid-cols-4 gap-2">
         <div className="md:col-span-4 text-lg font-semibold mb-2">Create Multi-Role Shifts</div>
         <div className="md:col-span-4"><label className="text-xs">Title</label><input className="w-full p-2 rounded border glass" value={bulk.title} onChange={e=> setBulk((b:any)=>({ ...b, title: e.target.value }))} placeholder="Optional" /></div>
         <div><label className="text-xs">Date</label><input type="date" className="w-full p-2 rounded border glass" value={bulk.date} onChange={e=> setBulk((b:any)=>({ ...b, date: e.target.value }))} required /></div>
