@@ -45,7 +45,7 @@ export default function TopNav(){
             <div className="relative">
               <button onClick={()=>{ setMenuOpen(o=>!o); setAcctOpen(false); }} className="rounded-full px-3 py-1 text-sm glass border border-white/20">Menu</button>
               {menuOpen && (
-                <div className="absolute right-0 mt-2 w-56 rounded-xl glass border border-white/20 bg-white/60 dark:bg-white/10 shadow z-[1300]">
+                <div className="absolute right-0 mt-2 w-56 rounded-xl glass border border-white/20 bg-white/60 dark:bg-white/10 shadow z-[1300] backdrop-blur-sm">
                   {links.map(l=> (
                     <Link key={l.href} href={l.href} className="block px-3 py-2 text-sm hover:bg-black/5 dark:hover:bg-white/10" onClick={()=> setMenuOpen(false)}>{l.label}</Link>
                   ))}
@@ -56,7 +56,7 @@ export default function TopNav(){
           <div className="relative">
             <button onClick={()=>{ setAcctOpen(o=>!o); setMenuOpen(false); }} className="rounded-full glass border border-white/20 px-3 py-1 text-sm">{name||'Account'}</button>
             {acctOpen && (
-              <div className="absolute right-0 mt-2 w-56 rounded-xl glass border border-white/20 bg-white/60 dark:bg-white/10 shadow z-[1300]">
+              <div className="absolute right-0 mt-2 w-56 rounded-xl glass border border-white/20 bg-white/60 dark:bg-white/10 shadow z-[1300] backdrop-blur-sm">
                 <Link href="/profile" className="block px-3 py-2 text-sm hover:bg-black/5 dark:hover:bg-white/10" onClick={()=> setAcctOpen(false)}>Settings</Link>
                 <button className="block w-full text-left px-3 py-2 text-sm hover:bg-black/5 dark:hover:bg-white/10" onClick={async()=>{ await fetch('/api/auth/logout',{ method:'POST' }); window.location.href='/login'; }}>Logout</button>
               </div>
