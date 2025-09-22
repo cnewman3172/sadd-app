@@ -125,6 +125,7 @@ model Audit {
 enum ShiftRole {
   COORDINATOR
   TC
+  VOLUNTEER
 }
 
 model Shift {
@@ -157,6 +158,7 @@ enum Role {
   ADMIN
   COORDINATOR
   TC
+  VOLUNTEER
   RIDER
 }
 

@@ -53,6 +53,7 @@ export default function UsersPage(){
                     <option value="ADMIN">ADMIN</option>
                     <option value="COORDINATOR">COORDINATOR</option>
                     <option value="TC">TC</option>
+                    <option value="VOLUNTEER">VOLUNTEER</option>
                     <option value="RIDER">RIDER</option>
                   </select>
                 </td>

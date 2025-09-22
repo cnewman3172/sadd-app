@@ -5,6 +5,7 @@ const roleHome: Record<string, string> = {
   ADMIN: '/executives',
   COORDINATOR: '/dashboard',
   TC: '/driving',
+  VOLUNTEER: '/shifts',
   RIDER: '/request',
 };
 
@@ -14,8 +15,8 @@ export async function middleware(req: NextRequest) {
     { path: '/executives', roles: ['ADMIN'] },
     { path: '/dashboard', roles: ['ADMIN', 'COORDINATOR'] },
     { path: '/driving', roles: ['ADMIN', 'COORDINATOR', 'TC'] },
-    { path: '/shifts', roles: ['ADMIN', 'COORDINATOR', 'TC'] },
-    { path: '/request', roles: ['ADMIN', 'COORDINATOR', 'TC', 'RIDER'] },
+    { path: '/shifts', roles: ['ADMIN', 'COORDINATOR', 'TC', 'VOLUNTEER'] },
+    { path: '/request', roles: ['ADMIN', 'COORDINATOR', 'TC', 'VOLUNTEER', 'RIDER'] },
     { path: '/profile', roles: ['ADMIN', 'COORDINATOR', 'TC', 'RIDER'] },
   ];
 
