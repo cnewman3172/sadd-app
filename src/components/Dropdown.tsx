@@ -15,7 +15,8 @@ export default function Dropdown({ open, anchor, onClose, children }:{ open:bool
   },[open,onClose]);
   if (!mounted || !open || !anchor) return null;
 
-  const top = anchor.bottom + 8 + window.scrollY;
+  // Use viewport coordinates (container is fixed), so no scroll offset needed
+  const top = anchor.bottom + 8;
   const right = window.innerWidth - anchor.right - 4; // align to button right edge
 
   return createPortal(
