@@ -29,6 +29,7 @@ export async function POST(req: Request){
     endsAt: z.string().datetime(),
     needed: z.coerce.number().int().min(1).max(10).default(1),
     notes: z.string().max(500).optional(),
+    role: z.enum(['COORDINATOR','TC']).default('COORDINATOR'),
   });
   try{
     const body = schema.parse(await req.json());
@@ -37,7 +38,7 @@ export async function POST(req: Request){
     // Support overnight shifts (end before or equal start means next day)
     if (end <= start) end = new Date(end.getTime() + 24*60*60*1000);
     const shift = await prisma.shift.create({ data: {
-      title: body.title, startsAt: start, endsAt: end, needed: body.needed, notes: body.notes,
+      title: body.title, role: body.role as any, startsAt: start, endsAt: end, needed: body.needed, notes: body.notes,
     }});
     return NextResponse.json(shift);
   }catch(e:any){

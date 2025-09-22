@@ -124,6 +124,7 @@ model Audit {
 // Shift scheduling for staffing coordinators (future: roles TC/VOLUNTEER)
 enum ShiftRole {
   COORDINATOR
+  TC
 }
 
 model Shift {
