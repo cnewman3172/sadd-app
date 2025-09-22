@@ -4,7 +4,7 @@ import Link from 'next/link';
 import { showToast } from '@/components/Toast';
 import ThemeToggle from '@/components/ThemeToggle';
 
-type User = { id:string; firstName?:string; lastName?:string; role?: 'ADMIN'|'COORDINATOR'|'TC'|'RIDER' };
+type User = { id:string; firstName?:string; lastName?:string; role?: 'ADMIN'|'COORDINATOR'|'TC'|'VOLUNTEER'|'RIDER' };
 
 const LINKS: Array<{ href:string; label:string; roles: User['role'][] }> = [
   { href:'/executives', label:'Executives', roles:['ADMIN'] },

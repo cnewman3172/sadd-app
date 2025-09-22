@@ -17,7 +17,7 @@ export async function PUT(req: Request, context: { params: Promise<{ id: string 
   const schema = z.object({ role: z.enum(['ADMIN','COORDINATOR','TC','VOLUNTEER','RIDER']) });
   try{
     const { role } = schema.parse(await req.json());
-    const user = await prisma.user.update({ where: { id }, data: { role } });
+  const user = await prisma.user.update({ where: { id }, data: { role: role as any } });
     logAudit('user_role_update', payload.uid, id, { role });
     return NextResponse.json({ ok:true, id: user.id, role: user.role });
   }catch(e:any){
