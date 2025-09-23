@@ -32,7 +32,7 @@ export async function GET(req: Request){
   const parsed = schema.safeParse({ rideId: url.searchParams.get('rideId') || '' });
   const token = (req.headers.get('cookie')||'').split('; ').find(c=>c.startsWith('sadd_token='))?.split('=')[1];
   const payload = await verifyJwt(token);
-  if (!payload || !['ADMIN','COORDINATOR','TC'].includes(payload.role)) return NextResponse.json({ error:'forbidden' }, { status: 403 });
+  if (!payload || !['ADMIN','DISPATCHER','TC'].includes(payload.role)) return NextResponse.json({ error:'forbidden' }, { status: 403 });
   if (!parsed.success) return NextResponse.json({ error:'rideId required' }, { status:400 });
   const { rideId } = parsed.data;
 
