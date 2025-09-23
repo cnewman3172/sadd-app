@@ -3,8 +3,8 @@ import { useEffect, useMemo, useState } from 'react';
 import YouTubeRequired from '@/components/YouTubeRequired';
 
 type Cat = 'SAFETY'|'DRIVER'|'TC'|'DISPATCHER';
-
 const ORDER: Cat[] = ['SAFETY','DRIVER','TC','DISPATCHER'];
+const LABEL: Record<Cat,string> = { SAFETY:'Safety', DRIVER:'Driver', TC:'Truck Commander', DISPATCHER:'Dispatcher' };
 const VIDEOS: Record<Cat,string> = {
   SAFETY: 'dQw4w9WgXcQ', // placeholder
   DRIVER: 'dQw4w9WgXcQ',
@@ -15,37 +15,25 @@ const VIDEOS: Record<Cat,string> = {
 export default function Training(){
   const [user, setUser] = useState<any>(null);
   const [tab, setTab] = useState<Cat>('SAFETY');
+  const [phase, setPhase] = useState<'video'|'quiz'|'done'>('video');
   const [watched, setWatched] = useState(false);
   const [answered, setAnswered] = useState(false);
-  const [phase, setPhase] = useState<'video'|'quiz'|'done'>('video');
   const [busy, setBusy] = useState(false);
-  const [isMobile, setIsMobile] = useState<boolean>(false);
 
   useEffect(()=>{ fetch('/api/me', { cache:'no-store' }).then(r=>r.json()).then(setUser).catch(()=>{}); },[]);
-  useEffect(()=>{ setWatched(false); setAnswered(false); setPhase('video'); },[tab]);
-  useEffect(()=>{
-    const q = () => setIsMobile(typeof window!=='undefined' ? window.matchMedia('(max-width: 767.98px)').matches : false);
-    q();
-    window.addEventListener('resize', q);
-    return ()=> window.removeEventListener('resize', q);
-  },[]);
+  useEffect(()=>{ setPhase('video'); setWatched(false); setAnswered(false); },[tab]);
 
   const role: Cat | null = useMemo(()=>{
     switch(user?.role){ case 'SAFETY': return 'SAFETY'; case 'DRIVER': return 'DRIVER'; case 'TC': return 'TC'; case 'DISPATCHER': return 'DISPATCHER'; default: return null; }
   },[user]);
 
-  const canAccess = (c: Cat)=>{
-    if (user?.role==='ADMIN') return true;
-    return role===c; // lock tabs by exact role as requested
-  };
-  const isDone = (c: Cat)=>{
-    if (!user) return false;
-    if (c==='SAFETY') return Boolean(user.trainingSafetyAt);
-    if (c==='DRIVER') return Boolean(user.trainingDriverAt) && Boolean(user.checkRide);
-    if (c==='TC') return Boolean(user.trainingTcAt);
-    if (c==='DISPATCHER') return Boolean(user.trainingDispatcherAt);
-    return false;
-  };
+  const canAccess = (c: Cat)=> user?.role==='ADMIN' || role===c;
+  const isDone = (c: Cat)=> !!user && (
+    c==='SAFETY' ? Boolean(user.trainingSafetyAt) :
+    c==='DRIVER' ? Boolean(user.trainingDriverAt) && Boolean(user.checkRide) :
+    c==='TC' ? Boolean(user.trainingTcAt) :
+    Boolean(user.trainingDispatcherAt)
+  );
 
   async function complete(){
     setBusy(true);
@@ -59,79 +47,72 @@ export default function Training(){
     finally{ setBusy(false); }
   }
 
-  function renderTest(){
-    return (
-      <div className="rounded border p-3">
-        <div className="font-medium mb-2">Quick Check</div>
-        <div className="text-sm mb-2">What is the safe following distance?</div>
-        <div className="flex flex-col gap-1">
-          <label className="text-sm"><input type="radio" name="q1" onChange={()=> setAnswered(false)} /> 1 second</label>
-          <label className="text-sm"><input type="radio" name="q1" onChange={()=> setAnswered(true)} /> 3 seconds</label>
-          <label className="text-sm"><input type="radio" name="q1" onChange={()=> setAnswered(false)} /> 0.5 seconds</label>
-        </div>
-        <button disabled={!answered || busy} onClick={complete} className="mt-3 btn-primary">
-          {busy ? 'Saving…' : 'Mark Complete'}
-        </button>
-        {tab==='DRIVER' && (
-          <div className="mt-3 text-xs opacity-70">Note: Driver eligibility also requires completing the “Check Ride” in Settings.</div>
-        )}
-      </div>
-    );
-  }
+  const SideNav = (
+    <nav className="rounded-xl border glass p-2 sticky top-20">
+      {ORDER.map(c=>{
+        const locked = !canAccess(c);
+        const active = tab===c;
+        return (
+          <button
+            key={c}
+            disabled={locked}
+            onClick={()=> setTab(c)}
+            className={`block w-full text-left px-3 py-2 rounded ${active? 'bg-black text-white':'hover:bg-black/5 dark:hover:bg-white/10'} ${locked? 'opacity-40 cursor-not-allowed':''}`}
+          >
+            {LABEL[c]} {isDone(c) && <span className="text-xs opacity-70">(Done)</span>}
+          </button>
+        );
+      })}
+    </nav>
+  );
 
   return (
     <div className="mx-auto max-w-6xl p-4 grid md:grid-cols-[260px,1fr] gap-4">
-      {/* Mobile tab bar */}
-      {isMobile && (
-      <div className="mb-2">
+      {/* Desktop: left sidebar; Mobile: top tabs */}
+      <div className="hidden md:block">{SideNav}</div>
+      <div className="md:hidden">
         <div className="flex gap-2 overflow-x-auto no-scrollbar py-1">
           {ORDER.map(c=>{
-            const label = c==='SAFETY'?'Safety':c==='DRIVER'?'Driver':c==='TC'?'Truck Commander':'Dispatcher';
-            const active = tab===c;
-            const locked = !canAccess(c);
+            const active = tab===c; const locked = !canAccess(c);
             return (
-              <button
-                key={c}
-                disabled={locked}
-                onClick={()=> setTab(c)}
-                className={`whitespace-nowrap rounded-full px-3 py-1 text-sm border ${active? 'bg-black text-white border-black' : 'glass hover:bg-black/5 dark:hover:bg-white/10'} ${locked? 'opacity-40 cursor-not-allowed' : ''}`}
-                aria-pressed={active}
-              >
-                {label} {isDone(c)&& <span className="opacity-70">✔</span>}
-              </button>
+              <button key={c} disabled={locked} onClick={()=> setTab(c)} className={`whitespace-nowrap rounded-full px-3 py-1 text-sm border ${active? 'bg-black text-white border-black' : 'glass hover:bg-black/5 dark:hover:bg-white/10'} ${locked? 'opacity-40 cursor-not-allowed' : ''}`}>{LABEL[c]} {isDone(c)&& '✔'}</button>
             );
           })}
         </div>
       </div>
-      )}
-      <div className="hidden md:block">
-        <nav className="rounded-xl border glass p-2 sticky top-20">
-          {ORDER.map(c=> (
-            <button key={c} disabled={!canAccess(c)} onClick={()=> setTab(c)} className={`block w-full text-left px-3 py-2 rounded ${tab===c?'bg-black text-white':'hover:bg-black/5 dark:hover:bg-white/10'} ${!canAccess(c)?'opacity-40 cursor-not-allowed':''}`}>
-              {c==='SAFETY'?'Safety':c==='DRIVER'?'Driver':c==='TC'?'Truck Commander':'Dispatcher'} {isDone(c)&& <span className="text-xs opacity-70">(Done)</span>}
-            </button>
-          ))}
-        </nav>
-      </div>
+
       <div>
-        {isMobile && (
-        <div className="mb-3">
-          <select className="w-full p-2 rounded border" value={tab} onChange={(e)=> setTab(e.target.value as Cat)}>{ORDER.map(c=> <option key={c} value={c} disabled={!canAccess(c)}>{c==='SAFETY'?'Safety':c==='DRIVER'?'Driver':c==='TC'?'Truck Commander':'Dispatcher'} {isDone(c)?'(Done)':''}</option>)}</select>
-        </div>
-        )}
         {!canAccess(tab) ? (
           <div className="rounded border p-4 text-sm opacity-80">Your role does not permit this training. Select your role’s tab.</div>
         ) : (
-          <div className="grid gap-3">
+          <div className="grid gap-4">
             {phase==='video' && (
-              <div className="grid gap-3">
+              <section className="grid gap-3">
                 <YouTubeRequired videoId={VIDEOS[tab]} onFinished={()=> setWatched(true)} />
-                <button disabled={!watched} onClick={()=> setPhase('quiz')} className="rounded px-4 py-2 border w-fit disabled:opacity-50">{watched ? 'Continue to Test' : 'Watch video to continue'}</button>
-              </div>
+                <div className="flex items-center gap-2">
+                  <button disabled={!watched} onClick={()=> setPhase('quiz')} className="rounded px-4 py-2 border disabled:opacity-50">{watched ? 'Begin Test' : 'Watch video to continue'}</button>
+                  {tab==='DRIVER' && <span className="text-xs opacity-70">Driver also requires Check Ride.</span>}
+                </div>
+              </section>
             )}
-            {phase==='quiz' && renderTest()}
+
+            {phase==='quiz' && (
+              <section className="rounded border p-3">
+                <div className="font-medium mb-2">Quick Check</div>
+                <div className="text-sm mb-2">What is the safe following distance?</div>
+                <div className="flex flex-col gap-1">
+                  <label className="text-sm"><input type="radio" name="q1" onChange={()=> setAnswered(false)} /> 1 second</label>
+                  <label className="text-sm"><input type="radio" name="q1" onChange={()=> setAnswered(true)} /> 3 seconds</label>
+                  <label className="text-sm"><input type="radio" name="q1" onChange={()=> setAnswered(false)} /> 0.5 seconds</label>
+                </div>
+                <button disabled={!answered || busy} onClick={complete} className="mt-3 btn-primary">{busy ? 'Saving…' : 'Mark Complete'}</button>
+              </section>
+            )}
+
             {phase==='done' && (
-              <div className="rounded border p-4 bg-green-50 text-green-700 dark:bg-green-900/20 dark:text-green-300">Training complete for this category.</div>
+              <section className="rounded border p-4 bg-green-50 text-green-700 dark:bg-green-900/20 dark:text-green-300">
+                Training complete for {LABEL[tab]}. You may now access Shifts.
+              </section>
             )}
           </div>
         )}
