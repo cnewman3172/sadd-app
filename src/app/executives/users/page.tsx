@@ -1,5 +1,6 @@
 "use client";
 import { useEffect, useState } from 'react';
+import Modal from '@/components/Modal';
 
 type U = { id:string; email:string; firstName:string; lastName:string; role:string; createdAt:string };
 
@@ -7,6 +8,9 @@ export default function UsersPage(){
   const [users, setUsers] = useState<U[]>([]);
   const [q, setQ] = useState('');
   const [loading, setLoading] = useState(false);
+  const [editOpen, setEditOpen] = useState(false);
+  const [editUser, setEditUser] = useState<any|null>(null);
+  const [editForm, setEditForm] = useState<any>({});
 
   async function load(query?: string){
     setLoading(true);
@@ -60,12 +64,7 @@ export default function UsersPage(){
                 </td>
                 <td className="px-2 whitespace-nowrap">{new Date(u.createdAt).toLocaleDateString()}</td>
                 <td className="px-2 text-right">
-                  <button className="rounded border px-2 py-1 text-xs" onClick={async()=>{
-                    if (!confirm(`Delete ${u.email}? This cannot be undone.`)) return;
-                    const res = await fetch(`/api/admin/users/${u.id}`, { method:'DELETE' });
-                    if (!res.ok){ const d = await res.json().catch(()=>({error:'failed'})); alert(d.error||'Delete failed'); return; }
-                    setUsers(prev=> prev.filter(x=> x.id!==u.id));
-                  }}>Delete</button>
+                  <button className="rounded border px-2 py-1 text-xs" onClick={()=>{ setEditUser(u); setEditForm({ firstName: u.firstName||'', lastName: u.lastName||'', rank: (u as any).rank||'', unit: (u as any).unit||'', phone: (u as any).phone||'' }); setEditOpen(true); }}>Edit</button>
                 </td>
               </tr>
             ))}
@@ -75,6 +74,42 @@ export default function UsersPage(){
           </tbody>
         </table>
       </div>
+      <EditModal open={editOpen} onClose={()=> setEditOpen(false)} form={editForm} setForm={setEditForm} user={editUser} onSaved={(nu)=>{
+        setUsers(prev=> prev.map(x=> x.id===nu.id ? { ...x, firstName: nu.firstName, lastName: nu.lastName } : x));
+        setEditOpen(false);
+      }} />
     </section>
+  );
+}
+
+function EditModal({ open, onClose, form, setForm, user, onSaved }:{ open:boolean; onClose:()=>void; form:any; setForm:(u:any)=>void; user:any; onSaved:(u:any)=>void }){
+  if (!open || !user) return null;
+  return (
+    <Modal open={open} onClose={onClose}>
+      <div className="p-4">
+        <h3 className="font-semibold mb-3">Edit User</h3>
+        <div className="grid gap-2">
+          <div className="text-xs opacity-70">{user.email}</div>
+          <div className="grid grid-cols-2 gap-2">
+            <input className="p-2 rounded border bg-white/80 dark:bg-neutral-800 text-black dark:text-white" placeholder="First name" value={form.firstName||''} onChange={(e)=> setForm((f:any)=> ({ ...f, firstName: e.target.value }))} />
+            <input className="p-2 rounded border bg-white/80 dark:bg-neutral-800 text-black dark:text-white" placeholder="Last name" value={form.lastName||''} onChange={(e)=> setForm((f:any)=> ({ ...f, lastName: e.target.value }))} />
+          </div>
+          <input className="p-2 rounded border bg-white/80 dark:bg-neutral-800 text-black dark:text-white" placeholder="Rank" value={form.rank||''} onChange={(e)=> setForm((f:any)=> ({ ...f, rank: e.target.value }))} />
+          <input className="p-2 rounded border bg-white/80 dark:bg-neutral-800 text-black dark:text-white" placeholder="Unit" value={form.unit||''} onChange={(e)=> setForm((f:any)=> ({ ...f, unit: e.target.value }))} />
+          <input className="p-2 rounded border bg-white/80 dark:bg-neutral-800 text-black dark:text-white" placeholder="Phone" value={form.phone||''} onChange={(e)=> setForm((f:any)=> ({ ...f, phone: e.target.value }))} />
+          <div className="flex justify-end gap-2 mt-2">
+            <button className="rounded border px-3 py-1 text-sm" onClick={onClose}>Cancel</button>
+            <button className="btn-primary" onClick={async()=>{
+              try{
+                const res = await fetch(`/api/admin/users/${user.id}`, { method:'PUT', headers:{ 'Content-Type':'application/json' }, body: JSON.stringify(form) });
+                if (!res.ok){ const d = await res.json().catch(()=>({error:'failed'})); throw new Error(d.error||'Save failed'); }
+                const updated = await res.json();
+                onSaved({ ...user, ...form });
+              }catch(e:any){ alert(e.message||'Save failed'); }
+            }}>Save</button>
+          </div>
+        </div>
+      </div>
+    </Modal>
   );
 }
