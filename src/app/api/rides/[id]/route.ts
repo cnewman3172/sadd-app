@@ -4,6 +4,7 @@ import { verifyJwt } from '@/lib/jwt';
 import { z } from 'zod';
 import { captureError } from '@/lib/obs';
 import { publish } from '@/lib/events';
+import { notifyOnShift } from '@/lib/push';
 import { logAudit } from '@/lib/audit';
 
 export const runtime = 'nodejs';
@@ -49,8 +50,20 @@ export async function PUT(req: NextRequest, context: { params: Promise<{ id: str
     }
   }
   try{
-    const ride = await prisma.ride.update({ where: { id }, data });
-    publish('ride:update', { id: ride.id, status: ride.status, code: ride.rideCode, vanId: ride.vanId });
+  const prev = await prisma.ride.findUnique({ where: { id } });
+  const ride = await prisma.ride.update({ where: { id }, data });
+  publish('ride:update', { id: ride.id, status: ride.status, code: ride.rideCode, vanId: ride.vanId });
+  try{
+    // Notify on assignment events
+    const assignedNow = (!prev?.vanId && !!ride.vanId) || (prev?.status!=='ASSIGNED' && ride.status==='ASSIGNED');
+    if (assignedNow){
+      const msg = `Assigned #${ride.rideCode}`;
+      await Promise.all([
+        notifyOnShift('DISPATCHER', { title: msg, body: `${ride.pickupAddr} → ${ride.dropAddr}`, tag: 'ride-assigned', data:{ rideId: ride.id } }),
+        notifyOnShift('TC', { title: msg, body: `${ride.pickupAddr} → ${ride.dropAddr}`, tag: 'ride-assigned', data:{ rideId: ride.id } }),
+      ]);
+    }
+  }catch{}
     logAudit('ride_update', payload.uid, ride.id, data);
     return NextResponse.json(ride);
   }catch(e:any){

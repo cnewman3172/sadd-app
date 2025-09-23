@@ -3,6 +3,7 @@ import { verifyJwt } from '@/lib/jwt';
 import { z } from 'zod';
 import { captureError } from '@/lib/obs';
 import { publish } from '@/lib/events';
+import { notifyOnShift } from '@/lib/push';
 import { logAudit } from '@/lib/audit';
 import { prisma } from '@/lib/prisma';
 
@@ -76,6 +77,14 @@ export async function POST(req: Request){
       notes,
     }});
     publish('ride:update', { id: ride.id, status: ride.status, code: ride.rideCode });
+    // Background push for on-shift roles; SW will suppress if app is open
+    try{
+      const msg = `New request #${ride.rideCode}`;
+      await Promise.all([
+        notifyOnShift('DISPATCHER', { title: msg, body: `${ride.pickupAddr} → ${ride.dropAddr}`, tag: 'ride-request', data:{ rideId: ride.id } }),
+        notifyOnShift('TC', { title: msg, body: `${ride.pickupAddr} → ${ride.dropAddr}`, tag: 'ride-request', data:{ rideId: ride.id } }),
+      ]);
+    }catch{}
     // Auto-assign best van
     try{
       const origin = new URL(req.url).origin;

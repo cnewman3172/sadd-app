@@ -5,6 +5,7 @@ import "./globals.css";
 import NavSwitcher from '@/components/NavSwitcher';
 import ScrollEffects from '@/components/ScrollEffects';
 import ToastHost from '@/components/Toast';
+import NotificationsClient from '@/components/NotificationsClient';
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -47,6 +48,7 @@ export default async function RootLayout({
       >
         <NavSwitcher />
         <ScrollEffects />
+        <NotificationsClient />
         <main className="pt-2">{children}</main>
         <footer className="mx-auto max-w-7xl px-4 py-10 text-sm opacity-80">
           © 2025 Arctic Aura Designs, Soldiers Against Drunk Driving · <a className="underline" href="/privacy">Privacy</a> · <a className="underline" href="/volunteer">Volunteer</a>
