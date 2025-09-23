@@ -91,6 +91,7 @@ model Setting {
   autoDisableEnabled Boolean @default(false)
   autoDisableTime    String  @default("22:00")
   autoDisableTz      String  @default("America/Anchorage")
+  scheduleSince      DateTime?
 }
 
 model PushSubscription {
