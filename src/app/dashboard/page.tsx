@@ -171,6 +171,38 @@ export default function Dashboard(){
     setSuggestFor(null); setSuggestions([]);
   }
 
+  async function ensureNotifications(forcePrompt = false){
+    try{
+      if (typeof window === 'undefined') return false;
+      if (!('Notification' in window)) return false;
+      let perm = Notification.permission;
+      if (perm === 'default' || forcePrompt){
+        perm = await Notification.requestPermission();
+      }
+      if (perm !== 'granted') return false;
+      const vapid = await fetch('/api/push/key', { cache:'no-store' }).then(r=>r.json()).catch(()=>null);
+      const pk = vapid?.publicKey || '';
+      if (!pk) return true;
+      const reg = await navigator.serviceWorker.ready;
+      let sub = await reg.pushManager.getSubscription();
+      if (!sub){
+        const converted = urlBase64ToUint8Array(pk);
+        sub = await reg.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: converted });
+        await fetch('/api/push/subscribe', { method:'POST', headers:{ 'Content-Type':'application/json' }, body: JSON.stringify({ subscription: sub }) });
+      }
+      return true;
+    }catch{ return false; }
+  }
+
+  function urlBase64ToUint8Array(base64String: string){
+    const padding = '='.repeat((4 - (base64String.length % 4)) % 4);
+    const base64 = (base64String + padding).replace(/-/g, '+').replace(/_/g, '/');
+    const rawData = atob(base64);
+    const outputArray = new Uint8Array(rawData.length);
+    for (let i = 0; i < rawData.length; ++i) { outputArray[i] = rawData.charCodeAt(i); }
+    return outputArray;
+  }
+
   return (
     <div className="p-6 max-w-6xl mx-auto grid md:grid-cols-3 gap-6">
       {!notifOk && (
