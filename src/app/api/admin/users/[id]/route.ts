@@ -21,6 +21,11 @@ export async function PUT(req: Request, context: { params: Promise<{ id: string 
     rank: z.string().max(120).optional().nullable(),
     unit: z.string().max(120).optional().nullable(),
     phone: z.string().max(40).optional().nullable(),
+    checkRide: z.boolean().optional(),
+    trainingSafety: z.boolean().optional(),
+    trainingDriver: z.boolean().optional(),
+    trainingTc: z.boolean().optional(),
+    trainingDispatcher: z.boolean().optional(),
   });
   try{
     const body = schema.parse(await req.json());
@@ -31,6 +36,13 @@ export async function PUT(req: Request, context: { params: Promise<{ id: string 
     if (body.rank!==undefined) data.rank = body.rank ?? null;
     if (body.unit!==undefined) data.unit = body.unit ?? null;
     if (body.phone!==undefined) data.phone = body.phone ?? null;
+    if (body.checkRide!==undefined) data.checkRide = body.checkRide;
+    // Training flags: booleans set/clear timestamps
+    const now = new Date();
+    if (body.trainingSafety!==undefined) data.trainingSafetyAt = body.trainingSafety ? now : null;
+    if (body.trainingDriver!==undefined) data.trainingDriverAt = body.trainingDriver ? now : null;
+    if (body.trainingTc!==undefined) data.trainingTcAt = body.trainingTc ? now : null;
+    if (body.trainingDispatcher!==undefined) data.trainingDispatcherAt = body.trainingDispatcher ? now : null;
     if (Object.keys(data).length === 0) return NextResponse.json({ error:'no changes' }, { status: 400 });
     const user = await prisma.user.update({ where: { id }, data });
     if (body.role) logAudit('user_role_update', payload.uid, id, { role: body.role });

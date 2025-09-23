@@ -17,10 +17,11 @@ export default function Training(){
   const [tab, setTab] = useState<Cat>('SAFETY');
   const [watched, setWatched] = useState(false);
   const [answered, setAnswered] = useState(false);
+  const [phase, setPhase] = useState<'video'|'quiz'|'done'>('video');
   const [busy, setBusy] = useState(false);
 
   useEffect(()=>{ fetch('/api/me', { cache:'no-store' }).then(r=>r.json()).then(setUser).catch(()=>{}); },[]);
-  useEffect(()=>{ setWatched(false); setAnswered(false); },[tab]);
+  useEffect(()=>{ setWatched(false); setAnswered(false); setPhase('video'); },[tab]);
 
   const role: Cat | null = useMemo(()=>{
     switch(user?.role){ case 'SAFETY': return 'SAFETY'; case 'DRIVER': return 'DRIVER'; case 'TC': return 'TC'; case 'DISPATCHER': return 'DISPATCHER'; default: return null; }
@@ -46,7 +47,7 @@ export default function Training(){
       if (!r.ok){ const d = await r.json().catch(()=>({error:'failed'})); throw new Error(d.error||'failed'); }
       const d = await r.json();
       setUser((u:any)=> ({ ...u, ...d.user }));
-      alert('Training completed for this category.');
+      setPhase('done');
     }catch(e:any){ alert(e.message||'Failed'); }
     finally{ setBusy(false); }
   }
@@ -61,7 +62,7 @@ export default function Training(){
           <label className="text-sm"><input type="radio" name="q1" onChange={()=> setAnswered(true)} /> 3 seconds</label>
           <label className="text-sm"><input type="radio" name="q1" onChange={()=> setAnswered(false)} /> 0.5 seconds</label>
         </div>
-        <button disabled={!watched || !answered || busy} onClick={complete} className="mt-3 btn-primary">
+        <button disabled={!answered || busy} onClick={complete} className="mt-3 btn-primary">
           {busy ? 'Saving…' : 'Mark Complete'}
         </button>
         {tab==='DRIVER' && (
@@ -73,8 +74,8 @@ export default function Training(){
 
   return (
     <div className="mx-auto max-w-6xl p-4 grid md:grid-cols-[240px,1fr] gap-4">
-      {/* Top tab bar (always visible, mobile-friendly) */}
-      <div className="md:col-span-2 order-[-1] md:order-none mb-2">
+      {/* Mobile tab bar */}
+      <div className="md:hidden mb-2">
         <div className="flex gap-2 overflow-x-auto no-scrollbar py-1">
           {ORDER.map(c=>{
             const label = c==='SAFETY'?'Safety':c==='DRIVER'?'Driver':c==='TC'?'Truck Commander':'Dispatcher';
@@ -111,8 +112,16 @@ export default function Training(){
           <div className="rounded border p-4 text-sm opacity-80">Your role does not permit this training. Select your role’s tab.</div>
         ) : (
           <div className="grid gap-3">
-            <YouTubeRequired videoId={VIDEOS[tab]} onFinished={()=> setWatched(true)} />
-            {renderTest()}
+            {phase==='video' && (
+              <div className="grid gap-3">
+                <YouTubeRequired videoId={VIDEOS[tab]} onFinished={()=> setWatched(true)} />
+                <button disabled={!watched} onClick={()=> setPhase('quiz')} className="rounded px-4 py-2 border w-fit disabled:opacity-50">{watched ? 'Continue to Test' : 'Watch video to continue'}</button>
+              </div>
+            )}
+            {phase==='quiz' && renderTest()}
+            {phase==='done' && (
+              <div className="rounded border p-4 bg-green-50 text-green-700 dark:bg-green-900/20 dark:text-green-300">Training complete for this category.</div>
+            )}
           </div>
         )}
       </div>
