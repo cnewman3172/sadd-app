@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 export default function Profile() {
   const [form, setForm] = useState<any>({});
   const [loaded, setLoaded] = useState(false);
+  const [training, setTraining] = useState<{ status: 'NOT_STARTED'|'IN_PROGRESS'|'COMPLETED'; lastUpdated?: string }>({ status: 'NOT_STARTED' });
 
   useEffect(()=>{
     fetch('/api/me').then(r=>r.json()).then((u)=>{ setForm(u); setLoaded(true); });
@@ -38,6 +39,21 @@ export default function Profile() {
         <button className="rounded bg-black text-white py-3">Save</button>
       </form>
       <button onClick={changePassword} className="rounded border py-2 px-4">Change Password</button>
+
+      <section className="rounded-xl p-4 bg-white/70 dark:bg-white/10 border border-white/20">
+        <h2 className="font-semibold mb-2">Training</h2>
+        <div className="text-sm opacity-80 mb-3">Complete required training for your role. Progress and requirements will appear here.</div>
+        <div className="flex items-center justify-between">
+          <div>
+            <div className="text-sm">Status: {training.status.replace('_',' ')}</div>
+            {training.lastUpdated && <div className="text-xs opacity-70">Updated: {new Date(training.lastUpdated).toLocaleString()}</div>}
+          </div>
+          <div className="flex gap-2">
+            <a href="/training" className="btn-primary">Open Training</a>
+            <button type="button" className="rounded border px-3 py-2 text-sm" onClick={()=> alert('Training module coming soon.')}>Learn More</button>
+          </div>
+        </div>
+      </section>
     </div>
   );
 }
