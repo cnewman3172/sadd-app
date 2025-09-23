@@ -19,9 +19,16 @@ export default function Training(){
   const [answered, setAnswered] = useState(false);
   const [phase, setPhase] = useState<'video'|'quiz'|'done'>('video');
   const [busy, setBusy] = useState(false);
+  const [isMobile, setIsMobile] = useState<boolean>(false);
 
   useEffect(()=>{ fetch('/api/me', { cache:'no-store' }).then(r=>r.json()).then(setUser).catch(()=>{}); },[]);
   useEffect(()=>{ setWatched(false); setAnswered(false); setPhase('video'); },[tab]);
+  useEffect(()=>{
+    const q = () => setIsMobile(typeof window!=='undefined' ? window.matchMedia('(max-width: 767.98px)').matches : false);
+    q();
+    window.addEventListener('resize', q);
+    return ()=> window.removeEventListener('resize', q);
+  },[]);
 
   const role: Cat | null = useMemo(()=>{
     switch(user?.role){ case 'SAFETY': return 'SAFETY'; case 'DRIVER': return 'DRIVER'; case 'TC': return 'TC'; case 'DISPATCHER': return 'DISPATCHER'; default: return null; }
@@ -74,8 +81,9 @@ export default function Training(){
 
   return (
     <div className="mx-auto max-w-6xl p-4 grid md:grid-cols-[260px,1fr] gap-4">
-      {/* Mobile tab bar (hidden on >=md) */}
-      <div className="md:hidden mb-2">
+      {/* Mobile tab bar */}
+      {isMobile && (
+      <div className="mb-2">
         <div className="flex gap-2 overflow-x-auto no-scrollbar py-1">
           {ORDER.map(c=>{
             const label = c==='SAFETY'?'Safety':c==='DRIVER'?'Driver':c==='TC'?'Truck Commander':'Dispatcher';
@@ -95,6 +103,7 @@ export default function Training(){
           })}
         </div>
       </div>
+      )}
       <div className="hidden md:block">
         <nav className="rounded-xl border glass p-2 sticky top-20">
           {ORDER.map(c=> (
@@ -105,9 +114,11 @@ export default function Training(){
         </nav>
       </div>
       <div>
-        <div className="md:hidden mb-3">
+        {isMobile && (
+        <div className="mb-3">
           <select className="w-full p-2 rounded border" value={tab} onChange={(e)=> setTab(e.target.value as Cat)}>{ORDER.map(c=> <option key={c} value={c} disabled={!canAccess(c)}>{c==='SAFETY'?'Safety':c==='DRIVER'?'Driver':c==='TC'?'Truck Commander':'Dispatcher'} {isDone(c)?'(Done)':''}</option>)}</select>
         </div>
+        )}
         {!canAccess(tab) ? (
           <div className="rounded border p-4 text-sm opacity-80">Your role does not permit this training. Select your role’s tab.</div>
         ) : (
