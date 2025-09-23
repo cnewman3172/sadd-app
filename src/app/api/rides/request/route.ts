@@ -28,7 +28,8 @@ export async function POST(req: Request){
       const base = Boolean(setting?.active);
       if (!base) return false;
       if (!setting?.autoDisableEnabled) return base;
-      const since = setting?.activeSince ? new Date(setting.activeSince) : null;
+      // Anchor from scheduleSince if present; fallback to activeSince
+      const since = (setting?.scheduleSince ? new Date(setting.scheduleSince) : (setting?.activeSince ? new Date(setting.activeSince) : null));
       if (!since) return base;
       const tz = setting?.autoDisableTz || 'America/Anchorage';
       const hhmm = String(setting?.autoDisableTime || '22:00');

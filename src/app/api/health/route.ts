@@ -19,7 +19,8 @@ export async function GET(){
     const base = Boolean(setting?.active);
     if (!base) return false;
     if (!setting?.autoDisableEnabled) return base;
-    const since = setting?.activeSince ? new Date(setting.activeSince) : null;
+    // Anchor cutoff evaluation from when schedule was enabled (or fallback to when SADD was turned on)
+    const since = (setting?.scheduleSince ? new Date(setting.scheduleSince) : (setting?.activeSince ? new Date(setting.activeSince) : null));
     if (!since) return base;
     const tz = setting?.autoDisableTz || "America/Anchorage";
     const hhmm = String(setting?.autoDisableTime || "22:00");
