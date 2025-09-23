@@ -73,9 +73,9 @@ export default function Training(){
   }
 
   return (
-    <div className="mx-auto max-w-6xl p-4 grid sm:grid-cols-[240px,1fr] gap-4">
-      {/* Mobile tab bar (hidden on >=sm) */}
-      <div className="sm:hidden mb-2">
+    <div className="mx-auto max-w-6xl p-4 grid md:grid-cols-[260px,1fr] gap-4">
+      {/* Mobile tab bar (hidden on >=md) */}
+      <div className="md:hidden mb-2">
         <div className="flex gap-2 overflow-x-auto no-scrollbar py-1">
           {ORDER.map(c=>{
             const label = c==='SAFETY'?'Safety':c==='DRIVER'?'Driver':c==='TC'?'Truck Commander':'Dispatcher';
@@ -95,7 +95,7 @@ export default function Training(){
           })}
         </div>
       </div>
-      <div className="hidden sm:block">
+      <div className="hidden md:block">
         <nav className="rounded-xl border glass p-2 sticky top-20">
           {ORDER.map(c=> (
             <button key={c} disabled={!canAccess(c)} onClick={()=> setTab(c)} className={`block w-full text-left px-3 py-2 rounded ${tab===c?'bg-black text-white':'hover:bg-black/5 dark:hover:bg-white/10'} ${!canAccess(c)?'opacity-40 cursor-not-allowed':''}`}>
@@ -105,7 +105,7 @@ export default function Training(){
         </nav>
       </div>
       <div>
-        <div className="sm:hidden mb-3">
+        <div className="md:hidden mb-3">
           <select className="w-full p-2 rounded border" value={tab} onChange={(e)=> setTab(e.target.value as Cat)}>{ORDER.map(c=> <option key={c} value={c} disabled={!canAccess(c)}>{c==='SAFETY'?'Safety':c==='DRIVER'?'Driver':c==='TC'?'Truck Commander':'Dispatcher'} {isDone(c)?'(Done)':''}</option>)}</select>
         </div>
         {!canAccess(tab) ? (
