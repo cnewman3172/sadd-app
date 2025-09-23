@@ -45,6 +45,25 @@ export async function middleware(req: NextRequest) {
 
   // If claim allows access, later we may still gate by active shift for certain portals
   if (claimRole && route.roles.includes(claimRole)){
+    // Training gate for Shifts: require training completion per role
+    if (pathname.startsWith('/shifts') && claimRole !== 'ADMIN'){
+      try{
+        const res = await fetch(new URL('/api/me', req.url), { headers: { cookie: req.headers.get('cookie') || '' } });
+        if (res.ok){
+          const u = await res.json();
+          const ok = (()=>{
+            switch (claimRole){
+              case 'DISPATCHER': return Boolean(u.trainingDispatcherAt);
+              case 'TC': return Boolean(u.trainingTcAt);
+              case 'DRIVER': return Boolean(u.trainingDriverAt) && Boolean(u.checkRide);
+              case 'SAFETY': return Boolean(u.trainingSafetyAt);
+              default: return true;
+            }
+          })();
+          if (!ok) return NextResponse.redirect(new URL('/training', req.url));
+        }
+      }catch{}
+    }
     // Extra gate: time-based portal access for Dispatcher and TC views
     const isPortal = pathname.startsWith('/dashboard') || pathname.startsWith('/driving');
     if (!isPortal) return NextResponse.next();
