@@ -8,6 +8,7 @@ const tabs = [
   { href: '/executives/users', label: 'Users' },
   { href: '/executives/vans', label: 'Vans' },
   { href: '/executives/shifts', label: 'Shifts' },
+  { href: '/executives/training', label: 'Training' },
 ];
 
 export default function TabNav(){
