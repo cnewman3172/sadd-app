@@ -11,7 +11,8 @@ export async function POST(req: Request){
     // Ensure row exists
     let s = await prisma.setting.findUnique({ where: { id: 1 } });
     if (!s){ s = await prisma.setting.create({ data: { id:1, active:false } }); }
-    const toggled = await prisma.setting.update({ where:{ id:1 }, data:{ active: !s.active } });
+    const turningOn = !s.active;
+    const toggled = await prisma.setting.update({ where:{ id:1 }, data:{ active: turningOn, activeSince: turningOn ? new Date() : null } });
     return NextResponse.json(toggled);
   }catch(e:any){
     captureError(e, { route: 'admin/toggle-active', uid: payload.uid });

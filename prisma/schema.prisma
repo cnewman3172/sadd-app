@@ -87,6 +87,7 @@ model Ride {
 model Setting {
   id                 Int     @id @default(1)
   active             Boolean @default(false)
+  activeSince        DateTime?
   autoDisableEnabled Boolean @default(false)
   autoDisableTime    String  @default("22:00")
   autoDisableTz      String  @default("America/Anchorage")

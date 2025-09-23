@@ -28,14 +28,35 @@ export async function POST(req: Request){
       const base = Boolean(setting?.active);
       if (!base) return false;
       if (!setting?.autoDisableEnabled) return base;
+      const since = setting?.activeSince ? new Date(setting.activeSince) : null;
+      if (!since) return base;
       const tz = setting?.autoDisableTz || 'America/Anchorage';
       const hhmm = String(setting?.autoDisableTime || '22:00');
       const [sh, sm] = hhmm.split(':').map(x=> parseInt(x,10) || 0);
-      const parts = new Intl.DateTimeFormat('en-US', { timeZone: tz, hour:'2-digit', minute:'2-digit', hour12:false }).formatToParts(new Date());
-      const curH = parseInt((parts.find(p=>p.type==='hour')||{value:'0'}).value,10);
-      const curM = parseInt((parts.find(p=>p.type==='minute')||{value:'0'}).value,10);
-      const curMin = curH*60 + curM; const cutMin = sh*60 + sm;
-      return curMin < cutMin;
+      const cut = sh*60 + sm;
+      const getLocal = (d: Date) => {
+        const parts = new Intl.DateTimeFormat('en-US', { timeZone: tz, year:'numeric', month:'2-digit', day:'2-digit', hour:'2-digit', minute:'2-digit', hour12:false }).formatToParts(d);
+        const get = (t:string)=> (parts.find(p=>p.type===t)?.value)||'0';
+        const y = parseInt(get('year'),10);
+        const m = parseInt(get('month'),10);
+        const da = parseInt(get('day'),10);
+        const h = parseInt(get('hour'),10);
+        const mi = parseInt(get('minute'),10);
+        const min = h*60 + mi;
+        const dayIndex = Math.floor(Date.UTC(y, m-1, da) / 86400000);
+        return { dayIndex, min };
+      };
+      const a = getLocal(since);
+      const n = getLocal(new Date());
+      if (a.dayIndex === n.dayIndex){
+        return a.min < cut && n.min >= cut ? false : true;
+      }
+      const dayDiff = n.dayIndex - a.dayIndex;
+      if (dayDiff === 1){
+        if (a.min >= cut && n.min < cut) return true;
+        return false;
+      }
+      return false;
     })();
     if (!isActive){
       return NextResponse.json({ error:'SADD is currently inactive. Please try again later.' }, { status: 403 });

@@ -23,7 +23,8 @@ export async function PUT(req: NextRequest){
   const autoDisableTz = typeof body?.autoDisableTz === 'string' && body.autoDisableTz ? body.autoDisableTz : undefined;
   let s = await prisma.setting.findUnique({ where:{ id:1 } });
   if (!s){ s = await prisma.setting.create({ data: { id:1, active:false } }); }
+  // Update schedule settings. Do not change active/activeSince here, but if schedule was enabled and SADD is currently active without an upcoming cutoff captured,
+  // we keep activeSince unchanged; health will honor the next cutoff after activeSince per new schedule.
   const updated = await prisma.setting.update({ where:{ id:1 }, data: { autoDisableEnabled, autoDisableTime: autoDisableTime ?? s.autoDisableTime, autoDisableTz: autoDisableTz ?? s.autoDisableTz } });
   return NextResponse.json({ ok:true, autoDisableEnabled: updated.autoDisableEnabled, autoDisableTime: updated.autoDisableTime, autoDisableTz: updated.autoDisableTz });
 }
-
