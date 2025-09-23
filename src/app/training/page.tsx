@@ -73,6 +73,27 @@ export default function Training(){
 
   return (
     <div className="mx-auto max-w-6xl p-4 grid md:grid-cols-[240px,1fr] gap-4">
+      {/* Top tab bar (always visible, mobile-friendly) */}
+      <div className="md:col-span-2 order-[-1] md:order-none mb-2">
+        <div className="flex gap-2 overflow-x-auto no-scrollbar py-1">
+          {ORDER.map(c=>{
+            const label = c==='SAFETY'?'Safety':c==='DRIVER'?'Driver':c==='TC'?'Truck Commander':'Dispatcher';
+            const active = tab===c;
+            const locked = !canAccess(c);
+            return (
+              <button
+                key={c}
+                disabled={locked}
+                onClick={()=> setTab(c)}
+                className={`whitespace-nowrap rounded-full px-3 py-1 text-sm border ${active? 'bg-black text-white border-black' : 'glass hover:bg-black/5 dark:hover:bg-white/10'} ${locked? 'opacity-40 cursor-not-allowed' : ''}`}
+                aria-pressed={active}
+              >
+                {label} {isDone(c)&& <span className="opacity-70">✔</span>}
+              </button>
+            );
+          })}
+        </div>
+      </div>
       <div className="hidden md:block">
         <nav className="rounded-xl border glass p-2 sticky top-20">
           {ORDER.map(c=> (
