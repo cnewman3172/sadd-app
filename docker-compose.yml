@@ -10,8 +10,7 @@ services:
     ports:
       - "3000:3000"
     environment:
-      # Compose constructs DATABASE_URL from the DB credentials in .env
-      - DATABASE_URL=postgresql://${POSTGRES_USER:-sadd}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB:-sadd}
+      - DATABASE_URL=${DATABASE_URL}
       - JWT_SECRET=${JWT_SECRET}
       - NEXT_PUBLIC_APP_URL=${NEXT_PUBLIC_APP_URL}
       - SETUP_KEY=${SETUP_KEY}
@@ -41,8 +40,8 @@ services:
     image: postgres:16-alpine
     container_name: sadd_db
     environment:
-      - POSTGRES_DB=${POSTGRES_DB:-sadd}
-      - POSTGRES_USER=${POSTGRES_USER:-sadd}
+      - POSTGRES_DB=sadd
+      - POSTGRES_USER=sadd
       - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
     volumes:
       - sadd-db:/var/lib/postgresql/data
