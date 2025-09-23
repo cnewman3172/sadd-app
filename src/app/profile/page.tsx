@@ -35,6 +35,7 @@ export default function Profile() {
         <input className="p-3 rounded border bg-white/80 dark:bg-neutral-800 text-black dark:text-white" value={form.rank||''} onChange={(e)=>setForm({...form, rank:e.target.value})} />
         <input className="p-3 rounded border bg-white/80 dark:bg-neutral-800 text-black dark:text-white" value={form.unit||''} onChange={(e)=>setForm({...form, unit:e.target.value})} />
         <input className="p-3 rounded border bg-white/80 dark:bg-neutral-800 text-black dark:text-white" value={form.phone||''} onChange={(e)=>setForm({...form, phone:e.target.value})} />
+        <label className="flex items-center gap-2 text-sm"><input type="checkbox" checked={!!form.checkRide} onChange={(e)=> setForm({...form, checkRide: e.target.checked })} /> Check Ride Completed</label>
         <button className="rounded bg-black text-white py-3">Save</button>
       </form>
       <button onClick={changePassword} className="rounded border py-2 px-4">Change Password</button>
