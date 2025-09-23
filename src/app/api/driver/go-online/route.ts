@@ -10,6 +10,13 @@ export async function POST(req: Request){
   const token = (req.headers.get('cookie')||'').split('; ').find(c=>c.startsWith('sadd_token='))?.split('=')[1];
   const payload = await verifyJwt(token);
   if (!payload || !['ADMIN','DISPATCHER','TC'].includes(payload.role)) return NextResponse.json({ error:'forbidden' }, { status: 403 });
+  // Enforce push subscription for TC going online
+  if (payload.role === 'TC'){
+    const subCount = await prisma.pushSubscription.count({ where: { userId: payload.uid } });
+    if (subCount === 0){
+      return NextResponse.json({ error:'Enable notifications to go online (allow notifications in your browser).' }, { status: 400 });
+    }
+  }
   const body = await req.json().catch(()=>({}));
   const { vanId, lat, lng } = body || {};
   if (!vanId) return NextResponse.json({ error:'vanId required' }, { status: 400 });
@@ -40,10 +47,3 @@ export async function POST(req: Request){
   logAudit('driver_online', payload.uid, van.id);
   return NextResponse.json(van);
 }
-  // Enforce push subscription for TC going online
-  if (payload.role === 'TC'){
-    const subCount = await prisma.pushSubscription.count({ where: { userId: payload.uid } });
-    if (subCount === 0){
-      return NextResponse.json({ error:'Enable notifications to go online (allow notifications in your browser).' }, { status: 400 });
-    }
-  }
