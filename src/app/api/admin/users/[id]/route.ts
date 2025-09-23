@@ -14,11 +14,29 @@ export async function PUT(req: Request, context: { params: Promise<{ id: string 
   if (!payload || payload.role !== 'ADMIN') return NextResponse.json({ error:'forbidden' }, { status: 403 });
 
   const { id } = await context.params;
-  const schema = z.object({ role: z.enum(['ADMIN','DISPATCHER','TC','DRIVER','SAFETY','RIDER']) });
+  const schema = z.object({
+    role: z.enum(['ADMIN','DISPATCHER','TC','DRIVER','SAFETY','RIDER']).optional(),
+    firstName: z.string().min(1).max(100).optional(),
+    lastName: z.string().min(1).max(100).optional(),
+    rank: z.string().max(120).optional().nullable(),
+    unit: z.string().max(120).optional().nullable(),
+    phone: z.string().max(40).optional().nullable(),
+  });
   try{
-    const { role } = schema.parse(await req.json());
-  const user = await prisma.user.update({ where: { id }, data: { role: role as any } });
-    logAudit('user_role_update', payload.uid, id, { role });
+    const body = schema.parse(await req.json());
+    const data: any = {};
+    if (body.role) data.role = body.role as any;
+    if (body.firstName!=null) data.firstName = body.firstName;
+    if (body.lastName!=null) data.lastName = body.lastName;
+    if (body.rank!==undefined) data.rank = body.rank ?? null;
+    if (body.unit!==undefined) data.unit = body.unit ?? null;
+    if (body.phone!==undefined) data.phone = body.phone ?? null;
+    if (Object.keys(data).length === 0) return NextResponse.json({ error:'no changes' }, { status: 400 });
+    const user = await prisma.user.update({ where: { id }, data });
+    if (body.role) logAudit('user_role_update', payload.uid, id, { role: body.role });
+    if (body.firstName || body.lastName || body.rank!==undefined || body.unit!==undefined || body.phone!==undefined){
+      logAudit('user_profile_update', payload.uid, id, { firstName: body.firstName, lastName: body.lastName, rank: body.rank, unit: body.unit, phone: body.phone });
+    }
     return NextResponse.json({ ok:true, id: user.id, role: user.role });
   }catch(e:any){
     captureError(e, { route: 'admin/users/[id]#PUT', id, uid: payload.uid });
