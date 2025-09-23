@@ -85,7 +85,7 @@ export default async function Home() {
                 <h3 className="text-lg font-semibold mb-2">How It Works</h3>
                 <ol className="space-y-3 text-sm opacity-90">
                   <li>1) Request: share pickup and destination.</li>
-                  <li>2) Dispatch: a coordinator assigns the nearest van.</li>
+                  <li>2) Dispatch: a dispatcher assigns the nearest van.</li>
                   <li>3) Ride: get home safe — no questions asked.</li>
                 </ol>
                 <div className="mt-5 grid grid-cols-3 gap-3 text-center text-sm">

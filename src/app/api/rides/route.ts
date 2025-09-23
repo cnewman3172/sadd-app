@@ -10,7 +10,7 @@ const schema = z.object({ status: z.enum(['PENDING','ASSIGNED','EN_ROUTE','PICKE
 export async function GET(req: Request){
   const token = (req.headers.get('cookie')||'').split('; ').find(c=>c.startsWith('sadd_token='))?.split('=')[1];
   const payload = await verifyJwt(token);
-  if (!payload || (payload.role !== 'ADMIN' && payload.role !== 'COORDINATOR' && payload.role !== 'TC')) return NextResponse.json({ error:'forbidden' }, { status: 403 });
+  if (!payload || (payload.role !== 'ADMIN' && payload.role !== 'DISPATCHER' && payload.role !== 'TC')) return NextResponse.json({ error:'forbidden' }, { status: 403 });
   const url = new URL(req.url);
   const { status, take } = schema.parse({ status: url.searchParams.get('status') || undefined, take: url.searchParams.get('take') || undefined });
   const rides = await prisma.ride.findMany({

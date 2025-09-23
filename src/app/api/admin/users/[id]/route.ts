@@ -14,7 +14,7 @@ export async function PUT(req: Request, context: { params: Promise<{ id: string 
   if (!payload || payload.role !== 'ADMIN') return NextResponse.json({ error:'forbidden' }, { status: 403 });
 
   const { id } = await context.params;
-  const schema = z.object({ role: z.enum(['ADMIN','COORDINATOR','TC','VOLUNTEER','RIDER']) });
+  const schema = z.object({ role: z.enum(['ADMIN','DISPATCHER','TC','DRIVER','SAFETY','RIDER']) });
   try{
     const { role } = schema.parse(await req.json());
   const user = await prisma.user.update({ where: { id }, data: { role: role as any } });

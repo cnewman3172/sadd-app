@@ -51,9 +51,10 @@ export default function UsersPage(){
                     setUsers(prev=> prev.map(x=> x.id===u.id ? { ...x, role } : x));
                   }}>
                     <option value="ADMIN">ADMIN</option>
-                    <option value="COORDINATOR">COORDINATOR</option>
+                    <option value="DISPATCHER">DISPATCHER</option>
                     <option value="TC">TC</option>
-                    <option value="VOLUNTEER">VOLUNTEER</option>
+                    <option value="DRIVER">DRIVER</option>
+                    <option value="SAFETY">SAFETY</option>
                     <option value="RIDER">RIDER</option>
                   </select>
                 </td>
