@@ -70,6 +70,7 @@ export default function TopNav(){
           <div className="relative">
             <button ref={acctBtnRef} onClick={()=>{ setAcctOpen(o=>!o); setMenuOpen(false); }} className="rounded-full glass border border-white/20 px-3 py-1 text-sm">{name||'Account'}</button>
             <Dropdown open={acctOpen} anchor={acctAnchor} onClose={()=> setAcctOpen(false)}>
+              <Link href="/training" className="block px-3 py-2 text-sm hover:bg-black/5 dark:hover:bg-white/10" onClick={()=> setAcctOpen(false)}>Training</Link>
               <Link href="/profile" className="block px-3 py-2 text-sm hover:bg-black/5 dark:hover:bg-white/10" onClick={()=> setAcctOpen(false)}>Settings</Link>
               <button className="block w-full text-left px-3 py-2 text-sm hover:bg-black/5 dark:hover:bg-white/10" onClick={async()=>{ await fetch('/api/auth/logout',{ method:'POST' }); window.location.href='/login'; }}>Logout</button>
             </Dropdown>
