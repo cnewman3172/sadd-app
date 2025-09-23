@@ -1,9 +1,11 @@
 "use client";
 import { useEffect, useState } from 'react';
+import { useRouter } from 'next/navigation';
 import type { Ride } from '@/types';
 import { showToast } from '@/components/Toast';
 
 export default function ExecutivesDashboard(){
+  const router = useRouter();
   const [active, setActive] = useState<boolean | null>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -33,8 +35,28 @@ export default function ExecutivesDashboard(){
       if (!r.ok){ const d = await r.json().catch(()=>({error:'failed'})); throw new Error(d.error||'Toggle failed'); }
       const d = await r.json();
       const on = Boolean(d.active);
+      // Update immediate UI state based on toggle result
       setActive(on);
-      showToast(on ? 'SADD is now Active' : 'SADD is now Inactive');
+      // Refresh server components (layout, etc.) so global status updates
+      try { router.refresh(); } catch {}
+      // After toggling, read effective status (respects auto-disable schedule)
+      try {
+        const h = await fetch('/api/health', { cache: 'no-store' });
+        if (h.ok) {
+          const hh = await h.json();
+          const effective = Boolean(hh.active);
+          setActive(effective);
+          if (effective !== on) {
+            showToast('SADD remains Inactive due to schedule');
+          } else {
+            showToast(effective ? 'SADD is now Active' : 'SADD is now Inactive');
+          }
+        } else {
+          showToast(on ? 'SADD is now Active' : 'SADD is now Inactive');
+        }
+      } catch {
+        showToast(on ? 'SADD is now Active' : 'SADD is now Inactive');
+      }
     }catch(e:any){ setError(e.message||'Toggle failed'); }
     finally{ setBusy(false); }
   }
