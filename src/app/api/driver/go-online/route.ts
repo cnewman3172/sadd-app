@@ -40,3 +40,10 @@ export async function POST(req: Request){
   logAudit('driver_online', payload.uid, van.id);
   return NextResponse.json(van);
 }
+  // Enforce push subscription for TC going online
+  if (payload.role === 'TC'){
+    const subCount = await prisma.pushSubscription.count({ where: { userId: payload.uid } });
+    if (subCount === 0){
+      return NextResponse.json({ error:'Enable notifications to go online (allow notifications in your browser).' }, { status: 400 });
+    }
+  }
