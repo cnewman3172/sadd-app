@@ -5,14 +5,14 @@ import { showToast } from '@/components/Toast';
 import ThemeToggle from '@/components/ThemeToggle';
 import Dropdown from '@/components/Dropdown';
 
-type User = { id:string; firstName?:string; lastName?:string; role?: 'ADMIN'|'COORDINATOR'|'TC'|'VOLUNTEER'|'RIDER' };
+type User = { id:string; firstName?:string; lastName?:string; role?: 'ADMIN'|'DISPATCHER'|'TC'|'DRIVER'|'SAFETY'|'RIDER' };
 
 const LINKS: Array<{ href:string; label:string; roles: User['role'][] }> = [
   { href:'/executives', label:'Executives', roles:['ADMIN'] },
-  { href:'/dashboard', label:'Coordinators', roles:['ADMIN','COORDINATOR'] },
-  { href:'/driving', label:'Truck Commanders', roles:['ADMIN','COORDINATOR','TC'] },
-  { href:'/shifts', label:'Shifts', roles:['ADMIN','COORDINATOR','TC','VOLUNTEER'] },
-  { href:'/request', label:'Request a Ride', roles:['ADMIN','COORDINATOR','TC','VOLUNTEER','RIDER'] },
+  { href:'/dashboard', label:'Dispatch', roles:['ADMIN','DISPATCHER'] },
+  { href:'/driving', label:'Truck Commanders', roles:['ADMIN','DISPATCHER','TC'] },
+  { href:'/shifts', label:'Shifts', roles:['ADMIN','DISPATCHER','TC','DRIVER','SAFETY'] },
+  { href:'/request', label:'Request a Ride', roles:['ADMIN','DISPATCHER','TC','DRIVER','SAFETY','RIDER'] },
 ];
 
 export default function TopNav(){

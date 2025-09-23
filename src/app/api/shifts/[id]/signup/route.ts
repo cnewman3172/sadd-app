@@ -7,18 +7,22 @@ export const runtime = 'nodejs';
 export async function POST(req: Request, ctx: { params: Promise<{ id:string }> }){
   const token = (req.headers.get('cookie')||'').split('; ').find(c=>c.startsWith('sadd_token='))?.split('=')[1];
   const payload = await verifyJwt(token);
-  if (!payload || !['ADMIN','COORDINATOR','TC','VOLUNTEER'].includes(payload.role)) return NextResponse.json({ error:'forbidden' }, { status: 403 });
+  if (!payload || !['ADMIN','DISPATCHER','TC','DRIVER','SAFETY'].includes(payload.role)) return NextResponse.json({ error:'forbidden' }, { status: 403 });
   const { id } = await ctx.params;
   const shift = await prisma.shift.findUnique({ where: { id }, include: { _count: { select: { signups: true } } } });
   if (!shift) return NextResponse.json({ error:'not found' }, { status:404 });
   // Check role authorization for this shift
   const allowedRoles = payload.role === 'ADMIN'
-    ? ['COORDINATOR','TC','VOLUNTEER']
-    : payload.role === 'COORDINATOR'
-      ? ['COORDINATOR','TC','VOLUNTEER']
+    ? ['DISPATCHER','TC','DRIVER','SAFETY']
+    : payload.role === 'DISPATCHER'
+      ? ['DISPATCHER','TC','DRIVER','SAFETY']
       : payload.role === 'TC'
-        ? ['TC','VOLUNTEER']
-        : ['VOLUNTEER'];
+        ? ['TC','DRIVER','SAFETY']
+        : payload.role === 'DRIVER'
+          ? ['DRIVER']
+          : payload.role === 'SAFETY'
+            ? ['SAFETY']
+            : [];
   if (!allowedRoles.includes(shift.role as any)) return NextResponse.json({ error:'forbidden' }, { status: 403 });
   if (shift.endsAt < new Date()) return NextResponse.json({ error:'shift ended' }, { status: 400 });
   if (shift._count.signups >= shift.needed) return NextResponse.json({ error:'shift full' }, { status: 409 });
@@ -31,7 +35,7 @@ export async function POST(req: Request, ctx: { params: Promise<{ id:string }> }
 export async function DELETE(req: Request, ctx: { params: Promise<{ id:string }> }){
   const token = (req.headers.get('cookie')||'').split('; ').find(c=>c.startsWith('sadd_token='))?.split('=')[1];
   const payload = await verifyJwt(token);
-  if (!payload || !['ADMIN','COORDINATOR','TC'].includes(payload.role)) return NextResponse.json({ error:'forbidden' }, { status: 403 });
+  if (!payload || !['ADMIN','DISPATCHER','TC','DRIVER','SAFETY'].includes(payload.role)) return NextResponse.json({ error:'forbidden' }, { status: 403 });
   const { id } = await ctx.params;
   await prisma.shiftSignup.deleteMany({ where: { shiftId: id, userId: payload.uid } });
   return NextResponse.json({ ok:true });

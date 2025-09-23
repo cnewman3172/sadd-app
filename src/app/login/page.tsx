@@ -13,7 +13,7 @@ export default function Login() {
         const r = await fetch('/api/me', { cache:'no-store' });
         if (r.ok){
           const u = await r.json();
-          const dest: Record<string,string> = { ADMIN: '/executives', COORDINATOR: '/dashboard', TC: '/driving', VOLUNTEER: '/shifts', RIDER: '/request' };
+          const dest: Record<string,string> = { ADMIN: '/executives', DISPATCHER: '/dashboard', TC: '/driving', DRIVER: '/shifts', SAFETY: '/shifts', RIDER: '/request' };
           window.location.replace(dest[u.role] || '/');
         }
       }catch{}
@@ -27,7 +27,7 @@ export default function Login() {
     if (res.ok) {
       const data = await res.json();
       const role = data.role as string;
-      const dest: Record<string,string> = { ADMIN: '/executives', COORDINATOR: '/dashboard', TC: '/driving', VOLUNTEER: '/shifts', RIDER: '/request' };
+      const dest: Record<string,string> = { ADMIN: '/executives', DISPATCHER: '/dashboard', TC: '/driving', DRIVER: '/shifts', SAFETY: '/shifts', RIDER: '/request' };
       window.location.href = dest[role] || '/';
     } else {
       const data = await res.json().catch(()=>({ error: 'Login failed' }));

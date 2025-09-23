@@ -16,7 +16,7 @@ export async function GET(){
 export async function POST(req: Request){
   const token = (req.headers.get('cookie')||'').split('; ').find(c=>c.startsWith('sadd_token='))?.split('=')[1];
   const payload = await verifyJwt(token);
-  if (!payload || (payload.role !== 'ADMIN' && payload.role !== 'COORDINATOR')) return NextResponse.json({ error:'forbidden' }, { status: 403 });
+  if (!payload || (payload.role !== 'ADMIN' && payload.role !== 'DISPATCHER')) return NextResponse.json({ error:'forbidden' }, { status: 403 });
   const schema = z.object({ name: z.string().min(1), capacity: z.coerce.number().int().min(1).max(16).default(8) });
   try{
     const { name, capacity } = schema.parse(await req.json());

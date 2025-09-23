@@ -1,7 +1,7 @@
 "use client";
 import { useEffect, useMemo, useState } from 'react';
 
-type ShiftItem = { id:string; title?:string|null; role:'COORDINATOR'|'TC'|'VOLUNTEER'; startsAt:string; endsAt:string; needed:number; signupCount:number; isSigned:boolean };
+type ShiftItem = { id:string; title?:string|null; role:'DISPATCHER'|'TC'|'DRIVER'|'SAFETY'; startsAt:string; endsAt:string; needed:number; signupCount:number; isSigned:boolean };
 
 export default function Shifts(){
   const [items, setItems] = useState<ShiftItem[]>([]);
@@ -23,19 +23,20 @@ export default function Shifts(){
   }
 
   const groups = useMemo(()=>{
-    const coord = items.filter(i=> i.role==='COORDINATOR');
+    const dispatch = items.filter(i=> i.role==='DISPATCHER');
     const tc = items.filter(i=> i.role==='TC');
-    const vol = items.filter(i=> i.role==='VOLUNTEER');
-    return { coord, tc, vol };
+    const driver = items.filter(i=> i.role==='DRIVER');
+    const safety = items.filter(i=> i.role==='SAFETY');
+    return { dispatch, tc, driver, safety };
   },[items]);
 
   return (
     <div className="mx-auto max-w-5xl p-4 grid gap-6">
-      {groups.coord.length>0 && (
+      {groups.dispatch.length>0 && (
         <section>
-          <h2 className="font-semibold mb-2">Coordinator Shifts</h2>
+          <h2 className="font-semibold mb-2">Dispatcher Shifts</h2>
           <div className="grid md:grid-cols-2 gap-3">
-            {groups.coord.map(s=> (
+            {groups.dispatch.map(s=> (
               <Card key={s.id} s={s} busy={busy===s.id} onToggle={toggle} />
             ))}
           </div>
@@ -53,11 +54,22 @@ export default function Shifts(){
         </section>
       )}
 
-      {groups.vol.length>0 && (
+      {groups.driver.length>0 && (
         <section>
-          <h2 className="font-semibold mb-2">Volunteer Shifts</h2>
+          <h2 className="font-semibold mb-2">Driver Shifts</h2>
           <div className="grid md:grid-cols-2 gap-3">
-            {groups.vol.map(s=> (
+            {groups.driver.map(s=> (
+              <Card key={s.id} s={s} busy={busy===s.id} onToggle={toggle} />)
+            )}
+          </div>
+        </section>
+      )}
+
+      {groups.safety.length>0 && (
+        <section>
+          <h2 className="font-semibold mb-2">Safety Shifts</h2>
+          <div className="grid md:grid-cols-2 gap-3">
+            {groups.safety.map(s=> (
               <Card key={s.id} s={s} busy={busy===s.id} onToggle={toggle} />)
             )}
           </div>
@@ -75,7 +87,7 @@ function Card({ s, busy, onToggle }:{ s:ShiftItem; busy:boolean; onToggle:(id:st
   return (
     <div className="rounded-xl glass border p-4">
       <div className="text-sm opacity-80">{fmtRange(s.startsAt, s.endsAt)}</div>
-      <div className="font-medium">{s.title || (s.role==='COORDINATOR'?'Coordinator Shift': s.role==='TC'?'Truck Commander Shift':'Volunteer Shift')}</div>
+      <div className="font-medium">{s.title || (s.role==='DISPATCHER'?'Dispatcher Shift': s.role==='TC'?'Truck Commander Shift': s.role==='DRIVER'?'Driver Shift':'Safety Shift')}</div>
       <div className="text-xs opacity-80 mb-2">Signed: {s.signupCount} / {s.needed}</div>
       <div className="flex gap-2">
         {!s.isSigned && s.signupCount < s.needed && (

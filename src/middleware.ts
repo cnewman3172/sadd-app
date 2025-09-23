@@ -3,9 +3,10 @@ import type { NextRequest } from 'next/server';
 
 const roleHome: Record<string, string> = {
   ADMIN: '/executives',
-  COORDINATOR: '/dashboard',
+  DISPATCHER: '/dashboard',
   TC: '/driving',
-  VOLUNTEER: '/shifts',
+  DRIVER: '/shifts',
+  SAFETY: '/shifts',
   RIDER: '/request',
 };
 
@@ -13,11 +14,11 @@ export async function middleware(req: NextRequest) {
   const { pathname } = req.nextUrl;
   const protectedRoutes: Array<{ path: string; roles: string[] }> = [
     { path: '/executives', roles: ['ADMIN'] },
-    { path: '/dashboard', roles: ['ADMIN', 'COORDINATOR'] },
-    { path: '/driving', roles: ['ADMIN', 'COORDINATOR', 'TC'] },
-    { path: '/shifts', roles: ['ADMIN', 'COORDINATOR', 'TC', 'VOLUNTEER'] },
-    { path: '/request', roles: ['ADMIN', 'COORDINATOR', 'TC', 'VOLUNTEER', 'RIDER'] },
-    { path: '/profile', roles: ['ADMIN', 'COORDINATOR', 'TC', 'RIDER'] },
+    { path: '/dashboard', roles: ['ADMIN', 'DISPATCHER'] },
+    { path: '/driving', roles: ['ADMIN', 'DISPATCHER', 'TC'] },
+    { path: '/shifts', roles: ['ADMIN', 'DISPATCHER', 'TC', 'DRIVER', 'SAFETY'] },
+    { path: '/request', roles: ['ADMIN', 'DISPATCHER', 'TC', 'DRIVER', 'SAFETY', 'RIDER'] },
+    { path: '/profile', roles: ['ADMIN', 'DISPATCHER', 'TC', 'DRIVER', 'SAFETY', 'RIDER'] },
   ];
 
   const saddRoutes = protectedRoutes.map((r) => r.path);
@@ -44,15 +45,15 @@ export async function middleware(req: NextRequest) {
 
   // If claim allows access, later we may still gate by active shift for certain portals
   if (claimRole && route.roles.includes(claimRole)){
-    // Extra gate: time-based portal access for Coordinator and TC views
+    // Extra gate: time-based portal access for Dispatcher and TC views
     const isPortal = pathname.startsWith('/dashboard') || pathname.startsWith('/driving');
     if (!isPortal) return NextResponse.next();
 
     // Admin bypasses schedule
     if (claimRole === 'ADMIN') return NextResponse.next();
 
-    const neededRole = pathname.startsWith('/dashboard') ? 'COORDINATOR' : 'TC';
-    // Verify the user has an active shift for the needed role (Coordinators can access TC if they signed up)
+    const neededRole = pathname.startsWith('/dashboard') ? 'DISPATCHER' : 'TC';
+    // Verify the user has an active shift for the needed role (Dispatchers can access TC if they signed up)
     try{
       const res = await fetch(new URL(`/api/shifts/active?role=${neededRole}`, req.url), { headers: { cookie: req.headers.get('cookie') || '' } });
       if (res.ok){
@@ -74,7 +75,7 @@ export async function middleware(req: NextRequest) {
         const isPortal = pathname.startsWith('/dashboard') || pathname.startsWith('/driving');
         if (!isPortal) return NextResponse.next();
         if (liveRole === 'ADMIN') return NextResponse.next();
-        const neededRole = pathname.startsWith('/dashboard') ? 'COORDINATOR' : 'TC';
+        const neededRole = pathname.startsWith('/dashboard') ? 'DISPATCHER' : 'TC';
         try{
           const res2 = await fetch(new URL(`/api/shifts/active?role=${neededRole}`, req.url), { headers: { cookie: req.headers.get('cookie') || '' } });
           if (res2.ok){ const d2 = await res2.json(); if (d2?.active) return NextResponse.next(); }

@@ -19,7 +19,7 @@ const putSchema = z.object({
 export async function PUT(req: NextRequest, context: { params: Promise<{ id: string }> }){
   const token = (req.headers.get('cookie')||'').split('; ').find(c=>c.startsWith('sadd_token='))?.split('=')[1];
   const payload = await verifyJwt(token);
-  if (!payload || (payload.role !== 'ADMIN' && payload.role !== 'COORDINATOR' && payload.role !== 'TC')) return NextResponse.json({ error:'forbidden' }, { status: 403 });
+  if (!payload || (payload.role !== 'ADMIN' && payload.role !== 'DISPATCHER' && payload.role !== 'TC')) return NextResponse.json({ error:'forbidden' }, { status: 403 });
   const { id } = await context.params;
   try{
     const { status, capacity, passengers, activeTcId, name } = putSchema.parse(await req.json());
@@ -36,7 +36,7 @@ export async function PUT(req: NextRequest, context: { params: Promise<{ id: str
 export async function DELETE(req: NextRequest, context: { params: Promise<{ id: string }> }){
   const token = (req.headers.get('cookie')||'').split('; ').find(c=>c.startsWith('sadd_token='))?.split('=')[1];
   const payload = await verifyJwt(token);
-  if (!payload || (payload.role !== 'ADMIN' && payload.role !== 'COORDINATOR')) return NextResponse.json({ error:'forbidden' }, { status: 403 });
+  if (!payload || (payload.role !== 'ADMIN' && payload.role !== 'DISPATCHER')) return NextResponse.json({ error:'forbidden' }, { status: 403 });
   const { id } = await context.params;
   try{
     await prisma.van.delete({ where: { id } });

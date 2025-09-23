@@ -2,13 +2,13 @@
 import { useEffect, useState } from 'react';
 import Modal from '@/components/Modal';
 
-type Shift = { id:string; title?:string|null; role:'COORDINATOR'|'TC'; startsAt:string; endsAt:string; needed:number; _count?:{ signups:number } };
+type Shift = { id:string; title?:string|null; role:'DISPATCHER'|'TC'|'DRIVER'|'SAFETY'; startsAt:string; endsAt:string; needed:number; _count?:{ signups:number } };
 
 export default function ExecShifts(){
   const [items, setItems] = useState<Shift[]>([]);
   // Single-role creation removed per request; use bulk modal instead
   const [bulkOpen, setBulkOpen] = useState(false);
-  const [bulk, setBulk] = useState<{ title:string; date:string; start:string; end:string; needs:{ COORDINATOR:number; TC:number; VOLUNTEER:number } }>({ title:'', date:'', start:'20:00', end:'23:00', needs:{ COORDINATOR:0, TC:0, VOLUNTEER:0 } });
+  const [bulk, setBulk] = useState<{ title:string; date:string; start:string; end:string; needs:{ DISPATCHER:number; TC:number; DRIVER:number; SAFETY:number } }>({ title:'', date:'', start:'20:00', end:'23:00', needs:{ DISPATCHER:0, TC:0, DRIVER:0, SAFETY:0 } });
 
   async function load(){
     const r = await fetch('/api/admin/shifts', { cache:'no-store' });
@@ -40,7 +40,7 @@ export default function ExecShifts(){
             {items.map(s=> (
               <tr key={s.id} className="border-t border-white/20">
                 <td className="py-2 px-2">{fmtRange(s.startsAt,s.endsAt)}</td>
-                <td className="px-2">{s.role==='COORDINATOR'?'Coordinator':'Truck Commander'}</td>
+                <td className="px-2">{s.role==='DISPATCHER'?'Dispatcher': s.role==='TC'?'Truck Commander': s.role==='DRIVER'?'Driver':'Safety'}</td>
                 <td className="px-2">{s.title||'—'}</td>
                 <td className="px-2">{s._count?.signups ?? 0} / {s.needed}</td>
                 <td className="px-2 text-right"><button onClick={()=>del(s.id)} className="rounded border px-3 py-1">Delete</button></td>
@@ -91,9 +91,10 @@ function BulkModal({ open, onClose, bulk, setBulk, onCreated }:{ open:boolean; o
         <div><label className="text-xs">Start</label><input type="time" className="w-full p-2 rounded border glass" value={bulk.start} onChange={e=> setBulk((b:any)=>({ ...b, start: e.target.value }))} required /></div>
         <div><label className="text-xs">End</label><input type="time" className="w-full p-2 rounded border glass" value={bulk.end} onChange={e=> setBulk((b:any)=>({ ...b, end: e.target.value }))} required /></div>
         <div></div>
-        <div><label className="text-xs">Coordinators Needed</label><input type="number" min={0} max={10} value={bulk.needs.COORDINATOR} onChange={e=> setBulk((b:any)=>({ ...b, needs: { ...b.needs, COORDINATOR: Number(e.target.value) } }))} className="w-full p-2 rounded border glass" /></div>
+        <div><label className="text-xs">Dispatchers Needed</label><input type="number" min={0} max={10} value={bulk.needs.DISPATCHER} onChange={e=> setBulk((b:any)=>({ ...b, needs: { ...b.needs, DISPATCHER: Number(e.target.value) } }))} className="w-full p-2 rounded border glass" /></div>
         <div><label className="text-xs">Truck Commanders Needed</label><input type="number" min={0} max={10} value={bulk.needs.TC} onChange={e=> setBulk((b:any)=>({ ...b, needs: { ...b.needs, TC: Number(e.target.value) } }))} className="w-full p-2 rounded border glass" /></div>
-        <div><label className="text-xs">Volunteers Needed</label><input type="number" min={0} max={10} value={bulk.needs.VOLUNTEER} onChange={e=> setBulk((b:any)=>({ ...b, needs: { ...b.needs, VOLUNTEER: Number(e.target.value) } }))} className="w-full p-2 rounded border glass" /></div>
+        <div><label className="text-xs">Drivers Needed</label><input type="number" min={0} max={10} value={bulk.needs.DRIVER} onChange={e=> setBulk((b:any)=>({ ...b, needs: { ...b.needs, DRIVER: Number(e.target.value) } }))} className="w-full p-2 rounded border glass" /></div>
+        <div><label className="text-xs">Safety Needed</label><input type="number" min={0} max={10} value={bulk.needs.SAFETY} onChange={e=> setBulk((b:any)=>({ ...b, needs: { ...b.needs, SAFETY: Number(e.target.value) } }))} className="w-full p-2 rounded border glass" /></div>
         <div className="md:col-span-4 flex justify-end gap-2 mt-2">
           <button type="button" onClick={onClose} className="rounded border px-3 py-1">Cancel</button>
           <button className="btn-primary">Create</button>

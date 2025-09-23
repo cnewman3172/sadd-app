@@ -6,9 +6,10 @@ import { z } from 'zod';
 export const runtime = 'nodejs';
 
 const NeedsSchema = z.object({
-  COORDINATOR: z.coerce.number().int().min(0).max(10).default(0),
+  DISPATCHER: z.coerce.number().int().min(0).max(10).default(0),
   TC: z.coerce.number().int().min(0).max(10).default(0),
-  VOLUNTEER: z.coerce.number().int().min(0).max(10).default(0),
+  DRIVER: z.coerce.number().int().min(0).max(10).default(0),
+  SAFETY: z.coerce.number().int().min(0).max(10).default(0),
 });
 
 export async function POST(req: Request) {
@@ -30,8 +31,8 @@ export async function POST(req: Request) {
     let end = new Date(body.endsAt);
     if (end <= start) end = new Date(end.getTime() + 24*60*60*1000);
 
-    const entries: Array<{ role: 'COORDINATOR'|'TC'|'VOLUNTEER'; needed: number }> = [];
-    for (const role of ['COORDINATOR','TC','VOLUNTEER'] as const){
+    const entries: Array<{ role: 'DISPATCHER'|'TC'|'DRIVER'|'SAFETY'; needed: number }> = [];
+    for (const role of ['DISPATCHER','TC','DRIVER','SAFETY'] as const){
       const n = body.needs[role];
       if (n && n > 0) entries.push({ role, needed: n });
     }
@@ -45,4 +46,3 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: e?.message || 'invalid' }, { status: 400 });
   }
 }
-

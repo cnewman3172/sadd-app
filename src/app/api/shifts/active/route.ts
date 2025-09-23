@@ -7,7 +7,7 @@ export const runtime = 'nodejs';
 export async function GET(req: Request){
   const url = new URL(req.url);
   const role = (url.searchParams.get('role')||'').toUpperCase();
-  if (!['COORDINATOR','TC'].includes(role)) return NextResponse.json({ error:'role_required' }, { status: 400 });
+  if (!['DISPATCHER','TC'].includes(role)) return NextResponse.json({ error:'role_required' }, { status: 400 });
 
   const token = (req.headers.get('cookie')||'').split('; ').find(c=>c.startsWith('sadd_token='))?.split('=')[1];
   const payload = await verifyJwt(token);
@@ -30,4 +30,3 @@ export async function GET(req: Request){
   if (!s) return NextResponse.json({ active: false });
   return NextResponse.json({ active: true, until: s.endsAt.toISOString(), shiftId: s.id, title: s.title||null });
 }
-
