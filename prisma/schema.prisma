@@ -33,6 +33,12 @@ model User {
   passwordResets PasswordReset[]
   // Back-relation for ShiftSignup.user
   shiftSignups   ShiftSignup[]
+  // Training gates
+  trainingSafetyAt      DateTime?
+  trainingDriverAt      DateTime?
+  trainingTcAt          DateTime?
+  trainingDispatcherAt  DateTime?
+  checkRide             Boolean   @default(false)
 }
 
 model Van {
