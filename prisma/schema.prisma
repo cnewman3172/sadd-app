@@ -123,15 +123,16 @@ model Audit {
 
 // Shift scheduling for staffing coordinators (future: roles TC/VOLUNTEER)
 enum ShiftRole {
-  COORDINATOR
+  DISPATCHER
   TC
-  VOLUNTEER
+  DRIVER
+  SAFETY
 }
 
 model Shift {
   id        String        @id @default(uuid())
   title     String?
-  role      ShiftRole     @default(COORDINATOR)
+  role      ShiftRole     @default(DISPATCHER)
   startsAt  DateTime
   endsAt    DateTime
   needed    Int           @default(1)
@@ -156,9 +157,10 @@ model ShiftSignup {
 
 enum Role {
   ADMIN
-  COORDINATOR
+  DISPATCHER
   TC
-  VOLUNTEER
+  DRIVER
+  SAFETY
   RIDER
 }
 

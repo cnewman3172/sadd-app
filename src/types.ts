@@ -1,4 +1,4 @@
-export type Role = 'ADMIN'|'COORDINATOR'|'TC'|'VOLUNTEER'|'RIDER';
+export type Role = 'ADMIN'|'DISPATCHER'|'TC'|'DRIVER'|'SAFETY'|'RIDER';
 
 export type VanStatus = 'ACTIVE'|'MAINTENANCE'|'OFFLINE';
 
