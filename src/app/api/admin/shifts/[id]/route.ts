@@ -10,7 +10,7 @@ export async function PUT(req: Request, ctx: { params: Promise<{ id:string }> })
   const payload = await verifyJwt(token);
   if (!payload || payload.role !== 'ADMIN') return NextResponse.json({ error:'forbidden' }, { status: 403 });
   const { id } = await ctx.params;
-  const schema = z.object({ title: z.string().max(120).optional(), startsAt: z.string().datetime().optional(), endsAt: z.string().datetime().optional(), needed: z.coerce.number().int().min(1).max(10).optional(), notes: z.string().max(500).optional(), role: z.enum(['COORDINATOR','TC']).optional() });
+  const schema = z.object({ title: z.string().max(120).optional(), startsAt: z.string().datetime().optional(), endsAt: z.string().datetime().optional(), needed: z.coerce.number().int().min(1).max(10).optional(), notes: z.string().max(500).optional(), role: z.enum(['DISPATCHER','TC','DRIVER','SAFETY']).optional() });
   try{
     const patch = schema.parse(await req.json());
     // Fetch current to support overnight logic if only one bound provided

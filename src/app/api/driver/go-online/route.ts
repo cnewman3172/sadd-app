@@ -9,7 +9,7 @@ export const runtime = 'nodejs';
 export async function POST(req: Request){
   const token = (req.headers.get('cookie')||'').split('; ').find(c=>c.startsWith('sadd_token='))?.split('=')[1];
   const payload = await verifyJwt(token);
-  if (!payload || !['ADMIN','COORDINATOR','TC'].includes(payload.role)) return NextResponse.json({ error:'forbidden' }, { status: 403 });
+  if (!payload || !['ADMIN','DISPATCHER','TC'].includes(payload.role)) return NextResponse.json({ error:'forbidden' }, { status: 403 });
   const body = await req.json().catch(()=>({}));
   const { vanId, lat, lng } = body || {};
   if (!vanId) return NextResponse.json({ error:'vanId required' }, { status: 400 });

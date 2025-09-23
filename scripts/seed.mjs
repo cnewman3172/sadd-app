@@ -26,7 +26,7 @@ async function main(){
     return prisma.user.create({ data: { email, password: hash, firstName, lastName: role, role } })
   }
   await upsertUser(adminEmail, 'ADMIN', 'Admin')
-  await upsertUser(coordEmail, 'COORDINATOR', 'Coord')
+  await upsertUser(coordEmail, 'DISPATCHER', 'Dispatch')
   await upsertUser(tcEmail, 'TC', 'TC')
 }
 

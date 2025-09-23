@@ -12,7 +12,7 @@ const schema = z.object({ lat: z.number(), lng: z.number() });
 export async function POST(req: Request){
   const token = (req.headers.get('cookie')||'').split('; ').find(c=>c.startsWith('sadd_token='))?.split('=')[1];
   const payload = await verifyJwt(token);
-  if (!payload || !['ADMIN','COORDINATOR','TC'].includes(payload.role)) return NextResponse.json({ error:'forbidden' }, { status: 403 });
+  if (!payload || !['ADMIN','DISPATCHER','TC'].includes(payload.role)) return NextResponse.json({ error:'forbidden' }, { status: 403 });
   const { lat, lng } = schema.parse(await req.json());
   if (!allowPing(payload.uid)) return NextResponse.json({ ok:false, rate_limited:true }, { status: 429 });
   const van = await prisma.van.findFirst({ where:{ activeTcId: payload.uid } });

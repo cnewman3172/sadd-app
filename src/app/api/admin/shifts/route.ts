@@ -29,7 +29,7 @@ export async function POST(req: Request){
     endsAt: z.string().datetime(),
     needed: z.coerce.number().int().min(1).max(10).default(1),
     notes: z.string().max(500).optional(),
-    role: z.enum(['COORDINATOR','TC']).default('COORDINATOR'),
+    role: z.enum(['DISPATCHER','TC','DRIVER','SAFETY']).default('DISPATCHER'),
   });
   try{
     const body = schema.parse(await req.json());
