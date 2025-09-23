@@ -23,6 +23,7 @@ export default function Dashboard(){
   const [nameOpen, setNameOpen] = useState(false);
   const [activeEtas, setActiveEtas] = useState<Record<string, { toPickupSec: number|null; toDropSec: number|null }>>({});
   const lastEtaRef = (typeof window!=='undefined' ? (window as any).__etaRef : null) || { current: 0 } as { current: number };
+  const [notifOk, setNotifOk] = useState<boolean>(true);
 
   async function refresh(){
     const [r, v] = await Promise.all([
@@ -46,6 +47,9 @@ export default function Dashboard(){
   }, [manual.name]);
 
   useEffect(()=>{ refresh(); const id = setInterval(refresh, 5000); return ()=>clearInterval(id); },[]);
+  useEffect(()=>{
+    (async()=>{ const ok = await ensureNotifications(); setNotifOk(ok); })();
+  },[]);
   useEffect(()=>{
     const es = new EventSource('/api/stream');
     setSseStatus('connecting');
@@ -169,6 +173,17 @@ export default function Dashboard(){
 
   return (
     <div className="p-6 max-w-6xl mx-auto grid md:grid-cols-3 gap-6">
+      {!notifOk && (
+        <div className="fixed inset-0 z-[2000] bg-black/50 grid place-items-center p-4">
+          <div className="max-w-md w-full rounded-xl bg-white dark:bg-neutral-900 border border-white/20 p-4 text-center">
+            <h3 className="font-semibold mb-2">Enable Notifications</h3>
+            <p className="text-sm opacity-80 mb-3">Dispatch requires notifications so you don’t miss new requests.</p>
+            <div className="flex justify-center gap-2">
+              <button className="btn-primary" onClick={async()=>{ const ok = await ensureNotifications(true); setNotifOk(ok); if (!ok) alert('Please allow notifications in your browser settings.'); }}>Enable</button>
+            </div>
+          </div>
+        </div>
+      )}
       <div className="md:col-span-1 space-y-4">
         <Card title="Live Ops">
           <div className="text-sm space-y-1">
