@@ -1,5 +1,5 @@
 "use client";
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import YouTubeRequired from '@/components/YouTubeRequired';
 
 type Cat = 'SAFETY'|'DRIVER'|'TC'|'DISPATCHER';
@@ -47,37 +47,54 @@ export default function Training(){
     finally{ setBusy(false); }
   }
 
-  const SideNav = (
-    <nav className="rounded-xl border glass p-2 sticky top-20">
-      {ORDER.map(c=>{
-        const locked = !canAccess(c);
-        const active = tab===c;
-        return (
-          <button
-            key={c}
-            disabled={locked}
-            onClick={()=> setTab(c)}
-            className={`block w-full text-left px-3 py-2 rounded ${active? 'bg-black text-white':'hover:bg-black/5 dark:hover:bg-white/10'} ${locked? 'opacity-40 cursor-not-allowed':''}`}
-          >
-            {LABEL[c]} {isDone(c) && <span className="text-xs opacity-70">(Done)</span>}
-          </button>
-        );
-      })}
-    </nav>
-  );
+  // Mobile dropdown state (kept as dropdown design)
+  const [menuOpen, setMenuOpen] = useState(false);
+  const [menuAnchor, setMenuAnchor] = useState<DOMRect|null>(null);
+  const btnRef = useRef<HTMLButtonElement|null>(null);
+  useEffect(()=>{
+    if (!menuOpen) return;
+    const onPos = ()=>{ if (btnRef.current) setMenuAnchor(btnRef.current.getBoundingClientRect()); };
+    window.addEventListener('resize', onPos);
+    window.addEventListener('scroll', onPos, { passive:true });
+    onPos();
+    return ()=>{ window.removeEventListener('resize', onPos); window.removeEventListener('scroll', onPos); };
+  },[menuOpen]);
 
   return (
-    <div className="mx-auto max-w-6xl p-4 grid md:grid-cols-[260px,1fr] gap-4">
-      {/* Desktop: left sidebar; Mobile: top tabs */}
-      <div className="hidden md:block">{SideNav}</div>
-      <div className="md:hidden">
-        <div className="flex gap-2 overflow-x-auto no-scrollbar py-1">
+    <div className="mx-auto max-w-6xl p-4 grid gap-4">
+      {/* Desktop: tab bar like admin panel */}
+      <nav className="hidden md:block border-b border-black/10 dark:border-white/20 overflow-x-auto">
+        <ul className="flex gap-2">
           {ORDER.map(c=>{
             const active = tab===c; const locked = !canAccess(c);
             return (
-              <button key={c} disabled={locked} onClick={()=> setTab(c)} className={`whitespace-nowrap rounded-full px-3 py-1 text-sm border ${active? 'bg-black text-white border-black' : 'glass hover:bg-black/5 dark:hover:bg-white/10'} ${locked? 'opacity-40 cursor-not-allowed' : ''}`}>{LABEL[c]} {isDone(c)&& '✔'}</button>
+              <li key={c}>
+                <button
+                  disabled={locked}
+                  onClick={()=> setTab(c)}
+                  className={`inline-block px-3 py-2 text-sm rounded-t ${active ? 'bg-black text-white dark:bg-white dark:text-black' : 'hover:bg-black/5 dark:hover:bg-white/10'} ${locked? 'opacity-40 cursor-not-allowed':''}`}
+                >
+                  {LABEL[c]} {isDone(c)&& <span className="text-xs opacity-70">(Done)</span>}
+                </button>
+              </li>
             );
           })}
+        </ul>
+      </nav>
+
+      {/* Mobile: keep dropdown menu design */}
+      <div className="md:hidden">
+        <div className="flex items-center justify-between">
+          <div className="text-sm opacity-70">Training</div>
+          <div className="relative">
+            <button
+              ref={btnRef}
+              onClick={()=>{ setMenuOpen(o=>{ const next = !o; if (next && btnRef.current) setMenuAnchor(btnRef.current.getBoundingClientRect()); return next; }); }}
+              className="rounded-full px-3 py-1 text-sm glass border border-white/20"
+            >
+              {LABEL[tab]}
+            </button>
+          </div>
         </div>
       </div>
 
@@ -117,6 +134,30 @@ export default function Training(){
           </div>
         )}
       </div>
+      {/* Mobile dropdown menu content */}
+      {menuOpen && menuAnchor && (
+        // use dynamic import-less inline dropdown to avoid circular import; reuse .popover styles
+        <div className="md:hidden fixed inset-0 z-[1500]" onClick={()=> setMenuOpen(false)}>
+          <div className="absolute right-4" style={{ top: (menuAnchor as any).bottom + 8 }} onClick={(e)=> e.stopPropagation()}>
+            <div className="w-56 rounded-xl popover">
+              {ORDER.map(c=>{
+                const locked = !canAccess(c);
+                const active = tab===c;
+                return (
+                  <button
+                    key={c}
+                    disabled={locked}
+                    onClick={()=>{ if (!locked){ setTab(c); setMenuOpen(false); } }}
+                    className={`block w-full text-left px-3 py-2 text-sm ${active? 'bg-black text-white dark:bg-white dark:text-black' : 'hover:bg-black/5 dark:hover:bg-white/10'} ${locked? 'opacity-40 cursor-not-allowed' : ''}`}
+                  >
+                    {LABEL[c]} {isDone(c)&& '✔'}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
