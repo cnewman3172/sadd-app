@@ -27,6 +27,7 @@ export default function TrainingDetail({ params }: { params: Promise<{ id: strin
   const [d, setD] = useState<Detail | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [busyKey, setBusyKey] = useState<string>('');
 
   useEffect(()=>{ params.then(p=> setId(p.id)); },[params]);
 
@@ -43,6 +44,30 @@ export default function TrainingDetail({ params }: { params: Promise<{ id: strin
       finally{ setLoading(false); }
     })();
   },[id]);
+
+  async function save(changes: Partial<Detail> & {
+    trainingSafety?: boolean; trainingDriver?: boolean; trainingTc?: boolean; trainingDispatcher?: boolean;
+  }){
+    if (!id || !d) return;
+    setBusyKey(Object.keys(changes).join(','));
+    try{
+      const res = await fetch(`/api/admin/users/${id}`, { method:'PUT', headers:{ 'Content-Type':'application/json' }, body: JSON.stringify(changes) });
+      if (!res.ok){ const e = await res.json().catch(()=>({error:'failed'})); throw new Error(e.error||'Save failed'); }
+      // Optimistically update local state
+      setD(prev => prev ? ({
+        ...prev,
+        vmisRegistered: changes.vmisRegistered ?? prev.vmisRegistered,
+        volunteerAgreement: changes.volunteerAgreement ?? prev.volunteerAgreement,
+        saddSopRead: changes.saddSopRead ?? prev.saddSopRead,
+        checkRide: changes.checkRide ?? prev.checkRide,
+        trainingSafetyAt: changes.trainingSafety!==undefined ? (changes.trainingSafety ? new Date().toISOString() : null) : prev.trainingSafetyAt,
+        trainingDriverAt: changes.trainingDriver!==undefined ? (changes.trainingDriver ? new Date().toISOString() : null) : prev.trainingDriverAt,
+        trainingTcAt: changes.trainingTc!==undefined ? (changes.trainingTc ? new Date().toISOString() : null) : prev.trainingTcAt,
+        trainingDispatcherAt: changes.trainingDispatcher!==undefined ? (changes.trainingDispatcher ? new Date().toISOString() : null) : prev.trainingDispatcherAt,
+      }) : prev);
+    }catch(e:any){ setError(e.message||'Save failed'); }
+    finally{ setBusyKey(''); }
+  }
 
   return (
     <section className="p-4 rounded-xl glass border grid gap-4">
@@ -62,22 +87,70 @@ export default function TrainingDetail({ params }: { params: Promise<{ id: strin
           {/* Prerequisites */}
           <div className="rounded-lg border p-3 bg-white/60 dark:bg-white/5">
             <div className="font-medium mb-2">Prerequisites</div>
-            <ul className="grid sm:grid-cols-2 gap-2">
-              <li className="flex items-center justify-between gap-2"><span>VMIS Registered</span><Badge ok={d.vmisRegistered} /></li>
-              <li className="flex items-center justify-between gap-2"><span>Volunteer Agreement Signed</span><Badge ok={d.volunteerAgreement} /></li>
-              <li className="flex items-center justify-between gap-2"><span>SADD SOP Read</span><Badge ok={d.saddSopRead} /></li>
+            <ul className="grid sm:grid-cols-2 gap-3">
+              <li className="flex items-center justify-between gap-2">
+                <span>VMIS Registered</span>
+                <label className="flex items-center gap-2 text-sm">
+                  <input type="checkbox" checked={d.vmisRegistered} onChange={(e)=> save({ vmisRegistered: e.target.checked })} />
+                  <span className="opacity-70">{busyKey.includes('vmisRegistered') ? 'Saving…' : d.vmisRegistered ? 'Yes' : 'No'}</span>
+                </label>
+              </li>
+              <li className="flex items-center justify-between gap-2">
+                <span>Volunteer Agreement Signed</span>
+                <label className="flex items-center gap-2 text-sm">
+                  <input type="checkbox" checked={d.volunteerAgreement} onChange={(e)=> save({ volunteerAgreement: e.target.checked })} />
+                  <span className="opacity-70">{busyKey.includes('volunteerAgreement') ? 'Saving…' : d.volunteerAgreement ? 'Yes' : 'No'}</span>
+                </label>
+              </li>
+              <li className="flex items-center justify-between gap-2">
+                <span>SADD SOP Read</span>
+                <label className="flex items-center gap-2 text-sm">
+                  <input type="checkbox" checked={d.saddSopRead} onChange={(e)=> save({ saddSopRead: e.target.checked })} />
+                  <span className="opacity-70">{busyKey.includes('saddSopRead') ? 'Saving…' : d.saddSopRead ? 'Yes' : 'No'}</span>
+                </label>
+              </li>
             </ul>
           </div>
 
           {/* Online Training */}
           <div className="rounded-lg border p-3 bg-white/60 dark:bg-white/5">
             <div className="font-medium mb-2">Online Training</div>
-            <ul className="grid sm:grid-cols-2 gap-2">
-              <li className="flex items-center justify-between gap-2"><span>Safety</span><Badge ok={!!d.trainingSafetyAt} /></li>
-              <li className="flex items-center justify-between gap-2"><span>Driver</span><Badge ok={!!d.trainingDriverAt} /></li>
-              <li className="flex items-center justify-between gap-2"><span>Check Ride</span><Badge ok={!!d.checkRide} /></li>
-              <li className="flex items-center justify-between gap-2"><span>Truck Commander</span><Badge ok={!!d.trainingTcAt} /></li>
-              <li className="flex items-center justify-between gap-2"><span>Dispatcher</span><Badge ok={!!d.trainingDispatcherAt} /></li>
+            <ul className="grid sm:grid-cols-2 gap-3">
+              <li className="flex items-center justify-between gap-2">
+                <span>Safety</span>
+                <label className="flex items-center gap-2 text-sm">
+                  <input type="checkbox" checked={!!d.trainingSafetyAt} onChange={(e)=> save({ trainingSafety: e.target.checked })} />
+                  <span className="opacity-70">{busyKey.includes('trainingSafety') ? 'Saving…' : !!d.trainingSafetyAt ? 'Complete' : 'Not Complete'}</span>
+                </label>
+              </li>
+              <li className="flex items-center justify-between gap-2">
+                <span>Driver</span>
+                <label className="flex items-center gap-2 text-sm">
+                  <input type="checkbox" checked={!!d.trainingDriverAt} onChange={(e)=> save({ trainingDriver: e.target.checked })} />
+                  <span className="opacity-70">{busyKey.includes('trainingDriver') ? 'Saving…' : !!d.trainingDriverAt ? 'Complete' : 'Not Complete'}</span>
+                </label>
+              </li>
+              <li className="flex items-center justify-between gap-2">
+                <span>Check Ride</span>
+                <label className="flex items-center gap-2 text-sm">
+                  <input type="checkbox" checked={!!d.checkRide} onChange={(e)=> save({ checkRide: e.target.checked })} />
+                  <span className="opacity-70">{busyKey.includes('checkRide') ? 'Saving…' : !!d.checkRide ? 'Complete' : 'Not Complete'}</span>
+                </label>
+              </li>
+              <li className="flex items-center justify-between gap-2">
+                <span>Truck Commander</span>
+                <label className="flex items-center gap-2 text-sm">
+                  <input type="checkbox" checked={!!d.trainingTcAt} onChange={(e)=> save({ trainingTc: e.target.checked })} />
+                  <span className="opacity-70">{busyKey.includes('trainingTc') ? 'Saving…' : !!d.trainingTcAt ? 'Complete' : 'Not Complete'}</span>
+                </label>
+              </li>
+              <li className="flex items-center justify-between gap-2">
+                <span>Dispatcher</span>
+                <label className="flex items-center gap-2 text-sm">
+                  <input type="checkbox" checked={!!d.trainingDispatcherAt} onChange={(e)=> save({ trainingDispatcher: e.target.checked })} />
+                  <span className="opacity-70">{busyKey.includes('trainingDispatcher') ? 'Saving…' : !!d.trainingDispatcherAt ? 'Complete' : 'Not Complete'}</span>
+                </label>
+              </li>
             </ul>
           </div>
         </div>
@@ -85,4 +158,3 @@ export default function TrainingDetail({ params }: { params: Promise<{ id: strin
     </section>
   );
 }
-
