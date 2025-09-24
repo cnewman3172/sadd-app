@@ -1,6 +1,8 @@
 services:
   web:
-    image: ghcr.io/pvp2max/sadd-app/web:latest
+    # Use an explicit tag when available; fall back to 'latest'.
+    # Set WEB_TAG in your environment or .env (e.g., a commit SHA or release tag).
+    image: ghcr.io/pvp2max/sadd-app/web:${WEB_TAG:-latest}
     container_name: sadd_web
     pull_policy: always
     healthcheck:
@@ -34,6 +36,9 @@ services:
       options:
         max-size: "10m"
         max-file: "3"
+    labels:
+      # Allow targeting by Watchtower (optional but helpful if you scope updates)
+      com.centurylinklabs.watchtower.enable: "true"
     networks:
       - sadd-net
 
@@ -83,10 +88,10 @@ services:
     container_name: sadd_watchtower
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
-      # Mount Docker client auth so Watchtower can pull private GHCR images.
-      # On many hosts, Docker stores auth at /root/.docker/config.json. Mount the directory
-      # and let Watchtower read /config/config.json via DOCKER_CONFIG.
-      - /root/.docker:/config:ro
+      # Mount Docker client auth so Watchtower can pull GHCR images.
+      # Compose will expand ${DOCKER_CONFIG}; falls back to /root/.docker if unset.
+      # Ensure this directory contains a valid config.json after: docker login ghcr.io
+      - ${DOCKER_CONFIG:-/root/.docker}:/config:ro
     environment:
       - WATCHTOWER_CLEANUP=true
       - WATCHTOWER_SCHEDULE=0 0/5 * * * *
