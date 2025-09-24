@@ -92,6 +92,23 @@ export async function PUT(req: Request, context: { params: Promise<{ id: string 
     if (body.firstName || body.lastName || body.rank!==undefined || body.unit!==undefined || body.phone!==undefined){
       logAudit('user_profile_update', payload.uid, id, { firstName: body.firstName, lastName: body.lastName, rank: body.rank, unit: body.unit, phone: body.phone });
     }
+    // Audit training and prerequisite changes explicitly for traceability
+    const trainingChanges: Record<string, any> = {};
+    if (body.trainingSafety!==undefined) trainingChanges.trainingSafety = body.trainingSafety;
+    if (body.trainingDriver!==undefined) trainingChanges.trainingDriver = body.trainingDriver;
+    if (body.trainingTc!==undefined) trainingChanges.trainingTc = body.trainingTc;
+    if (body.trainingDispatcher!==undefined) trainingChanges.trainingDispatcher = body.trainingDispatcher;
+    if (Object.keys(trainingChanges).length){
+      logAudit('user_training_update', payload.uid, id, trainingChanges);
+    }
+    const prereqChanges: Record<string, any> = {};
+    if (body.vmisRegistered!==undefined) prereqChanges.vmisRegistered = body.vmisRegistered;
+    if (body.volunteerAgreement!==undefined) prereqChanges.volunteerAgreement = body.volunteerAgreement;
+    if (body.saddSopRead!==undefined) prereqChanges.saddSopRead = body.saddSopRead;
+    if (body.checkRide!==undefined) prereqChanges.checkRide = body.checkRide;
+    if (Object.keys(prereqChanges).length){
+      logAudit('user_prereq_update', payload.uid, id, prereqChanges);
+    }
     return NextResponse.json({ ok:true, id: user.id, role: user.role });
   }catch(e:any){
     captureError(e, { route: 'admin/users/[id]#PUT', id, uid: payload.uid });
