@@ -8,6 +8,42 @@ import bcrypt from 'bcryptjs';
 
 export const runtime = 'nodejs';
 
+export async function GET(req: Request, context: { params: Promise<{ id: string }> }){
+  const token = (req.headers.get('cookie')||'').split('; ').find(c=>c.startsWith('sadd_token='))?.split('=')[1];
+  const payload = await verifyJwt(token);
+  if (!payload || payload.role !== 'ADMIN') return NextResponse.json({ error:'forbidden' }, { status: 403 });
+  const { id } = await context.params;
+  try{
+    const user = await prisma.user.findUnique({
+      where: { id },
+      select: {
+        id: true,
+        email: true,
+        firstName: true,
+        lastName: true,
+        role: true,
+        // prerequisites
+        vmisRegistered: true,
+        volunteerAgreement: true,
+        saddSopRead: true,
+        // trainings
+        trainingSafetyAt: true,
+        trainingDriverAt: true,
+        trainingTcAt: true,
+        trainingDispatcherAt: true,
+        // other
+        checkRide: true,
+        createdAt: true,
+      }
+    });
+    if (!user) return NextResponse.json({ error:'not found' }, { status: 404 });
+    return NextResponse.json(user);
+  }catch(e:any){
+    captureError(e, { route: 'admin/users/[id]#GET', id, uid: payload.uid });
+    return NextResponse.json({ error: e?.message || 'failed' }, { status: 400 });
+  }
+}
+
 export async function PUT(req: Request, context: { params: Promise<{ id: string }> }){
   const token = (req.headers.get('cookie')||'').split('; ').find(c=>c.startsWith('sadd_token='))?.split('=')[1];
   const payload = await verifyJwt(token);
@@ -26,6 +62,10 @@ export async function PUT(req: Request, context: { params: Promise<{ id: string 
     trainingDriver: z.boolean().optional(),
     trainingTc: z.boolean().optional(),
     trainingDispatcher: z.boolean().optional(),
+    // admin-manageable prereqs
+    vmisRegistered: z.boolean().optional(),
+    volunteerAgreement: z.boolean().optional(),
+    saddSopRead: z.boolean().optional(),
   });
   try{
     const body = schema.parse(await req.json());
@@ -37,6 +77,9 @@ export async function PUT(req: Request, context: { params: Promise<{ id: string 
     if (body.unit!==undefined) data.unit = body.unit ?? null;
     if (body.phone!==undefined) data.phone = body.phone ?? null;
     if (body.checkRide!==undefined) data.checkRide = body.checkRide;
+    if (body.vmisRegistered!==undefined) data.vmisRegistered = body.vmisRegistered;
+    if (body.volunteerAgreement!==undefined) data.volunteerAgreement = body.volunteerAgreement;
+    if (body.saddSopRead!==undefined) data.saddSopRead = body.saddSopRead;
     // Training flags: booleans set/clear timestamps
     const now = new Date();
     if (body.trainingSafety!==undefined) data.trainingSafetyAt = body.trainingSafety ? now : null;

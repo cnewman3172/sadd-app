@@ -39,6 +39,10 @@ model User {
   trainingTcAt          DateTime?
   trainingDispatcherAt  DateTime?
   checkRide             Boolean   @default(false)
+  // Administrative prerequisites
+  vmisRegistered        Boolean   @default(false)
+  volunteerAgreement    Boolean   @default(false)
+  saddSopRead           Boolean   @default(false)
 }
 
 model Van {
