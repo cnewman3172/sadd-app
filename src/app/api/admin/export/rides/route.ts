@@ -181,6 +181,8 @@ export async function GET(req: Request){
       select: {
         firstName: true,
         lastName: true,
+        email: true,
+        phone: true,
         unit: true,
         vmisRegistered: true,
         volunteerAgreement: true,
@@ -193,11 +195,14 @@ export async function GET(req: Request){
       }
     });
 
-    const status = (b?: boolean|null) => b ? 'Complete' : 'Missing';
-    const dateStatus = (d?: Date|null) => d ? 'Complete' : 'Pending';
+    // Humanized statuses
+    const status = (b?: boolean|null) => b ? 'Completed' : 'Not Completed';
+    const dateStatus = (d?: Date|null) => d ? 'Completed' : 'Not Completed';
 
     const trainingHeader = [
       'full_name',
+      'email',
+      'phone',
       'unit',
       'vmis_registered',
       'volunteer_agreement',
@@ -214,6 +219,8 @@ export async function GET(req: Request){
       const fullName = [u.firstName, u.lastName].filter(Boolean).join(' ');
       wsTraining.addRow([
         fullName,
+        u.email ?? '',
+        u.phone ?? '',
         u.unit ?? '',
         status(u.vmisRegistered),
         status(u.volunteerAgreement),
