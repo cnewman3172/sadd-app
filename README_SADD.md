@@ -30,3 +30,16 @@ API quick refs:
 - `POST /api/driver/go-offline`
 - `GET /api/driver/tasks` → `{ van, tasks }`
 - `PUT /api/rides/:id` body may include `{ status, vanId }`; if `vanId` provided and that van has an `activeTcId`, the ride's `driverId` auto-fills with that TC.
+
+Export and Reporting
+
+- Rides export (XLSX): Executives → Analytics → “Export (XLSX: Rides + Training)”.
+- Columns (Rides sheet):
+  - rider_name, rider_rank, rider_email, rider_phone, rider_unit,
+    truck_commander_name, truck_commander_email, van_name,
+    requested_at, picked_up_at, dropped_at, pickup_address,
+    dropoff_address, status, rating, review_comment, time_zone.
+- Notes:
+  - Contact name/phone override rider_name and rider_phone; contact columns are not included to avoid duplicates.
+  - Passengers column removed. SADD now treats each request as one passenger; additional riders must be entered as “walk‑on” by TC for accurate individual drop times.
+- Training sheet: includes only volunteer roles (SAFETY, DRIVER, TC, DISPATCHER, ADMIN). Status fields are “Completed” or “Not Completed”.
