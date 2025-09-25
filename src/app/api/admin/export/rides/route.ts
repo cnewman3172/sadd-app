@@ -99,8 +99,6 @@ export async function GET(req: Request){
     'rider_name',
     'rider_email',
     'rider_phone',
-    'contact_name',
-    'contact_phone',
     'rider_rank',
     'rider_unit',
     'truck_commander_name',
@@ -139,9 +137,6 @@ export async function GET(req: Request){
       effectiveName,
       r.rider?.email || '',
       effectivePhone,
-      // To avoid duplicate info, blank contact_name when used to set rider_name
-      contactName ? '' : '',
-      contactPhone,
       r.rider?.rank || '',
       r.rider?.unit || '',
       tcName,
