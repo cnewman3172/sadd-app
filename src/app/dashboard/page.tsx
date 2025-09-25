@@ -14,7 +14,7 @@ export default function Dashboard(){
   const [suggestions, setSuggestions] = useState<Array<{ vanId:string; name:string; seconds:number; meters:number }>>([]);
   const [loadingSuggest, setLoadingSuggest] = useState(false);
   const [manualOpen, setManualOpen] = useState(false);
-  const [manual, setManual] = useState<any>({ passengers: '1' });
+  const [manual, setManual] = useState<any>({});
   const [manualBusy, setManualBusy] = useState(false);
   const [manualEtaSec, setManualEtaSec] = useState<number|null>(null);
   const [manualEtaVan, setManualEtaVan] = useState<string>('');
@@ -386,36 +386,16 @@ export default function Dashboard(){
               )}
               <AddressInput label="Pickup" value={manual.pickupAddr||''} onChange={(t)=> setManual({...manual, pickupAddr: t})} onSelect={(o)=> setManual({...manual, pickupAddr:o.label, pickupLat:o.lat, pickupLng:o.lon})} />
               <AddressInput label="Drop Off" value={manual.dropAddr||''} onChange={(t)=> setManual({...manual, dropAddr: t})} onSelect={(o)=> setManual({...manual, dropAddr:o.label, dropLat:o.lat, dropLng:o.lon})} />
-              <div className="grid grid-cols-2 gap-2">
-                <input
-                  type="text"
-                  inputMode="numeric"
-                  pattern="[0-9]*"
-                  className="p-2 rounded border bg-white/80 dark:bg-neutral-800 text-sm text-black dark:text-white"
-                  placeholder="# Passengers"
-                  value={String(manual.passengers ?? '')}
-                  onChange={(e)=>{
-                    const v = e.target.value.replace(/\D/g,'');
-                    setManual({...manual, passengers: v});
-                  }}
-                  onBlur={()=>{
-                    const v = String(manual.passengers||'');
-                    const n = Math.min(11, Math.max(1, parseInt(v||'0',10) || 1));
-                    setManual({...manual, passengers: String(n)});
-                  }}
-                />
-                <input className="p-2 rounded border bg-white/80 dark:bg-neutral-800 text-sm text-black dark:text-white" placeholder="Notes (optional)" value={manual.notes||''} onChange={(e)=> setManual({...manual, notes:e.target.value})} />
-              </div>
-              <ManualEta pickupLat={manual.pickupLat} pickupLng={manual.pickupLng} pax={parseInt(String(manual.passengers||'1'),10)||1} onEta={(sec,van)=>{ setManualEtaSec(sec); setManualEtaVan(van); }} />
+              <input className="p-2 rounded border bg-white/80 dark:bg-neutral-800 text-sm text-black dark:text-white" placeholder="Notes (optional)" value={manual.notes||''} onChange={(e)=> setManual({...manual, notes:e.target.value})} />
+              <ManualEta pickupLat={manual.pickupLat} pickupLng={manual.pickupLng} pax={1} onEta={(sec,van)=>{ setManualEtaSec(sec); setManualEtaVan(van); }} />
               <div className="flex justify-end gap-2 mt-2">
                 <button onClick={()=> setManualOpen(false)} className="rounded border px-3 py-1 text-sm">Cancel</button>
                 <button disabled={manualBusy} onClick={async()=>{
                   setManualBusy(true);
                   try{
-                    const pax = Math.min(11, Math.max(1, parseInt(String(manual.passengers||'1'),10) || 1));
-                    const res = await fetch('/api/admin/rides', { method:'POST', headers:{ 'Content-Type':'application/json' }, body: JSON.stringify({ ...manual, passengers: pax }) });
+                    const res = await fetch('/api/admin/rides', { method:'POST', headers:{ 'Content-Type':'application/json' }, body: JSON.stringify({ ...manual, passengers: 1 }) });
                     if (!res.ok){ const d = await res.json().catch(()=>({error:'failed'})); throw new Error(d.error||'failed'); }
-                    setManualOpen(false); setManual({ passengers:'1' });
+                    setManualOpen(false); setManual({});
                     showToast('Manual ride created');
                     refresh();
                   }catch(e:any){ alert(e.message||'Failed'); }
