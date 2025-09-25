@@ -166,6 +166,7 @@ export async function GET(req: Request){
 
     // Sheet 2: Training (per user)
     const users = await prisma.user.findMany({
+      where: { role: { in: ['ADMIN','DISPATCHER','TC','DRIVER','SAFETY'] } },
       orderBy: [{ lastName: 'asc' }, { firstName: 'asc' }],
       select: {
         firstName: true,
@@ -173,6 +174,7 @@ export async function GET(req: Request){
         email: true,
         phone: true,
         unit: true,
+        role: true,
         vmisRegistered: true,
         volunteerAgreement: true,
         saddSopRead: true,
@@ -193,6 +195,7 @@ export async function GET(req: Request){
       'email',
       'phone',
       'unit',
+      'role',
       'vmis_registered',
       'volunteer_agreement',
       'sadd_sop_read',
@@ -211,6 +214,7 @@ export async function GET(req: Request){
         u.email ?? '',
         u.phone ?? '',
         u.unit ?? '',
+        u.role,
         status(u.vmisRegistered),
         status(u.volunteerAgreement),
         status(u.saddSopRead),
