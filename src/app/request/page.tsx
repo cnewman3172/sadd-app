@@ -7,7 +7,7 @@ import AddressInput from '@/components/AddressInput';
 import StarRating from '@/components/StarRating';
 
 export default function RequestPage(){
-  const [form, setForm] = useState<any>({ passengers:'1' });
+  const [form, setForm] = useState<any>({});
   const [status, setStatus] = useState<any>(null);
   const [active, setActive] = useState<boolean|null>(null);
   const [history, setHistory] = useState<any[]>([]);
@@ -83,7 +83,7 @@ export default function RequestPage(){
     (async()=>{
       setPreEtaSec(null); setPreEtaVan('');
       if (typeof form.pickupLat !== 'number' || typeof form.pickupLng !== 'number') return;
-      const pax = Math.min(11, Math.max(1, parseInt(String(form.passengers||'1'),10) || 1));
+      const pax = 1;
       try{
         const d = await fetch(`/api/assign/eta?pickup=${form.pickupLat},${form.pickupLng}&pax=${pax}`, { cache:'no-store' }).then(r=>r.json());
         const sec = d?.best?.secondsToPickup as number|undefined;
@@ -91,7 +91,7 @@ export default function RequestPage(){
         if (sec!=null){ setPreEtaSec(Math.round(sec)); setPreEtaVan(van||''); }
       }catch{}
     })();
-  }, [form.pickupLat, form.pickupLng, form.passengers]);
+  }, [form.pickupLat, form.pickupLng]);
 
   function useMyLocation(){ navigator.geolocation.getCurrentPosition(async (pos)=>{
     const { latitude, longitude } = pos.coords;
@@ -100,8 +100,7 @@ export default function RequestPage(){
 
   async function submit(e: React.FormEvent){
     e.preventDefault();
-    const pax = Math.min(11, Math.max(1, parseInt(String(form.passengers||'1'), 10) || 1));
-    const res = await fetch('/api/rides/request', { method:'POST', body: JSON.stringify({ ...form, passengers: pax }) });
+    const res = await fetch('/api/rides/request', { method:'POST', body: JSON.stringify({ ...form, passengers: 1 }) });
     const data = await res.json();
     setStatus(data);
     // Refresh recent list to include the new ride
@@ -215,26 +214,8 @@ export default function RequestPage(){
               onChange={(text)=> setForm((f:any)=> ({ ...f, dropAddr: text }))}
               onSelect={(opt)=> setForm((f:any)=> ({ ...f, dropAddr: opt.label, dropLat: opt.lat, dropLng: opt.lon }))}
             />
-            <div className="grid grid-cols-2 gap-2">
-              <input
-                type="text"
-                inputMode="numeric"
-                pattern="[0-9]*"
-                className="p-3 rounded border"
-                placeholder="# Passengers"
-                value={String(form.passengers ?? '')}
-                onChange={(e)=>{
-                  const v = e.target.value.replace(/\D/g,'');
-                  if (v === '') setForm({...form, passengers: ''});
-                  else setForm({...form, passengers: v});
-                }}
-                onBlur={()=>{
-                  const v = String(form.passengers||'');
-                  const n = Math.min(11, Math.max(1, parseInt(v||'0',10) || 1));
-                  setForm({...form, passengers: String(n)});
-                }}
-              />
-              <input className="p-3 rounded border" placeholder="Notes (optional)" onChange={(e)=>setForm({...form, notes:e.target.value})} />
+            <div>
+              <input className="p-3 rounded border w-full" placeholder="Notes (optional)" onChange={(e)=>setForm({...form, notes:e.target.value})} />
             </div>
             <button disabled={active===false} className="rounded bg-black text-white py-3 disabled:opacity-50 disabled:cursor-not-allowed">Submit Request</button>
           </form>
