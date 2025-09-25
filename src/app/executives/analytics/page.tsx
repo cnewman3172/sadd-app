@@ -101,8 +101,13 @@ function ExportAndResetRow(){
       if (z) setTz(z);
     }catch{}
   },[]);
-  const base = '/api/admin/export/rides?format=csv';
-  const href = base
+  const baseCsv = '/api/admin/export/rides?format=csv';
+  const hrefCsv = baseCsv
+    + (from?`&from=${encodeURIComponent(from)}`:'')
+    + (to?`&to=${encodeURIComponent(to)}`:'')
+    + (tz?`&tz=${encodeURIComponent(tz)}`:'');
+  const baseXlsx = '/api/admin/export/rides?format=xlsx';
+  const hrefXlsx = baseXlsx
     + (from?`&from=${encodeURIComponent(from)}`:'')
     + (to?`&to=${encodeURIComponent(to)}`:'')
     + (tz?`&tz=${encodeURIComponent(tz)}`:'');
@@ -117,7 +122,8 @@ function ExportAndResetRow(){
               <label className="text-xs opacity-70">To</label>
           <input type="date" value={to} onChange={(e)=> setTo(e.target.value)} className="block p-2 rounded border bg-white/80 dark:bg-neutral-800 text-sm text-black dark:text-white" />
             </div>
-            <a className="rounded border px-3 py-2 text-sm" href={href}>Export Rides (CSV)</a>
+            <a className="rounded border px-3 py-2 text-sm" href={hrefCsv}>Export Rides (CSV)</a>
+            <a className="rounded border px-3 py-2 text-sm" href={hrefXlsx}>Export XLSX (Rides + Training)</a>
             {tz && <div className="text-xs opacity-60 ml-2">Times in {tz}</div>}
           </div>
       <div className="ml-auto">

@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
+// Lazy import for Excel only when needed to keep cold paths light
 import { verifyJwt } from '@/lib/jwt';
 
 export const runtime = 'nodejs';
@@ -163,6 +164,82 @@ export async function GET(req: Request){
     ]);
   }
 
+  // New: XLSX workbook export with Rides + Training sheets
+  if (format === 'xlsx'){
+    const ExcelJS = (await import('exceljs')).default;
+    const wb = new ExcelJS.Workbook();
+
+    // Sheet 1: Rides (same columns as CSV)
+    const wsRides = wb.addWorksheet('Rides');
+    wsRides.addRow(header);
+    for (const row of rows.slice(1)) wsRides.addRow(row);
+    wsRides.columns = header.map(()=>({ width: 18 }));
+
+    // Sheet 2: Training (per user)
+    const users = await prisma.user.findMany({
+      orderBy: [{ lastName: 'asc' }, { firstName: 'asc' }],
+      select: {
+        firstName: true,
+        lastName: true,
+        unit: true,
+        vmisRegistered: true,
+        volunteerAgreement: true,
+        saddSopRead: true,
+        trainingSafetyAt: true,
+        trainingDriverAt: true,
+        trainingTcAt: true,
+        trainingDispatcherAt: true,
+        checkRide: true,
+      }
+    });
+
+    const status = (b?: boolean|null) => b ? 'Complete' : 'Missing';
+    const dateStatus = (d?: Date|null) => d ? 'Complete' : 'Pending';
+
+    const trainingHeader = [
+      'full_name',
+      'unit',
+      'vmis_registered',
+      'volunteer_agreement',
+      'sadd_sop_read',
+      'training_safety',
+      'training_driver',
+      'training_tc',
+      'training_dispatcher',
+      'check_ride',
+    ];
+    const wsTraining = wb.addWorksheet('Training');
+    wsTraining.addRow(trainingHeader);
+    for (const u of users){
+      const fullName = [u.firstName, u.lastName].filter(Boolean).join(' ');
+      wsTraining.addRow([
+        fullName,
+        u.unit ?? '',
+        status(u.vmisRegistered),
+        status(u.volunteerAgreement),
+        status(u.saddSopRead),
+        dateStatus(u.trainingSafetyAt as any),
+        dateStatus(u.trainingDriverAt as any),
+        dateStatus(u.trainingTcAt as any),
+        dateStatus(u.trainingDispatcherAt as any),
+        status(u.checkRide),
+      ]);
+    }
+    wsTraining.columns = trainingHeader.map(()=>({ width: 22 }));
+
+    const xbuf: ArrayBuffer = await wb.xlsx.writeBuffer();
+    const safeTz = tz.replace(/[^A-Za-z0-9_\-\/]/g,'_').replace(/[\/]/g,'-');
+    const filename = `export_${new Date().toISOString().slice(0,10)}_${safeTz}.xlsx`;
+    return new NextResponse(xbuf as any, {
+      headers: {
+        'Content-Type': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+        'Content-Disposition': `attachment; filename="${filename}"`,
+        'Cache-Control': 'no-store',
+      }
+    });
+  }
+
+  // Default: CSV for rides
   const csv = toCsv(rows);
   const safeTz = tz.replace(/[^A-Za-z0-9_\-\/]/g,'_').replace(/[\/]/g,'-');
   const filename = `rides_export_${new Date().toISOString().slice(0,10)}_${safeTz}.csv`;
