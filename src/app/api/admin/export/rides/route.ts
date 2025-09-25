@@ -48,14 +48,7 @@ function humanizeStatus(s?: string){
   }
 }
 
-function humanizeVanStatus(s?: string){
-  switch(String(s||'').toUpperCase()){
-    case 'ACTIVE': return 'Active';
-    case 'MAINTENANCE': return 'Maintenance';
-    case 'OFFLINE': return 'Offline';
-    default: return s||'';
-  }
-}
+// Van status no longer exported
 
 export async function GET(req: Request){
   const token = (req.headers.get('cookie')||'').split('; ').find(c=>c.startsWith('sadd_token='))?.split('=')[1];
@@ -113,7 +106,6 @@ export async function GET(req: Request){
     'truck_commander_name',
     'truck_commander_email',
     'van_name',
-    'van_status',
     'requested_at',
     'picked_up_at',
     'dropped_at',
@@ -137,20 +129,24 @@ export async function GET(req: Request){
         if (meta?.manualContact){ contactName = meta.manualContact.name || ''; contactPhone = meta.manualContact.phone || ''; }
       }
     }catch{}
+    // Prefer manual contact details when present
+    const effectiveName = contactName || riderName;
+    const effectivePhone = contactPhone || (r.rider?.phone || '');
+
     rows.push([
       String(r.rideCode),
       r.id,
-      riderName,
+      effectiveName,
       r.rider?.email || '',
-      r.rider?.phone || '',
-      contactName,
+      effectivePhone,
+      // To avoid duplicate info, blank contact_name when used to set rider_name
+      contactName ? '' : '',
       contactPhone,
       r.rider?.rank || '',
       r.rider?.unit || '',
       tcName,
       r.driver?.email || '',
       r.van?.name || '',
-      humanizeVanStatus((r as any).van?.status),
       fmtInTz(r.requestedAt as any, tz),
       fmtInTz(r.pickupAt as any, tz),
       fmtInTz(r.dropAt as any, tz),
