@@ -2,41 +2,39 @@
 import { useEffect, useState } from 'react';
 import { LineChart, BarChart } from '@/components/Charts';
 
-type Summary = { totalUsers:number; totalRides:number; activeRides:number; ridesToday:number; activeVans:number; ratings?: { average:number|null; lowCount:number; highCount:number; totalReviews:number } };
+type Summary = {
+  totalUsers:number;
+  totalRides:number;
+  activeRides:number;
+  ridesToday:number;
+  activeVans:number;
+  completedRides?: number;
+  canceledRides?: number;
+  avgPickupSeconds?: number|null;
+  avgDropSeconds?: number|null;
+  ratings?: { average:number|null; lowCount:number; highCount:number; totalReviews:number };
+};
 
 export default function AnalyticsPage(){
   const [summary, setSummary] = useState<Summary | null>(null);
   const [ridesByDay, setRidesByDay] = useState<Array<{day:string; total:number; completed:number}>>([]);
   const [pickupTrend, setPickupTrend] = useState<Array<{day:string; avgSeconds:number|null; sample:number}>>([]);
   const [coverage, setCoverage] = useState<Array<{day:string; shifts:number; needed:number; signups:number; coverage:number|null}>>([]);
-  const [smtpConfigured, setSmtpConfigured] = useState<boolean|null>(null);
-  const [smtpMissing, setSmtpMissing] = useState<string>('');
+  const [dropTrend, setDropTrend] = useState<Array<{day:string; avgSeconds:number|null; sample:number}>>([]);
 
   useEffect(()=>{
     (async()=>{
       const s = await fetch('/api/admin/summary', { cache: 'no-store' }).then(r=>r.json());
       setSummary(s);
       try{
-        const ping = await fetch('/api/admin/smtp-test', { cache: 'no-store' });
-        if (ping.ok){
-          const d = await ping.json();
-          setSmtpConfigured(Boolean(d?.configured));
-          if (!d?.configured && d?.details){
-            const miss = Object.entries(d.details).filter(([k,v]:any)=>!v).map(([k])=>k.toUpperCase()).join(', ');
-            setSmtpMissing(miss);
-          }else{ setSmtpMissing(''); }
-        } else {
-          setSmtpConfigured(false);
-        }
-      }catch{ setSmtpConfigured(false); }
-      try{
         const tz = Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC';
-        const [rb, pt, sc] = await Promise.all([
+        const [rb, pt, sc, dt] = await Promise.all([
           fetch(`/api/admin/analytics/rides-by-day?days=30&tz=${encodeURIComponent(tz)}`, { cache:'no-store' }).then(r=>r.json()).catch(()=>[]),
           fetch(`/api/admin/analytics/pickup-trend?days=30&tz=${encodeURIComponent(tz)}`, { cache:'no-store' }).then(r=>r.json()).catch(()=>[]),
           fetch(`/api/admin/analytics/shift-coverage?days=30&tz=${encodeURIComponent(tz)}`, { cache:'no-store' }).then(r=>r.json()).catch(()=>[]),
+          fetch(`/api/admin/analytics/drop-trend?days=30&tz=${encodeURIComponent(tz)}`, { cache:'no-store' }).then(r=>r.json()).catch(()=>[]),
         ]);
-        setRidesByDay(rb||[]); setPickupTrend(pt||[]); setCoverage(sc||[]);
+        setRidesByDay(rb||[]); setPickupTrend(pt||[]); setCoverage(sc||[]); setDropTrend(dt||[]);
       }catch{}
     })();
   },[]);
@@ -47,31 +45,31 @@ export default function AnalyticsPage(){
         <h2 className="font-semibold mb-3">Key Metrics</h2>
         <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
           <Metric title="Users" value={summary?.totalUsers?.toString() ?? '—'} />
-          <Metric title="Total Rides" value={summary?.totalRides?.toString() ?? '—'} />
-          <Metric title="Rides Today" value={summary?.ridesToday?.toString() ?? '—'} />
-          <Metric title="Active Rides" value={summary?.activeRides?.toString() ?? '—'} />
-          <Metric title="Active Vans" value={summary?.activeVans?.toString() ?? '—'} />
+          <Metric title="Completed Rides" value={summary?.completedRides?.toString() ?? '—'} />
+          <Metric title="Canceled/No-Show" value={summary?.canceledRides?.toString() ?? '—'} />
+          <Metric title="Avg Pickup Time" value={summary?.avgPickupSeconds!=null ? `${Math.round((summary!.avgPickupSeconds||0)/60)} min` : '—'} />
+          <Metric title="Avg Drop-off Time" value={summary?.avgDropSeconds!=null ? `${Math.round((summary!.avgDropSeconds||0)/60)} min` : '—'} />
         </div>
         <div className="mt-4 grid grid-cols-1 md:grid-cols-3 gap-3">
           <Metric title="Avg Rating" value={summary?.ratings?.average ? summary!.ratings!.average!.toFixed(2) + ' ★' : '—'} />
           <Metric title="High Reviews (4–5★)" value={String(summary?.ratings?.highCount ?? '—')} />
           <Metric title="Low Reviews (1–3★)" value={String(summary?.ratings?.lowCount ?? '—')} />
         </div>
-        <div className="mt-3 text-xs opacity-70">
-          SMTP: {smtpConfigured==null ? 'Checking…' : smtpConfigured ? 'Configured' : `Not configured${smtpMissing?` (missing: ${smtpMissing})`:''}`}
-        </div>
         <ExportAndResetRow />
       </section>
 
       <section className="rounded-xl p-4 bg-white/70 dark:bg-white/10 border border-white/20">
-        <h2 className="font-semibold mb-3">Rides Per Day (30 days)</h2>
+        <h2 className="font-semibold mb-2">Rides Per Day (last 30 days)</h2>
         {ridesByDay.length===0 ? (
           <div className="text-sm opacity-70">Loading…</div>
         ) : (
           <div>
-            <LineChart points={ridesByDay.map((r,i)=>({ x:i, y:r.total }))} color="#111" fill className="h-32" />
-            <div className="text-xs opacity-70 mt-2">Completed rides shown as darker overlay below.</div>
-            <LineChart points={ridesByDay.map((r,i)=>({ x:i, y:r.completed }))} color="#0ea5e9" className="h-16 mt-1" />
+            <LineChart points={ridesByDay.map((r,i)=>({ x:i, y:r.total }))} color="#6b7280" fill className="h-32" />
+            <LineChart points={ridesByDay.map((r,i)=>({ x:i, y:r.completed }))} color="#0ea5e9" className="h-20 -mt-8" />
+            <div className="text-xs opacity-70 mt-1 flex items-center gap-3">
+              <span className="inline-flex items-center gap-1"><span className="inline-block w-3 h-1 bg-[#6b7280]"></span>Total</span>
+              <span className="inline-flex items-center gap-1"><span className="inline-block w-3 h-1 bg-[#0ea5e9]"></span>Completed</span>
+            </div>
           </div>
         )}
       </section>
@@ -83,7 +81,17 @@ export default function AnalyticsPage(){
         ) : (
           <LineChart points={pickupTrend.map((r,i)=>({ x:i, y: r.avgSeconds!=null? (r.avgSeconds/60):0 }))} color="#16a34a" fill className="h-32" />
         )}
-        <div className="text-xs opacity-70 mt-2">Daily average between request and pickup (last 30 days).</div>
+        <div className="text-xs opacity-70 mt-2">Average minutes from request to pickup (daily, last 30 days).</div>
+      </section>
+
+      <section className="rounded-xl p-4 bg-white/70 dark:bg-white/10 border border-white/20">
+        <h2 className="font-semibold mb-1">Average Drop-off Time (minutes)</h2>
+        {dropTrend.length===0 ? (
+          <div className="text-sm opacity-70">Loading…</div>
+        ) : (
+          <LineChart points={dropTrend.map((r,i)=>({ x:i, y: r.avgSeconds!=null? (r.avgSeconds/60):0 }))} color="#ef4444" fill className="h-32" />
+        )}
+        <div className="text-xs opacity-70 mt-2">Average minutes from pickup to drop-off (daily, last 30 days).</div>
       </section>
 
       <section className="rounded-xl p-4 bg-white/70 dark:bg-white/10 border border-white/20">
