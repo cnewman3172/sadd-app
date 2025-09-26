@@ -1,5 +1,5 @@
 "use client";
-import { useEffect, useState } from 'react';
+import { useEffect, useState, type ReactNode } from 'react';
 import { LineChart, BarChart } from '@/components/Charts';
 
 type Summary = {
@@ -176,6 +176,53 @@ function SmallExplainer({ label, value, delta, suffix='' }:{ label:string; value
       </div>
     </div>
   );
+}
+
+function ChartCard({ title, subtitle, stat, delta, suffix='', children }:{ title:string; subtitle?:string; stat:string; delta:number|null; suffix?:string; children: ReactNode }){
+  const color = delta==null? 'opacity-60' : (delta>0? 'text-emerald-600 dark:text-emerald-400' : delta<0 ? 'text-red-600 dark:text-red-400' : 'opacity-60');
+  const d = delta==null ? '' : `${delta>0?'+':''}${fmtNumber(delta)}%`;
+  return (
+    <section className="rounded-xl p-4 bg-white/70 dark:bg-white/10 border border-white/20">
+      <div className="flex items-baseline justify-between">
+        <div>
+          <h3 className="font-semibold">{title}</h3>
+          {subtitle && <div className="text-xs opacity-70">{subtitle}</div>}
+        </div>
+        <div className="text-right">
+          <div className="text-lg font-semibold tabular-nums">{stat}{suffix}</div>
+          <div className={`text-xs tabular-nums ${color}`}>{d}</div>
+        </div>
+      </div>
+      <div className="mt-2">{children}</div>
+    </section>
+  );
+}
+
+// Helpers
+function lastAndDelta(series:number[], window=7, lowerIsBetter=false): [number|null, number|null]{
+  if (!series || series.length===0) return [null, null];
+  const last = series[series.length-1] ?? null;
+  if (series.length < 2) return [last, null];
+  const start = Math.max(0, series.length-1-window);
+  const prev = series.slice(start, series.length-1);
+  const prevAvg = prev.reduce((a,b)=>a+b,0) / (prev.length || 1);
+  if (!isFinite(prevAvg) || prevAvg===0) return [last, null];
+  const raw = ((last! - prevAvg) / prevAvg) * 100;
+  const delta = lowerIsBetter ? -raw : raw;
+  return [last, Math.round(delta*10)/10];
+}
+
+function percentDeltaFromSeries(series:number[]): number|null{
+  const [, d] = lastAndDelta(series, 7, false);
+  return d;
+}
+
+function fmtNumber(x:number|null): string{
+  if (x==null || !isFinite(x)) return '—';
+  const abs = Math.abs(x);
+  if (abs>=1000) return Math.round(x).toLocaleString();
+  if (abs>=100) return Math.round(x).toString();
+  return new Intl.NumberFormat(undefined,{ maximumFractionDigits:1 }).format(x);
 }
 
 function Bar({ label, value, max }:{ label:string; value:number; max:number }){
