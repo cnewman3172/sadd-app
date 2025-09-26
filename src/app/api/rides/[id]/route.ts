@@ -104,6 +104,11 @@ export async function PUT(req: NextRequest, context: { params: Promise<{ id: str
     }
   }catch{}
     logAudit('ride_update', payload.uid, ride.id, data);
+    try{
+      const { rebuildPlanForVan } = await import('@/lib/plan');
+      if (prev?.vanId && prev.vanId !== ride.vanId) await rebuildPlanForVan(prev.vanId);
+      if (ride.vanId) await rebuildPlanForVan(ride.vanId);
+    }catch{}
     return NextResponse.json(ride);
   }catch(e:any){
     captureError(e, { route: 'rides/[id]#PUT', id, uid: payload.uid });
