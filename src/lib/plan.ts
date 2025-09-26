@@ -95,6 +95,9 @@ export async function rebuildPlanForVan(vanId: string){
     }
   }
 
+  // Local improvement: attempt adjacent swaps of pickup stops if it reduces total
+  plan = await localImprovePlan(start, plan, cap);
+
   // Persist plan
   await prisma.$transaction(async(tx)=>{
     let order = 1;
@@ -110,3 +113,38 @@ export async function getPlanTasks(vanId: string){
   return entries;
 }
 
+async function localImprovePlan(start: Coord, plan: Array<{rideId:string; phase:'PICKUP'|'DROP'; coord:Coord; pax:number}>, capacity:number){
+  // Try a few adjacent swaps or small relocations that respect precedence & capacity
+  const maxIter = 8;
+  let cur = plan.slice();
+  async function totalDuration(p: typeof cur){
+    const coords: Coord[] = [start, ...p.map(s=>s.coord)];
+    const res = await osrmDuration(coords); return res?.total ?? Infinity;
+  }
+  let best = await totalDuration(cur);
+  for (let iter=0; iter<maxIter; iter++){
+    let improved = false;
+    for (let i=0;i<cur.length-1;i++){
+      const a = cur[i], b = cur[i+1];
+      // Only consider swapping when it preserves precedence constraints
+      if (a.rideId === b.rideId){
+        // Don't swap pickup after drop
+        if (a.phase==='DROP' && b.phase==='PICKUP') continue;
+      }
+      // Build candidate by swapping i and i+1
+      const cand = cur.slice();
+      cand[i] = b; cand[i+1] = a;
+      // Precedence: for any ride, pickup must come before drop
+      const seenPick = new Set<string>(); let ok = true;
+      for (const s of cand){ if (s.phase==='PICKUP') seenPick.add(s.rideId); else if (!seenPick.has(s.rideId)) { ok=false; break; } }
+      if (!ok) continue;
+      if (!capacityOK(cand.map(s=>({ rideId:s.rideId, phase:s.phase, pax:s.pax })), capacity)) continue;
+      const d = await totalDuration(cand);
+      if (d + 1 < best){ // small tolerance
+        cur = cand; best = d; improved = true; break;
+      }
+    }
+    if (!improved) break;
+  }
+  return cur;
+}

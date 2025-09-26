@@ -60,6 +60,8 @@ model Van {
   updatedAt  DateTime  @updatedAt
   // Back-relation for Ride.van
   rides      Ride[]
+  // Back-relation for VanTask.van
+  planTasks  VanTask[]
 }
 
 model Ride {
@@ -92,6 +94,8 @@ model Ride {
   reviewComment String?
   reviewBypass  Boolean    @default(false)
   reviewAt      DateTime?
+  // Back-relation for VanTask.ride
+  planTasks     VanTask[]
 }
 
 enum PlanPhase {
