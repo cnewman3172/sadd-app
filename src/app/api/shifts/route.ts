@@ -25,7 +25,8 @@ export async function GET(req: Request){
             ? ['SAFETY']
             : [];
 
-  const from = new Date();
+  // Volunteers see shifts up to 1 day in the past (recent) and future
+  const from = new Date(Date.now() - 1*24*60*60*1000);
   const shifts = await prisma.shift.findMany({
     where: { endsAt: { gte: from }, role: { in: allowedRoles as any } },
     orderBy: { startsAt: 'asc' },

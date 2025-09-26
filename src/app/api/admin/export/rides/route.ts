@@ -153,7 +153,7 @@ export async function GET(req: Request){
     ]);
   }
 
-  // New: XLSX workbook export with Rides + Training sheets
+  // New: XLSX workbook export with Rides + Training + Shift Log sheets
   if (format === 'xlsx'){
     const ExcelJS = (await import('exceljs')).default;
     const wb = new ExcelJS.Workbook();
@@ -226,6 +226,56 @@ export async function GET(req: Request){
       ]);
     }
     wsTraining.columns = trainingHeader.map(()=>({ width: 22 }));
+
+    // Sheet 3: Shift Log (one row per signup)
+    const shiftHeader = [
+      'shift_id', 'role', 'title', 'starts_at', 'ends_at', 'needed',
+      'user_id', 'full_name', 'email', 'phone', 'user_role', 'signed_up_at', 'time_zone'
+    ];
+    const wsShift = wb.addWorksheet('Shift Log');
+    wsShift.addRow(shiftHeader);
+    const cutoff = new Date(Date.now() - 180*24*60*60*1000); // last 180 days default window
+    const shifts = await prisma.shift.findMany({
+      where: { startsAt: { gte: cutoff } },
+      orderBy: { startsAt: 'desc' },
+      include: {
+        signups: { include: { user: { select: { id:true, firstName:true, lastName:true, email:true, phone:true, role:true } } } },
+      },
+      take: 2000,
+    });
+    for (const s of shifts){
+      for (const su of s.signups){
+        const u = su.user as any;
+        const full = [u?.firstName, u?.lastName].filter(Boolean).join(' ');
+        wsShift.addRow([
+          s.id,
+          s.role,
+          s.title || '',
+          fmtInTz(s.startsAt as any, tz),
+          fmtInTz(s.endsAt as any, tz),
+          String(s.needed),
+          u?.id || '',
+          full,
+          u?.email || '',
+          u?.phone || '',
+          u?.role || '',
+          fmtInTz((su as any).createdAt as any, tz),
+          tz,
+        ]);
+      }
+      if (s.signups.length===0){
+        wsShift.addRow([
+          s.id,
+          s.role,
+          s.title || '',
+          fmtInTz(s.startsAt as any, tz),
+          fmtInTz(s.endsAt as any, tz),
+          String(s.needed),
+          '', '', '', '', '', '', tz,
+        ]);
+      }
+    }
+    wsShift.columns = shiftHeader.map(()=>({ width: 20 }));
 
     const xbuf: ArrayBuffer = await wb.xlsx.writeBuffer();
     const safeTz = tz.replace(/[^A-Za-z0-9_\-\/]/g,'_').replace(/[\/]/g,'-');

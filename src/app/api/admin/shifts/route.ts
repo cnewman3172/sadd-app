@@ -9,7 +9,8 @@ export async function GET(req: Request){
   const token = (req.headers.get('cookie')||'').split('; ').find(c=>c.startsWith('sadd_token='))?.split('=')[1];
   const payload = await verifyJwt(token);
   if (!payload || payload.role !== 'ADMIN') return NextResponse.json({ error:'forbidden' }, { status: 403 });
-  const from = new Date();
+  // Include shifts that ended within the last 14 days, plus future
+  const from = new Date(Date.now() - 14*24*60*60*1000);
   const shifts = await prisma.shift.findMany({
     where: { endsAt: { gte: from } },
     orderBy: { startsAt: 'asc' },
