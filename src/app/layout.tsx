@@ -6,6 +6,7 @@ import NavSwitcher from '@/components/NavSwitcher';
 import ScrollEffects from '@/components/ScrollEffects';
 import ToastHost from '@/components/Toast';
 import NotificationsClient from '@/components/NotificationsClient';
+import { getPublicActive } from '@/lib/status';
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -36,10 +37,7 @@ export default async function RootLayout({
   const cookieStore = await cookies();
   const themeCookie = cookieStore.get('theme')?.value as 'light'|'dark'|'system'|undefined;
   const isAuthed = Boolean(cookieStore.get('sadd_token')?.value);
-  try {
-    const r = await fetch(`/api/status`, { cache: 'no-store' });
-    if (r.ok) { const d = await r.json(); active = Boolean(d.active); }
-  } catch {}
+  try { active = await getPublicActive(); } catch {}
   return (
     <html lang="en" suppressHydrationWarning {...(themeCookie && themeCookie!=='system' ? { 'data-theme': themeCookie } : {})}
     >
