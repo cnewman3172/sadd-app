@@ -94,6 +94,24 @@ model Ride {
   reviewAt      DateTime?
 }
 
+enum PlanPhase {
+  PICKUP
+  DROP
+}
+
+model VanTask {
+  id        String    @id @default(uuid())
+  van       Van       @relation(fields: [vanId], references: [id])
+  vanId     String
+  ride      Ride      @relation(fields: [rideId], references: [id])
+  rideId    String
+  phase     PlanPhase
+  order     Int
+  createdAt DateTime  @default(now())
+
+  @@index([vanId, order])
+}
+
 model Setting {
   id                 Int     @id @default(1)
   active             Boolean @default(false)
