@@ -83,8 +83,21 @@ export async function GET(req: Request){
 
   const url = new URL(req.url);
   const tz = url.searchParams.get('tz') || 'UTC';
-  const fromStr = url.searchParams.get('from') || '';
-  const toStr = url.searchParams.get('to') || '';
+  let fromStr = url.searchParams.get('from') || '';
+  let toStr = url.searchParams.get('to') || '';
+  const fyParam = url.searchParams.get('fy') || '';
+  const preview = url.searchParams.get('preview') === '1';
+  // fy can be like 25 or FY25 → means Oct 1, 2024 to Sep 30, 2025
+  if (!fromStr && !toStr && fyParam){
+    const fyNum = Number(String(fyParam).replace(/[^0-9]/g,''));
+    if (fyNum && isFinite(fyNum)){
+      const y2 = fyNum >= 100 ? fyNum : 2000 + fyNum; // 25 → 2025
+      const y1 = y2 - 1; // Oct 1 previous year
+      // Use local tz day boundaries converted to ISO; we still filter in UTC
+      fromStr = `${y1}-10-01`;
+      toStr = `${y2}-09-30`;
+    }
+  }
   const defaultTemplate = `${process.cwd()}/public/templates/SADD Tracker.xlsx`;
   const templatePath = decodeURIComponent(url.searchParams.get('template') || defaultTemplate);
 
@@ -115,7 +128,8 @@ export async function GET(req: Request){
         startsAt: {
           gte: fromStr ? new Date(fromStr) : undefined,
           lte: toStr ? (()=>{ const e=new Date(toStr); if (e.getHours()===0&&e.getMinutes()===0&&e.getSeconds()===0) e.setHours(23,59,59,999); return e; })() : undefined,
-        }
+        },
+        endsAt: { not: null },
       } : {},
       orderBy: { startsAt: 'asc' },
       include: { signups: { include: { user: { select: { id:true, firstName:true, lastName:true, email:true, phone:true, role:true } } } } }
@@ -155,6 +169,19 @@ export async function GET(req: Request){
     for (const su of s.signups){ bucket.volunteerIds.add(su.userId); }
   }
 
+  if (preview){
+    const rideCount = rides.length;
+    // Count unique volunteers across nights with rides
+    const vSet = new Set<string>();
+    Object.values(dayAgg).forEach(d=> d.volunteerIds.forEach(id=> vSet.add(id)));
+    return NextResponse.json({
+      from: fromStr||null, to: toStr||null, fy: fyParam||null,
+      nights: Object.keys(dayAgg).length,
+      rides: rideCount,
+      volunteers: vSet.size,
+    });
+  }
+
   // Load Excel template
   const fs = await import('fs/promises');
   let buf: Buffer;
@@ -178,25 +205,56 @@ export async function GET(req: Request){
     return map;
   }
 
+  function colLetterToNumber(col: string){
+    let n = 0;
+    for (let i=0;i<col.length;i++){ n = n*26 + (col.charCodeAt(i) - 64); }
+    return n;
+  }
+
   // Fill Data sheet (daily aggregates)
   const wsData = wb.getWorksheet('Data') || wb.worksheets.find(w=> String(w.name).toLowerCase().includes('data'));
   if (wsData){
-    const headers = headerMap(wsData, 1);
-    // Clear rows below header
-    if (wsData.rowCount > 1) wsData.spliceRows(2, wsData.rowCount-1);
+    // If a table exists on the Data sheet, use it; else write under header row 1
+    const table = (wsData as any).getTable?.('Data') || (wsData as any).tables?.[0];
     const keys = Object.keys(dayAgg).sort();
-    for (const k of keys){
-      const b = dayAgg[k];
-      const r = wsData.addRow([]);
-      const dateCol = headers['date'] || headers['shift date'] || 1;
-      const reqCol = headers['requests'] || headers['total requests'] || 2;
-      const pickedCol = headers['picked up'] || headers['completed'] || 3;
-      const volCol = headers['volunteers'] || headers['volunteer count'] || 4;
-      r.getCell(dateCol).value = excelSerialDate(b.dateParts.y, b.dateParts.m, b.dateParts.da);
-      r.getCell(dateCol).numFmt = 'yyyy-mm-dd';
-      r.getCell(reqCol).value = b.requests;
-      r.getCell(pickedCol).value = b.picked;
-      r.getCell(volCol).value = b.volunteerIds.size;
+    if (table){
+      // Clear table data rows
+      const ref: string = (table.table && table.tableRef) || table.tableRef || '';
+      const m = /^([A-Z]+)(\d+):([A-Z]+)(\d+)$/.exec(ref||'');
+      if (m){
+        const startRow = Number(m[2]);
+        const endRow = Number(m[4]);
+        if (endRow > startRow) wsData.spliceRows(startRow+1, endRow-startRow);
+      }
+      for (const k of keys){
+        const b = dayAgg[k];
+        table.addRow([ excelSerialDate(b.dateParts.y,b.dateParts.m,b.dateParts.da), b.requests, b.picked, b.volunteerIds.size ]);
+      }
+      table.commit?.();
+      // Try to format first column date
+      const ref2: string = (table.table && table.tableRef) || table.tableRef || '';
+      const m2 = /^([A-Z]+)(\d+):([A-Z]+)(\d+)$/.exec(ref2||'');
+      if (m2){
+        const startCol = m2[1];
+        const colIndex = colLetterToNumber(startCol);
+        wsData.getColumn(colIndex).numFmt = 'yyyy-mm-dd';
+      }
+    }else{
+      const headers = headerMap(wsData, 1);
+      if (wsData.rowCount > 1) wsData.spliceRows(2, wsData.rowCount-1);
+      for (const k of keys){
+        const b = dayAgg[k];
+        const r = wsData.addRow([]);
+        const dateCol = headers['date'] || headers['shift date'] || 1;
+        const reqCol = headers['requests'] || headers['total requests'] || 2;
+        const pickedCol = headers['picked up'] || headers['completed'] || 3;
+        const volCol = headers['volunteers'] || headers['volunteer count'] || 4;
+        r.getCell(dateCol).value = excelSerialDate(b.dateParts.y, b.dateParts.m, b.dateParts.da);
+        r.getCell(dateCol).numFmt = 'yyyy-mm-dd';
+        r.getCell(reqCol).value = b.requests;
+        r.getCell(pickedCol).value = b.picked;
+        r.getCell(volCol).value = b.volunteerIds.size;
+      }
     }
   }
 
@@ -222,54 +280,141 @@ export async function GET(req: Request){
 
   const wsTime = wb.getWorksheet('Time Data') || wb.worksheets.find(w=> String(w.name).toLowerCase().includes('time'));
   if (wsTime){
-    const headers = headerMap(wsTime, 1);
-    // Clear existing data rows
-    if (wsTime.rowCount > 1) wsTime.spliceRows(2, wsTime.rowCount-1);
-    for (const rr of rideRows){
-      const r = wsTime.addRow([]);
-      const dateCol = headers['date'] || headers['shift date'] || 1;
-      const reqCol = headers['request time'] || headers['requested'] || 2;
-      const puCol = headers['pickup time'] || 3;
-      const drCol = headers['dropoff time'] || headers['drop time'] || 4;
-      const locCol = headers['location'] || headers['pickup location'] || 5;
-      const codeCol = headers['ride code'] || headers['ride id'] || 6;
-      r.getCell(dateCol).value = rr.dateSerial; r.getCell(dateCol).numFmt = 'yyyy-mm-dd';
-      if (rr.reqTime!=null){ r.getCell(reqCol).value = rr.reqTime; r.getCell(reqCol).numFmt = 'hh:mm'; }
-      if (rr.pickupTime!=null){ r.getCell(puCol).value = rr.pickupTime; r.getCell(puCol).numFmt = 'hh:mm'; }
-      if (rr.dropTime!=null){ r.getCell(drCol).value = rr.dropTime; r.getCell(drCol).numFmt = 'hh:mm'; }
-      r.getCell(locCol).value = rr.location;
-      r.getCell(codeCol).value = rr.rideCode;
+    const table = (wsTime as any).getTable?.('Table2') || (wsTime as any).getTable?.('table2') || (wsTime as any).tables?.find((t:any)=>/table2/i.test(t.name||''));
+    if (table){
+      const ref: string = (table.table && table.tableRef) || table.tableRef || '';
+      const m = /^([A-Z]+)(\d+):([A-Z]+)(\d+)$/.exec(ref||'');
+      if (m){
+        const startRow = Number(m[2]);
+        const endRow = Number(m[4]);
+        if (endRow > startRow) wsTime.spliceRows(startRow+1, endRow-startRow);
+      }
+      const colNames: string[] = (table.table?.columns || table.columns || []).map((c:any)=> String(c.name||'').toLowerCase());
+      const idx = (label:string, fallback:number)=>{
+        const i = colNames.findIndex(n=> n === label.toLowerCase());
+        return i>=0 ? i : fallback;
+      };
+      const dIdx = idx('date', 0);
+      const rqIdx = idx('request time', 1);
+      const puIdx = idx('pickup time', 2);
+      const drIdx = idx('dropoff time', 3);
+      const locIdx = idx('location', 4);
+      const codeIdx = idx('ride code', 5);
+      for (const rr of rideRows){
+        const row:any[] = [];
+        row[dIdx] = rr.dateSerial;
+        row[rqIdx] = rr.reqTime;
+        row[puIdx] = rr.pickupTime;
+        row[drIdx] = rr.dropTime;
+        row[locIdx] = rr.location;
+        row[codeIdx] = rr.rideCode;
+        table.addRow(row);
+      }
+      table.commit?.();
+      // Apply formats to the absolute columns encompassing the table
+      if (m){
+        const startColLetter = m[1];
+        const startCol = colLetterToNumber(startColLetter);
+        wsTime.getColumn(startCol + dIdx).numFmt = 'yyyy-mm-dd';
+        wsTime.getColumn(startCol + rqIdx).numFmt = 'hh:mm';
+        wsTime.getColumn(startCol + puIdx).numFmt = 'hh:mm';
+        wsTime.getColumn(startCol + drIdx).numFmt = 'hh:mm';
+      }
+    } else {
+      // Fallback to header-based append
+      const headers = headerMap(wsTime, 1);
+      if (wsTime.rowCount > 1) wsTime.spliceRows(2, wsTime.rowCount-1);
+      for (const rr of rideRows){
+        const r = wsTime.addRow([]);
+        const dateCol = headers['date'] || headers['shift date'] || 1;
+        const reqCol = headers['request time'] || headers['requested'] || 2;
+        const puCol = headers['pickup time'] || 3;
+        const drCol = headers['dropoff time'] || headers['drop time'] || 4;
+        const locCol = headers['location'] || headers['pickup location'] || 5;
+        const codeCol = headers['ride code'] || headers['ride id'] || 6;
+        r.getCell(dateCol).value = rr.dateSerial; r.getCell(dateCol).numFmt = 'yyyy-mm-dd';
+        if (rr.reqTime!=null){ r.getCell(reqCol).value = rr.reqTime; r.getCell(reqCol).numFmt = 'hh:mm'; }
+        if (rr.pickupTime!=null){ r.getCell(puCol).value = rr.pickupTime; r.getCell(puCol).numFmt = 'hh:mm'; }
+        if (rr.dropTime!=null){ r.getCell(drCol).value = rr.dropTime; r.getCell(drCol).numFmt = 'hh:mm'; }
+        r.getCell(locCol).value = rr.location;
+        r.getCell(codeCol).value = rr.rideCode;
+      }
     }
   }
 
   // Volunteer List sheet
   const wsVol = wb.getWorksheet('Volunteer List') || wb.worksheets.find(w=> String(w.name).toLowerCase().includes('volunteer'));
   if (wsVol){
-    const headers = headerMap(wsVol, 1);
-    if (wsVol.rowCount > 1) wsVol.spliceRows(2, wsVol.rowCount-1);
-    // Only list volunteers for nights with rides
+    const table = (wsVol as any).getTable?.('Table1') || (wsVol as any).getTable?.('table1') || (wsVol as any).tables?.find((t:any)=>/table1/i.test(t.name||''));
     const rideKeys = new Set(Object.keys(dayAgg));
-    for (const s of shifts){
-      const dp = localParts(s.startsAt as any, tz);
-      if (!dp) continue;
-      const key = `${dp.y}-${pad2(dp.m)}-${pad2(dp.da)}`;
-      if (!rideKeys.has(key)) continue;
-      for (const su of s.signups){
-        const u = su.user as any;
-        const name = [u?.firstName, u?.lastName].filter(Boolean).join(' ');
-        const r = wsVol.addRow([]);
-        const dateCol = headers['date'] || headers['shift date'] || 1;
-        const nameCol = headers['name'] || headers['full name'] || 2;
-        const emailCol = headers['email'] || 3;
-        const phoneCol = headers['phone'] || 4;
-        const roleCol = headers['role'] || 5;
-        const titleCol = headers['title'] || headers['shift'] || 6;
-        r.getCell(dateCol).value = excelSerialDate(dp.y, dp.m, dp.da); r.getCell(dateCol).numFmt = 'yyyy-mm-dd';
-        r.getCell(nameCol).value = name;
-        r.getCell(emailCol).value = u?.email || '';
-        r.getCell(phoneCol).value = u?.phone || '';
-        r.getCell(roleCol).value = u?.role || '';
-        r.getCell(titleCol).value = s.title || '';
+    if (table){
+      const ref: string = (table.table && table.tableRef) || table.tableRef || '';
+      const m = /^([A-Z]+)(\d+):([A-Z]+)(\d+)$/.exec(ref||'');
+      if (m){
+        const startRow = Number(m[2]);
+        const endRow = Number(m[4]);
+        if (endRow > startRow) wsVol.spliceRows(startRow+1, endRow-startRow);
+      }
+      const colNames: string[] = (table.table?.columns || table.columns || []).map((c:any)=> String(c.name||'').toLowerCase());
+      const idx = (label:string, fallback:number)=>{
+        const i = colNames.findIndex(n=> n === label.toLowerCase());
+        return i>=0 ? i : fallback;
+      };
+      const dateIdx = idx('date', 0);
+      const nameIdx = idx('name', 1);
+      const emailIdx = idx('email', 2);
+      const phoneIdx = idx('phone', 3);
+      const roleIdx = idx('role', 4);
+      const titleIdx = idx('title', 5);
+      for (const s of shifts){
+        const dp = localParts(s.startsAt as any, tz);
+        if (!dp) continue;
+        const key = `${dp.y}-${pad2(dp.m)}-${pad2(dp.da)}`;
+        if (!rideKeys.has(key)) continue;
+        for (const su of s.signups){
+          const u = su.user as any;
+          const name = [u?.firstName, u?.lastName].filter(Boolean).join(' ');
+          const row:any[] = [];
+          row[dateIdx] = excelSerialDate(dp.y, dp.m, dp.da);
+          row[nameIdx] = name;
+          row[emailIdx] = u?.email || '';
+          row[phoneIdx] = u?.phone || '';
+          row[roleIdx] = u?.role || '';
+          row[titleIdx] = s.title || '';
+          table.addRow(row);
+        }
+      }
+      table.commit?.();
+      if (m){
+        const startCol = colLetterToNumber(m[1]);
+        wsVol.getColumn(startCol + dateIdx).numFmt = 'yyyy-mm-dd';
+      }
+    }else{
+      // Fallback
+      const headers = headerMap(wsVol, 1);
+      if (wsVol.rowCount > 1) wsVol.spliceRows(2, wsVol.rowCount-1);
+      for (const s of shifts){
+        const dp = localParts(s.startsAt as any, tz);
+        if (!dp) continue;
+        const key = `${dp.y}-${pad2(dp.m)}-${pad2(dp.da)}`;
+        if (!rideKeys.has(key)) continue;
+        for (const su of s.signups){
+          const u = su.user as any;
+          const name = [u?.firstName, u?.lastName].filter(Boolean).join(' ');
+          const r = wsVol.addRow([]);
+          const dateCol = headers['date'] || headers['shift date'] || 1;
+          const nameCol = headers['name'] || headers['full name'] || 2;
+          const emailCol = headers['email'] || 3;
+          const phoneCol = headers['phone'] || 4;
+          const roleCol = headers['role'] || 5;
+          const titleCol = headers['title'] || headers['shift'] || 6;
+          r.getCell(dateCol).value = excelSerialDate(dp.y, dp.m, dp.da); r.getCell(dateCol).numFmt = 'yyyy-mm-dd';
+          r.getCell(nameCol).value = name;
+          r.getCell(emailCol).value = u?.email || '';
+          r.getCell(phoneCol).value = u?.phone || '';
+          r.getCell(roleCol).value = u?.role || '';
+          r.getCell(titleCol).value = s.title || '';
+        }
       }
     }
   }
