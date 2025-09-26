@@ -1,24 +1,12 @@
 import ScrollEffects from '@/components/ScrollEffects';
 import CountUp from '@/components/CountUp';
+import { getPublicActive, getHomeSummary } from '@/lib/status';
+
+export const dynamic = 'force-dynamic';
 
 export default async function Home() {
-  let active = false;
-  let avgPickupSeconds: number | null = null;
-  let activeVansCount: number | null = null;
-  let ridesFyCount: number | null = null;
-  try {
-    const r = await fetch(`/api/status`, { cache: 'no-store' });
-    if (r.ok) { const d = await r.json(); active = Boolean(d.active); }
-  } catch {}
-  try {
-    const s = await fetch(`/api/stats/summary`, { cache: 'no-store' });
-    if (s.ok) {
-      const d = await s.json();
-      avgPickupSeconds = typeof d.avgSeconds==='number' ? d.avgSeconds : null;
-      activeVansCount = typeof d.activeVans==='number' ? d.activeVans : null;
-      ridesFyCount = typeof d.ridesFY==='number' ? d.ridesFY : null;
-    }
-  } catch {}
+  const active = await getPublicActive().catch(()=>false);
+  const { avgSeconds: avgPickupSeconds, activeVans: activeVansCount, ridesFY: ridesFyCount } = await getHomeSummary().catch(()=>({ avgSeconds:null, activeVans:null, ridesFY:null } as any));
 
   return (
     <div className={`relative min-h-screen overflow-hidden text-foreground ambient-bg ${active ? 'ambient-active' : 'ambient-inactive'}`}>
