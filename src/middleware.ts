@@ -16,7 +16,10 @@ export async function middleware(req: NextRequest) {
   // Next.js sends these headers when it is only prefetching.
   const isPrefetch =
     req.headers.get('next-router-prefetch') === '1' ||
-    req.headers.get('next-router-segment-prefetch') === '1';
+    req.headers.get('next-router-segment-prefetch') === '1' ||
+    // Safari and some agents use the legacy header
+    (req.headers.get('purpose')||'').toLowerCase() === 'prefetch' ||
+    (req.headers.get('sec-purpose')||'').toLowerCase() === 'prefetch';
   if (isPrefetch) return NextResponse.next();
   const protectedRoutes: Array<{ path: string; roles: string[] }> = [
     { path: '/executives', roles: ['ADMIN'] },
