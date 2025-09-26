@@ -1,7 +1,7 @@
 "use client";
 import { useEffect, useState } from 'react';
 
-export default function Profile() {
+export default function ProfileClient() {
   const [form, setForm] = useState<any>({});
   const [loaded, setLoaded] = useState(false);
 
