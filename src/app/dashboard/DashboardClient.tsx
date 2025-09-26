@@ -93,51 +93,15 @@ export default function DashboardClient(){
     const byVan: Record<string, any[]> = {};
     rArr.filter((r:any)=> ['ASSIGNED','EN_ROUTE','PICKED_UP'].includes(r.status) && r.vanId)
       .forEach((r:any)=>{ (byVan[r.vanId!] ||= []).push(r); });
-    const result: Record<string, { toPickupSec: number|null; toDropSec: number|null }> = { ...activeEtas };
+    const result: Record<string, { toPickupSec: number|null; toDropSec: number|null }> = { };
     for (const vanId of Object.keys(byVan)){
-      const v = vArr.find((x:any)=> x.id===vanId);
-      if (!v || typeof v.currentLat!=='number' || typeof v.currentLng!=='number'){
-        // Keep old values if any to avoid flashing
-        byVan[vanId].forEach((r:any)=> { result[r.id] = result[r.id] || { toPickupSec: null, toDropSec: null }; });
-        continue;
-      }
-      // Load tasks in order for this van
-      let tasks: any[] = [];
-      try{ const d = await fetch(`/api/vans/${vanId}/tasks`, { cache:'no-store' }).then(r=>r.json()); tasks = d.tasks||[]; }catch{}
-      if (!Array.isArray(tasks) || tasks.length===0){
-        // Fall back to direct ETAs if no tasks
-        for (const r of byVan[vanId]){
-          try{
-            const res = await fetch('/api/route/legs', { method:'POST', headers:{ 'Content-Type':'application/json' }, body: JSON.stringify({ coords: [[v.currentLat, v.currentLng],[r.pickupLat, r.pickupLng],[r.dropLat, r.dropLng]] }) });
-            if (res.ok){ const d = await res.json(); const legs:number[] = d?.legsSeconds||[]; result[r.id] = { toPickupSec: Math.round(legs[0]||0)||null, toDropSec: Math.round((legs[0]||0)+(legs[1]||0))||null }; }
-          }catch{}
-        }
-        continue;
-      }
-      // Build stop sequence and index map
-      const stops: Array<[number,number]> = [[v.currentLat, v.currentLng]];
-      const index: Record<string, { pick:number; drop:number }> = {};
-      tasks.forEach((t:any)=>{
-        const pickIdx = stops.length; stops.push([t.pickupLat, t.pickupLng]);
-        const dropIdx = stops.length; stops.push([t.dropLat, t.dropLng]);
-        index[t.id] = { pick: pickIdx, drop: dropIdx };
-      });
-      // Compute legs in a single OSRM call to avoid flicker
-      let legsSec: number[] = [];
       try{
-        const res = await fetch('/api/route/legs', { method:'POST', headers:{ 'Content-Type':'application/json' }, body: JSON.stringify({ coords: stops }) });
-        if (res.ok){ const d = await res.json(); legsSec = d?.legsSeconds || []; }
+        const d = await fetch(`/api/plan/eta?vanId=${vanId}`, { cache:'no-store' }).then(r=>r.json());
+        const m = (d?.etas)||{};
+        for (const r of byVan[vanId]){
+          result[r.id] = { toPickupSec: m[r.id]?.toPickupSec ?? null, toDropSec: m[r.id]?.toDropSec ?? null };
+        }
       }catch{}
-      const cum: number[] = [];
-      let s = 0; for (let i=0;i<legsSec.length;i++){ s += legsSec[i]; cum[i+1] = Math.round(s); }
-      for (const r of byVan[vanId]){
-        const idx = index[r.id];
-        if (!idx){ result[r.id] = result[r.id] || { toPickupSec: null, toDropSec: null }; continue; }
-        result[r.id] = {
-          toPickupSec: cum[idx.pick] ?? null,
-          toDropSec: cum[idx.drop] ?? null,
-        };
-      }
     }
     setActiveEtas(result);
   }
