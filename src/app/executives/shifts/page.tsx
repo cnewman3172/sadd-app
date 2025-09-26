@@ -6,6 +6,9 @@ type Shift = { id:string; title?:string|null; role:'DISPATCHER'|'TC'|'DRIVER'|'S
 
 export default function ExecShifts(){
   const [items, setItems] = useState<Shift[]>([]);
+  const [viewing, setViewing] = useState<Shift|null>(null);
+  const [signups, setSignups] = useState<Array<{ id:string; firstName:string; lastName:string; email:string; phone?:string|null; role:string }>>([]);
+  const [loadingSignups, setLoadingSignups] = useState(false);
   // Single-role creation removed per request; use bulk modal instead
   const [bulkOpen, setBulkOpen] = useState(false);
   const [bulk, setBulk] = useState<{ title:string; date:string; start:string; end:string; needs:{ DISPATCHER:number; TC:number; DRIVER:number; SAFETY:number } }>({ title:'', date:'', start:'20:00', end:'23:00', needs:{ DISPATCHER:0, TC:0, DRIVER:0, SAFETY:0 } });
@@ -17,6 +20,18 @@ export default function ExecShifts(){
   useEffect(()=>{ load(); },[]);
 
   async function del(id:string){ if (!confirm('Delete this shift?')) return; await fetch(`/api/admin/shifts/${id}`, { method:'DELETE' }); load(); }
+  async function openSignups(s: Shift){
+    setViewing(s);
+    setLoadingSignups(true);
+    try{
+      const r = await fetch(`/api/admin/shifts/${s.id}/signups`, { cache:'no-store' });
+      if (r.ok){
+        const d = await r.json();
+        setSignups(d.users||[]);
+      } else { setSignups([]); }
+    }catch{ setSignups([]); }
+    finally{ setLoadingSignups(false); }
+  }
 
   return (
     <section className="rounded-xl p-4 glass border">
@@ -43,13 +58,17 @@ export default function ExecShifts(){
                 <td className="px-2">{s.role==='DISPATCHER'?'Dispatcher': s.role==='TC'?'Truck Commander': s.role==='DRIVER'?'Driver':'Safety'}</td>
                 <td className="px-2">{s.title||'—'}</td>
                 <td className="px-2">{s._count?.signups ?? 0} / {s.needed}</td>
-                <td className="px-2 text-right"><button onClick={()=>del(s.id)} className="rounded border px-3 py-1">Delete</button></td>
+                <td className="px-2 text-right space-x-2">
+                  <button onClick={()=> openSignups(s)} className="rounded border px-3 py-1">View</button>
+                  <button onClick={()=>del(s.id)} className="rounded border px-3 py-1">Delete</button>
+                </td>
               </tr>
             ))}
           </tbody>
         </table>
       </div>
       <BulkModal open={bulkOpen} onClose={()=> setBulkOpen(false)} bulk={bulk} setBulk={setBulk} onCreated={load} />
+      <SignupsModal open={!!viewing} onClose={()=>{ setViewing(null); setSignups([]); }} shift={viewing} signups={signups} loading={loadingSignups} />
     </section>
   );
 }
@@ -101,6 +120,49 @@ function BulkModal({ open, onClose, bulk, setBulk, onCreated }:{ open:boolean; o
         </div>
         <div className="md:col-span-4 text-xs opacity-70">Overnight supported: if End is earlier than Start, it rolls to the next day.</div>
       </form>
+    </Modal>
+  );
+}
+
+function SignupsModal({ open, onClose, shift, signups, loading }:{ open:boolean; onClose:()=>void; shift: Shift|null; signups: Array<{ id:string; firstName:string; lastName:string; email:string; phone?:string|null; role:string }>; loading:boolean }){
+  return (
+    <Modal open={open} onClose={onClose}>
+      <div className="p-4 min-w-[320px] max-w-[640px]">
+        <div className="text-lg font-semibold mb-2">Signups {shift ? `· ${fmtRange(shift.startsAt, shift.endsAt)}` : ''}</div>
+        {loading ? (
+          <div className="py-6 opacity-70">Loading…</div>
+        ) : (
+          <div className="rounded-xl glass border overflow-hidden">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="text-left opacity-70">
+                  <th className="px-2 py-2">Name</th>
+                  <th className="px-2">Role</th>
+                  <th className="px-2">Email</th>
+                  <th className="px-2">Phone</th>
+                  <th className="px-2"></th>
+                </tr>
+              </thead>
+              <tbody>
+                {signups.length===0 ? (
+                  <tr><td className="px-2 py-4" colSpan={5}>No one has signed up yet.</td></tr>
+                ) : signups.map(u=> (
+                  <tr key={u.id} className="border-t border-white/20">
+                    <td className="px-2 py-1">{u.firstName} {u.lastName}</td>
+                    <td className="px-2 py-1">{u.role}</td>
+                    <td className="px-2 py-1">{u.email}</td>
+                    <td className="px-2 py-1">{u.phone||'—'}</td>
+                    <td className="px-2 py-1 text-right"><a className="rounded border px-3 py-1 inline-block" href={`/executives/users/${u.id}`}>View</a></td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+        <div className="mt-3 text-right">
+          <button className="rounded border px-3 py-1" onClick={onClose}>Close</button>
+        </div>
+      </div>
     </Modal>
   );
 }
