@@ -36,6 +36,7 @@ export default async function RootLayout({
   let active = false;
   const cookieStore = await cookies();
   const themeCookie = cookieStore.get('theme')?.value as 'light'|'dark'|'system'|undefined;
+  const isAuthed = Boolean(cookieStore.get('sadd_token')?.value);
   try {
     const r = await fetch(`${base}/api/health`, { cache: 'no-store' });
     if (r.ok) { const d = await r.json(); active = Boolean(d.active); }
@@ -48,7 +49,7 @@ export default async function RootLayout({
       >
         <NavSwitcher />
         <ScrollEffects />
-        <NotificationsClient />
+        {isAuthed ? <NotificationsClient /> : null}
         <main className="pt-2">{children}</main>
         <footer className="mx-auto max-w-7xl px-4 py-10 text-sm opacity-80">
           © 2025 Arctic Aura Designs, Soldiers Against Drunk Driving · <a className="underline" href="/privacy">Privacy</a> · <a className="underline" href="/volunteer">Volunteer</a>

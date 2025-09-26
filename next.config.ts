@@ -15,8 +15,14 @@ const securityHeaders = [
       "img-src 'self' data: https:",
       "font-src 'self' data:",
       "object-src 'none'",
-      "connect-src 'self'",
-      "script-src 'self' 'unsafe-inline'"
+      // RSC, Next navigation fetches, Sentry (if configured), EventSource, etc.
+      "connect-src 'self' https: blob: data:",
+      // Some browsers still require eval for certain optimizations; keep minimal
+      "script-src 'self' 'unsafe-inline' 'unsafe-eval'",
+      // Allow Next.js web workers if used
+      "worker-src 'self' blob:",
+      // App manifest
+      "manifest-src 'self'"
     ].join('; '),
   },
   { key: 'Referrer-Policy', value: 'no-referrer' },
