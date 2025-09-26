@@ -14,6 +14,7 @@ First admin setup:
 
 1) Register an account at https://sadd.example.com/login
 2) Promote to ADMIN with the one-liner printed by the installer (uses /api/admin/promote and your generated SETUP_KEY).
+3) Important: after promoting at least one admin, remove or unset SETUP_KEY in your production .env and redeploy. This disables the bootstrap endpoint.
 
 Auto deploy:
 

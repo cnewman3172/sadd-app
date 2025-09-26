@@ -29,7 +29,7 @@ const securityHeaders = [
   { key: 'Referrer-Policy', value: 'no-referrer' },
   { key: 'X-Frame-Options', value: 'SAMEORIGIN' },
   { key: 'X-Content-Type-Options', value: 'nosniff' },
-  { key: 'Permissions-Policy', value: 'camera=(), microphone=(), geolocation=()' },
+  { key: 'Permissions-Policy', value: 'camera=(), microphone=(), geolocation=(self)' },
   // Set HSTS only if served over HTTPS by your reverse proxy
   // { key: 'Strict-Transport-Security', value: 'max-age=31536000; includeSubDomains; preload' },
 ];
