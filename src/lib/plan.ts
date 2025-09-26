@@ -95,8 +95,9 @@ export async function rebuildPlanForVan(vanId: string){
     }
   }
 
-  // Local improvement: attempt adjacent swaps of pickup stops if it reduces total
+  // Local improvements: adjacent swaps, then relocate moves (pickup+drop as a unit)
   plan = await localImprovePlan(start, plan, cap);
+  plan = await relocateImprovePlan(start, plan, cap);
 
   // Persist plan
   await prisma.$transaction(async(tx)=>{
@@ -143,6 +144,76 @@ async function localImprovePlan(start: Coord, plan: Array<{rideId:string; phase:
       if (d + 1 < best){ // small tolerance
         cur = cand; best = d; improved = true; break;
       }
+    }
+    if (!improved) break;
+  }
+  return cur;
+}
+
+async function relocateImprovePlan(start: Coord, plan: Array<{rideId:string; phase:'PICKUP'|'DROP'; coord:Coord; pax:number}>, capacity:number){
+  const maxIter = 6;
+  type Stop = { rideId:string; phase:'PICKUP'|'DROP'; coord:Coord; pax:number };
+  let cur = plan.slice();
+
+  async function computePickupsAndTotal(p: Stop[]){
+    // Build coords (no collapse for indexing); compute legs then cum
+    const coords: Coord[] = [start, ...p.map(s=>s.coord)];
+    const res = await osrmDuration(coords); if (!res) return { total: Infinity, pickupMap: new Map<string,number>() };
+    const legs = res.legSeconds || [];
+    const cum: number[] = [0]; for (let i=0;i<legs.length;i++){ cum[i+1] = cum[i] + legs[i]; }
+    const pick = new Map<string,number>();
+    let idx = 1; // cum index aligns to stop position
+    for (const s of p){ if (s.phase==='PICKUP' && !pick.has(s.rideId)) pick.set(s.rideId, cum[idx]); idx += 1; }
+    return { total: res.total, pickupMap: pick };
+  }
+
+  function precedenceOK(p: Stop[]){
+    const seen = new Set<string>();
+    for (const s of p){ if (s.phase==='PICKUP') seen.add(s.rideId); else if (!seen.has(s.rideId)) return false; }
+    return true;
+  }
+
+  const base0 = await computePickupsAndTotal(cur);
+  let baseTotal = base0.total; let basePick = base0.pickupMap;
+
+  for (let iter=0; iter<maxIter; iter++){
+    let improved = false;
+    // unique rideIds in order of current plan
+    const seenIds: string[] = [];
+    for (const s of cur){ if (!seenIds.includes(s.rideId)) seenIds.push(s.rideId); }
+    for (const rid of seenIds){
+      // locate pickup & drop indices
+      let pi = -1, di = -1;
+      for (let i=0;i<cur.length;i++){ if (cur[i].rideId===rid){ if (cur[i].phase==='PICKUP') pi=i; else { di=i; break; } } }
+      if (pi<0 || di<0) continue;
+      // Remove the pair and try inserting elsewhere
+      const pair: Stop[] = [cur[pi], cur[di]];
+      const rest = cur.filter((_,idx)=> idx!==pi && idx!==di);
+      for (let i=0;i<=rest.length;i++){
+        for (let j=i+1;j<=rest.length+1;j++){
+          const cand = rest.slice(0,i).concat([pair[0]], rest.slice(i,j-1), [pair[1]], rest.slice(j-1));
+          if (!precedenceOK(cand)) continue;
+          if (!capacityOK(cand.map(s=>({ rideId:s.rideId, phase:s.phase, pax:s.pax })), capacity)) continue;
+          const obj = await computePickupsAndTotal(cand);
+          // Multi-objective acceptance: priority to pickup ETAs
+          // Do not increase max pickup ETA; prefer reducing sum and total
+          const candPick = obj.pickupMap;
+          const ids = new Set<string>([...basePick.keys(), ...candPick.keys()].values() as any);
+          let baseSum=0, candSum=0, baseMax=0, candMax=0;
+          for (const id of ids){
+            const b = basePick.get(id)||0; const c = candPick.get(id)||0;
+            baseSum += b; candSum += c; baseMax = Math.max(baseMax, b); candMax = Math.max(candMax, c);
+          }
+          const improvesPickup = candMax + 1 < baseMax || candSum + 1 < baseSum;
+          const notWorsePickup = candMax <= baseMax && candSum <= baseSum + 1;
+          const improvesTotal = obj.total + 1 < baseTotal;
+          if (improvesPickup || (notWorsePickup && improvesTotal)){
+            cur = cand; baseTotal = obj.total; basePick = candPick; improved = true; break;
+          }
+        }
+        if (improved) break;
+      }
+      if (improved) break;
     }
     if (!improved) break;
   }
