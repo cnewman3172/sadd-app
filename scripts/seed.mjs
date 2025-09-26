@@ -22,7 +22,7 @@ async function main(){
     if (!email) return
     const existing = await prisma.user.findUnique({ where: { email } })
     if (existing) return existing
-    const hash = await bcrypt.hash(defaultPass, 10)
+    const hash = await bcrypt.hash(defaultPass, 12)
     return prisma.user.create({ data: { email, password: hash, firstName, lastName: role, role } })
   }
   await upsertUser(adminEmail, 'ADMIN', 'Admin')

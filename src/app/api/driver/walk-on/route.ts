@@ -49,7 +49,7 @@ export async function POST(req: Request){
       const email = 'unlinked@sadd.local';
       rider = await prisma.user.findUnique({ where: { email } });
       if (!rider){
-        const hash = await bcrypt.hash(Math.random().toString(36).slice(2), 10);
+        const hash = await bcrypt.hash(Math.random().toString(36).slice(2), 12);
         rider = await prisma.user.create({ data: { email, password: hash, firstName: 'Unlinked', lastName: 'Rider', role: 'RIDER' } });
       }
     }

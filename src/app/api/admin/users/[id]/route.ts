@@ -128,7 +128,7 @@ export async function DELETE(req: Request, context: { params: Promise<{ id: stri
     if (user.email === 'unlinked@sadd.local'){
       return NextResponse.json({ error: 'Cannot delete the system Unlinked Rider account.' }, { status: 400 });
     }
-    const hash = await bcrypt.hash(Math.random().toString(36).slice(2), 10);
+    const hash = await bcrypt.hash(Math.random().toString(36).slice(2), 12);
     await prisma.$transaction(async(tx)=>{
       // Set any active TC van offline
       await tx.van.updateMany({ where: { activeTcId: id }, data: { activeTcId: null, status: 'OFFLINE', passengers: 0 } });
