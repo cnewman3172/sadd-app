@@ -4,8 +4,19 @@ function b64url(buf: Buffer){
   return buf.toString('base64').replace(/=/g,'').replace(/\+/g,'-').replace(/\//g,'_');
 }
 
+function getSecret(){
+  const s = process.env.JWT_SECRET;
+  if (!s){
+    if (process.env.NODE_ENV === 'production'){
+      throw new Error('JWT_SECRET is required in production');
+    }
+    return 'dev-secret';
+  }
+  return s;
+}
+
 export function createConfirmToken(action: string, uid: string){
-  const secret = process.env.JWT_SECRET || 'dev-secret';
+  const secret = getSecret();
   const payload = { a: action, u: uid, t: Date.now() };
   const body = Buffer.from(JSON.stringify(payload));
   const sig = crypto.createHmac('sha256', secret).update(body).digest();
@@ -13,7 +24,7 @@ export function createConfirmToken(action: string, uid: string){
 }
 
 export function verifyConfirmToken(token: string, action: string, maxAgeMs=5*60*1000){
-  const secret = process.env.JWT_SECRET || 'dev-secret';
+  const secret = getSecret();
   const [b64, sigB64] = token.split('.');
   if (!b64 || !sigB64) return null;
   const body = Buffer.from(b64.replace(/-/g,'+').replace(/_/g,'/'), 'base64');
@@ -27,4 +38,3 @@ export function verifyConfirmToken(token: string, action: string, maxAgeMs=5*60*
     return payload as { a:string; u:string; t:number };
   }catch{ return null; }
 }
-
