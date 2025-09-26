@@ -16,7 +16,7 @@ const securityHeaders = [
       "font-src 'self' data:",
       "object-src 'none'",
       "connect-src 'self'",
-      "script-src 'self' 'strict-dynamic' 'unsafe-inline'"
+      "script-src 'self' 'unsafe-inline'"
     ].join('; '),
   },
   { key: 'Referrer-Policy', value: 'no-referrer' },
