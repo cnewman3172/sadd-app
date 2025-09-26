@@ -93,6 +93,7 @@ export async function POST(req: Request){
       if (best?.vanId){
         const updated = await prisma.ride.update({ where: { id: ride.id }, data: { status:'ASSIGNED', vanId: best.vanId, acceptedAt: new Date() } });
         publish('ride:update', { id: updated.id, status: updated.status, code: updated.rideCode, vanId: updated.vanId, riderId: updated.riderId });
+        try{ const { rebuildPlanForVan } = await import('@/lib/plan'); await rebuildPlanForVan(best.vanId); }catch{}
         logAudit('ride_auto_assign', payload.uid, updated.id, { vanId: best.vanId });
       }
     }catch{}
