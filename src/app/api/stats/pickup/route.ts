@@ -21,7 +21,9 @@ export async function GET(){
           AND "status" IN ('PICKED_UP','DROPPED')
           AND "requestedAt" >= NOW() - INTERVAL '90 days'`
     );
-    const avgSeconds = rows?.[0]?.avg_seconds ?? null;
+    // Coerce to number; SQL drivers may return text for AVG
+    const rawAvg = (rows?.[0] as any)?.avg_seconds ?? null;
+    const avgSeconds = rawAvg == null ? null : Number(rawAvg);
     const sample = Number(rows?.[0]?.sample ?? 0);
     const body = { ok:true, avgSeconds, sample, windowDays: 90 };
     cache = { ts: now, body };

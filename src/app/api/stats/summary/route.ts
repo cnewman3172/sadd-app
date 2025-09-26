@@ -31,7 +31,9 @@ export async function GET(){
             AND "requestedAt" >= NOW() - INTERVAL '90 days'`
       ),
     ]);
-    const avgSeconds = pickup?.[0]?.avg_seconds ?? null;
+    // Ensure numeric type for avgSeconds; Prisma raw may return string/Decimal
+    const rawAvg = (pickup?.[0] as any)?.avg_seconds ?? null;
+    const avgSeconds = rawAvg == null ? null : Number(rawAvg);
     const sample = Number(pickup?.[0]?.sample ?? 0);
     const body = { ok:true, activeVans, ridesFY, fyStart: fyStart.toISOString(), avgSeconds, sample, windowDays: 90 };
     cache = { ts: now, body };
