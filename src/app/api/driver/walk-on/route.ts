@@ -80,6 +80,7 @@ export async function POST(req: Request){
       acceptedAt: new Date(),
     }});
   publish('ride:update', { id: ride.id, status: ride.status, code: ride.rideCode, vanId: ride.vanId, riderId: ride.riderId });
+  try{ const { rebuildPlanForVan } = await import('@/lib/plan'); await rebuildPlanForVan(van.id); }catch{}
   try{
     const msg = `New walk-on #${ride.rideCode}`;
     await Promise.all([
