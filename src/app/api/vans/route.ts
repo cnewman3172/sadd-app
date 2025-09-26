@@ -8,8 +8,20 @@ import { logAudit } from '@/lib/audit';
 
 export const runtime = 'nodejs';
 
-export async function GET(){
-  const vans = await prisma.van.findMany({ orderBy: { name: 'asc' } });
+export async function GET(req: Request){
+  const token = (req.headers.get('cookie')||'').split('; ').find(c=>c.startsWith('sadd_token='))?.split('=')[1];
+  const payload = await verifyJwt(token);
+  if (!payload) return NextResponse.json({ error:'unauthorized' }, { status: 401 });
+  // Only ADMIN/DISPATCHER/TC see full van objects including coordinates and activeTcId
+  if (['ADMIN','DISPATCHER','TC'].includes(payload.role)){
+    const vans = await prisma.van.findMany({ orderBy: { name: 'asc' } });
+    return NextResponse.json(vans);
+  }
+  // Other roles see a sanitized list without live coordinates or controller identity
+  const vans = await prisma.van.findMany({
+    orderBy: { name: 'asc' },
+    select: { id: true, name: true, capacity: true, status: true }
+  });
   return NextResponse.json(vans);
 }
 

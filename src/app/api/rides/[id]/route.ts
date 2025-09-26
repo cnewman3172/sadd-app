@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { verifyJwt } from '@/lib/jwt';
+import { verifyJwt } from '@/lib/jwt';
 import { z } from 'zod';
 import { captureError } from '@/lib/obs';
 import { publish } from '@/lib/events';
@@ -10,13 +11,52 @@ import { logAudit } from '@/lib/audit';
 export const runtime = 'nodejs';
 
 export async function GET(req: NextRequest, context: { params: Promise<{ id: string }> }){
+  const token = (req.headers.get('cookie')||'').split('; ').find(c=>c.startsWith('sadd_token='))?.split('=')[1];
+  const payload = await verifyJwt(token);
+  if (!payload) return NextResponse.json({ error:'unauthorized' }, { status: 401 });
   const { id } = await context.params;
   try{
-    const ride = await prisma.ride.findUnique({ where: { id }, include: { rider: true, van: true } });
+    const ride = await prisma.ride.findUnique({ where: { id } });
     if (!ride) return NextResponse.json({ error:'not found' }, { status: 404 });
-    return NextResponse.json(ride);
+
+    // Role-based access
+    if (['ADMIN','DISPATCHER','TC'].includes(payload.role)){
+      const full = await prisma.ride.findUnique({ where: { id }, include: { rider: true, van: true } });
+      return NextResponse.json(full);
+    }
+    // Rider can view only their own ride, with limited fields
+    if (payload.role === 'RIDER' || payload.role === 'DRIVER' || payload.role === 'SAFETY'){
+      if (ride.riderId !== payload.uid) return NextResponse.json({ error:'forbidden' }, { status: 403 });
+      const safe = await prisma.ride.findUnique({
+        where: { id },
+        select: {
+          id: true,
+          rideCode: true,
+          status: true,
+          pickupAddr: true,
+          dropAddr: true,
+          pickupLat: true,
+          pickupLng: true,
+          dropLat: true,
+          dropLng: true,
+          passengers: true,
+          notes: true,
+          requestedAt: true,
+          acceptedAt: true,
+          pickupAt: true,
+          dropAt: true,
+          vanId: true,
+          rating: true,
+          reviewComment: true,
+          reviewBypass: true,
+          reviewAt: true,
+        }
+      });
+      return NextResponse.json(safe);
+    }
+    return NextResponse.json({ error:'forbidden' }, { status: 403 });
   }catch(e:any){
-    captureError(e, { route: 'rides/[id]#GET', id });
+    captureError(e, { route: 'rides/[id]#GET', id, uid: payload?.uid });
     return NextResponse.json({ error:'failed' }, { status: 500 });
   }
 }
