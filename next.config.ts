@@ -3,7 +3,8 @@ import type { NextConfig } from "next";
 const securityHeaders = [
   // Adjust CSP for YouTube-nocookie iframe and same-origin assets
   {
-    key: 'Content-Security-Policy',
+    // Temporarily use report-only to avoid blocking until CSP is fully tuned on prod
+    key: 'Content-Security-Policy-Report-Only',
     value: [
       "default-src 'self'",
       "base-uri 'self'",

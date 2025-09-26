@@ -2,17 +2,16 @@ import ScrollEffects from '@/components/ScrollEffects';
 import CountUp from '@/components/CountUp';
 
 export default async function Home() {
-  const base = process.env.NEXT_PUBLIC_APP_URL || '';
   let active = false;
   let avgPickupSeconds: number | null = null;
   let activeVansCount: number | null = null;
   let ridesFyCount: number | null = null;
   try {
-    const r = await fetch(`${base}/api/health`, { cache: 'no-store' });
+    const r = await fetch(`/api/health`, { cache: 'no-store' });
     if (r.ok) { const d = await r.json(); active = Boolean(d.active); }
   } catch {}
   try {
-    const s = await fetch(`${base}/api/stats/summary`, { cache: 'no-store' });
+    const s = await fetch(`/api/stats/summary`, { cache: 'no-store' });
     if (s.ok) {
       const d = await s.json();
       avgPickupSeconds = typeof d.avgSeconds==='number' ? d.avgSeconds : null;

@@ -32,13 +32,12 @@ export default async function RootLayout({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
-  const base = process.env.NEXT_PUBLIC_APP_URL || '';
   let active = false;
   const cookieStore = await cookies();
   const themeCookie = cookieStore.get('theme')?.value as 'light'|'dark'|'system'|undefined;
   const isAuthed = Boolean(cookieStore.get('sadd_token')?.value);
   try {
-    const r = await fetch(`${base}/api/health`, { cache: 'no-store' });
+    const r = await fetch(`/api/health`, { cache: 'no-store' });
     if (r.ok) { const d = await r.json(); active = Boolean(d.active); }
   } catch {}
   return (
