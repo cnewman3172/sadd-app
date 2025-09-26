@@ -56,7 +56,7 @@ export async function POST(req: Request){
       const email = 'unlinked@sadd.local';
       let u = await prisma.user.findUnique({ where: { email } });
       if (!u){
-        const hash = await bcrypt.hash(Math.random().toString(36).slice(2), 10);
+        const hash = await bcrypt.hash(Math.random().toString(36).slice(2), 12);
         u = await prisma.user.create({ data: { email, password: hash, firstName: 'Unlinked', lastName: 'Rider', role: 'RIDER' } });
       }
       riderId = u.id;
