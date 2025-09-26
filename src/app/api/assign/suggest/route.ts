@@ -56,6 +56,8 @@ export async function GET(req: Request){
     // Build base stops: start at van location
     const baseStops: Array<[number,number]> = [[v.currentLat!, v.currentLng!]];
     tasks.forEach(t=> { baseStops.push([t.pickupLat, t.pickupLng], [t.dropLat, t.dropLng]); });
+    // Current backlog (tour without the new ride)
+    let baseTotal = await osrmDuration(baseStops) || 0;
     // If no tasks, simple ETA to pickup + pickup->drop
     if (tasks.length===0){
       const dur = await osrmDuration([[v.currentLat!,v.currentLng!],[ride.pickupLat,ride.pickupLng],[ride.dropLat,ride.dropLng]]);
@@ -77,8 +79,10 @@ export async function GET(req: Request){
         const total = await osrmDuration(seq);
         const pickupEta = await osrmPickupEta([v.currentLat!,v.currentLng!], [ride.pickupLat,ride.pickupLng]);
         if (pickupEta==null || total==null) continue;
-        if (pickupEta < bestPickup || (Math.abs(pickupEta-bestPickup)<1 && total < bestTotal)){
-          bestPickup = pickupEta; bestTotal = total;
+        // Load balancing: add a small penalty proportional to current backlog
+        const costTotal = total + 0.2 * baseTotal;
+        if (pickupEta < bestPickup || (Math.abs(pickupEta-bestPickup)<1 && costTotal < bestTotal)){
+          bestPickup = pickupEta; bestTotal = costTotal;
         }
       }
     }
