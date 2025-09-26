@@ -12,9 +12,11 @@ export default function AdminTraining(){
   async function load(query?: string){
     setLoading(true);
     try{
-      const url = query ? `/api/admin/users?q=${encodeURIComponent(query)}&includeDisabled=1` : '/api/admin/users?includeDisabled=1';
+      // Only show non-disabled accounts and exclude RIDER role
+      const url = query ? `/api/admin/users?q=${encodeURIComponent(query)}` : '/api/admin/users';
       const d = await fetch(url, { cache:'no-store' }).then(r=>r.json());
-      setUsers(Array.isArray(d)? d : []);
+      const list = Array.isArray(d)? d : [];
+      setUsers(list.filter((u:U)=> u.role !== 'RIDER'));
     } finally {
       setLoading(false);
     }
