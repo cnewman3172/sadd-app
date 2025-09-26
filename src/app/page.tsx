@@ -7,7 +7,7 @@ export default async function Home() {
   let activeVansCount: number | null = null;
   let ridesFyCount: number | null = null;
   try {
-    const r = await fetch(`/api/health`, { cache: 'no-store' });
+    const r = await fetch(`/api/status`, { cache: 'no-store' });
     if (r.ok) { const d = await r.json(); active = Boolean(d.active); }
   } catch {}
   try {

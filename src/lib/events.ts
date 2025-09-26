@@ -9,9 +9,17 @@ function writeSSE(writer: Writer, event: string, data: any){
 }
 
 export function publish(event: string, data: any){
-  const staffOnly = event === 'vans:location';
+  const isStaff = (role: string)=> ['ADMIN','DISPATCHER','TC'].includes(role);
   for (const c of [...clients]){
-    if (staffOnly && !['ADMIN','DISPATCHER','TC'].includes(c.role)) continue;
+    // Staff-only GPS stream
+    if (event === 'vans:location' && !isStaff(c.role)) continue;
+    // Ride updates: staff get all; riders only their own ride
+    if (event === 'ride:update'){
+      const rid = (data && (data.riderId || data.riderID)) as string | undefined;
+      if (!isStaff(c.role)){
+        if (!rid || c.userId !== rid) continue;
+      }
+    }
     c.w.ready?.then(()=> writeSSE(c.w, event, data)).catch(()=>{
       try { c.w.releaseLock?.(); } catch {}
       clients.delete(c);
