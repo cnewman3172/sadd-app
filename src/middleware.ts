@@ -23,90 +23,46 @@ export async function middleware(req: NextRequest) {
 
   const saddRoutes = protectedRoutes.map((r) => r.path);
   if (!saddRoutes.some((p) => pathname.startsWith(p))) return NextResponse.next();
-
-  const token = req.cookies.get('sadd_token')?.value;
-  if (!token) return NextResponse.redirect(new URL('/login', req.url));
-
-  // First, decode role from JWT claim (fast path)
-  let claimRole: string | null = null;
-  try {
-    const parts = token.split('.');
-    if (parts.length === 3) {
-      let b64 = parts[1].replace(/-/g, '+').replace(/_/g, '/');
-      while (b64.length % 4) b64 += '=';
-      const json = Buffer.from(b64, 'base64').toString('utf8');
-      const payload = JSON.parse(json);
-      claimRole = payload?.role ?? null;
-    }
-  } catch {}
-
+  // Always verify session via API to prevent trusting unsigned JWT claims
   const route = protectedRoutes.find((r) => pathname.startsWith(r.path));
   if (!route) return NextResponse.next();
 
-  // If claim allows access, later we may still gate by active shift for certain portals
-  if (claimRole && route.roles.includes(claimRole)){
-    // Training gate for Shifts: require training completion per role
-    if (pathname.startsWith('/shifts') && claimRole !== 'ADMIN'){
-      try{
-        const res = await fetch(new URL('/api/me', req.url), { headers: { cookie: req.headers.get('cookie') || '' } });
-        if (res.ok){
-          const u = await res.json();
-          const ok = (()=>{
-            switch (claimRole){
-              case 'DISPATCHER': return Boolean(u.trainingDispatcherAt);
-              case 'TC': return Boolean(u.trainingTcAt);
-              case 'DRIVER': return Boolean(u.trainingDriverAt) && Boolean(u.checkRide);
-              case 'SAFETY': return Boolean(u.trainingSafetyAt);
-              default: return true;
-            }
-          })();
-          if (!ok) return NextResponse.redirect(new URL('/training', req.url));
-        }
-      }catch{}
+  try{
+    const res = await fetch(new URL('/api/me', req.url), { headers: { cookie: req.headers.get('cookie') || '' } });
+    if (!res.ok) return NextResponse.redirect(new URL('/login', req.url));
+    const u = await res.json();
+    const liveRole = u?.role || null;
+    if (!liveRole || !route.roles.includes(liveRole)){
+      return NextResponse.redirect(new URL('/', req.url));
     }
+
+    // Training gate for Shifts: require training completion per role
+    if (pathname.startsWith('/shifts') && liveRole !== 'ADMIN'){
+      const ok = (()=>{
+        switch (liveRole){
+          case 'DISPATCHER': return Boolean(u.trainingDispatcherAt);
+          case 'TC': return Boolean(u.trainingTcAt);
+          case 'DRIVER': return Boolean(u.trainingDriverAt) && Boolean(u.checkRide);
+          case 'SAFETY': return Boolean(u.trainingSafetyAt);
+          default: return true;
+        }
+      })();
+      if (!ok) return NextResponse.redirect(new URL('/training', req.url));
+    }
+
     // Extra gate: time-based portal access for Dispatcher and TC views
     const isPortal = pathname.startsWith('/dashboard') || pathname.startsWith('/driving');
     if (!isPortal) return NextResponse.next();
-
-    // Admin bypasses schedule
-    if (claimRole === 'ADMIN') return NextResponse.next();
+    if (liveRole === 'ADMIN') return NextResponse.next();
 
     const neededRole = pathname.startsWith('/dashboard') ? 'DISPATCHER' : 'TC';
-    // Verify the user has an active shift for the needed role (Dispatchers can access TC if they signed up)
     try{
-      const res = await fetch(new URL(`/api/shifts/active?role=${neededRole}`, req.url), { headers: { cookie: req.headers.get('cookie') || '' } });
-      if (res.ok){
-        const d = await res.json();
-        if (d?.active) return NextResponse.next();
-      }
+      const res2 = await fetch(new URL(`/api/shifts/active?role=${neededRole}`, req.url), { headers: { cookie: req.headers.get('cookie') || '' } });
+      if (res2.ok){ const d2 = await res2.json(); if (d2?.active) return NextResponse.next(); }
     }catch{}
-    // Not active; redirect to /shifts where they can sign up
     return NextResponse.redirect(new URL('/shifts', req.url));
-  }
-
-  // Otherwise, try fetching live role from API to reflect recent admin changes
-  try{
-    const res = await fetch(new URL('/api/me', req.url), { headers: { cookie: req.headers.get('cookie') || '' } });
-    if (res.ok){
-      const u = await res.json();
-      const liveRole = u?.role || null;
-      if (liveRole && route.roles.includes(liveRole)){
-        const isPortal = pathname.startsWith('/dashboard') || pathname.startsWith('/driving');
-        if (!isPortal) return NextResponse.next();
-        if (liveRole === 'ADMIN') return NextResponse.next();
-        const neededRole = pathname.startsWith('/dashboard') ? 'DISPATCHER' : 'TC';
-        try{
-          const res2 = await fetch(new URL(`/api/shifts/active?role=${neededRole}`, req.url), { headers: { cookie: req.headers.get('cookie') || '' } });
-          if (res2.ok){ const d2 = await res2.json(); if (d2?.active) return NextResponse.next(); }
-        }catch{}
-        return NextResponse.redirect(new URL('/shifts', req.url));
-      }
-      // Logged in but not authorized for this route
-      return NextResponse.redirect(new URL('/', req.url));
-    }
   }catch{}
 
-  // Fallback: if token exists but we couldn't verify, send to login once
   return NextResponse.redirect(new URL('/login', req.url));
 }
 
