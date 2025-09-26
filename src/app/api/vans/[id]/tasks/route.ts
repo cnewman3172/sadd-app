@@ -9,10 +9,8 @@ export async function GET(req: NextRequest, context: { params: Promise<{ id: str
   const payload = await verifyJwt(token);
   if (!payload || !['ADMIN','DISPATCHER'].includes(payload.role)) return NextResponse.json({ error:'forbidden' }, { status: 403 });
   const { id } = await context.params;
-  const tasks = await prisma.ride.findMany({
-    where: { vanId: id, status: { in: ['ASSIGNED','EN_ROUTE','PICKED_UP'] } },
-    orderBy: { requestedAt: 'asc' },
-    select: { id:true, status:true, pickupLat:true, pickupLng:true, dropLat:true, dropLng:true }
-  });
+  // Return tasks in planned order (VanTask)
+  const plan = await prisma.vanTask.findMany({ where:{ vanId: id }, orderBy:{ order:'asc' }, include:{ ride:true } });
+  const tasks = plan.map(p=> ({ id: p.rideId, status: p.ride.status, pickupLat: p.ride.pickupLat, pickupLng: p.ride.pickupLng, dropLat: p.ride.dropLat, dropLng: p.ride.dropLng, phase: p.phase }));
   return NextResponse.json({ tasks });
 }
