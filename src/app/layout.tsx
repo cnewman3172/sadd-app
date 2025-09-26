@@ -37,7 +37,7 @@ export default async function RootLayout({
   const themeCookie = cookieStore.get('theme')?.value as 'light'|'dark'|'system'|undefined;
   const isAuthed = Boolean(cookieStore.get('sadd_token')?.value);
   try {
-    const r = await fetch(`/api/health`, { cache: 'no-store' });
+    const r = await fetch(`/api/status`, { cache: 'no-store' });
     if (r.ok) { const d = await r.json(); active = Boolean(d.active); }
   } catch {}
   return (
