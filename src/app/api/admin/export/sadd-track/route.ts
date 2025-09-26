@@ -65,9 +65,14 @@ function classifyLocation(addr?: string): string{
   return 'Other';
 }
 
-function dayNameForNow(tz: string){
+function nameDateForNow(tz: string){
   try{
-    return new Intl.DateTimeFormat('en-US', { timeZone: tz || 'UTC', weekday: 'long' }).format(new Date());
+    const d = new Date();
+    const p = localParts(d, tz)!;
+    const months = ['JAN','FEB','MAR','APR','MAY','JUN','JUL','AUG','SEP','OCT','NOV','DEC'];
+    const mon = months[(p.m-1)||0];
+    const yy = String(p.y).slice(-2);
+    return `${p.da}${mon}${yy}`; // e.g., 1OCT25
   }catch{ return 'Today'; }
 }
 
@@ -105,7 +110,12 @@ export async function GET(req: Request){
       include: { rider: { select: { firstName:true, lastName:true, phone:true } }, driver: { select: { firstName:true, lastName:true, email:true } } }
     }),
     prisma.shift.findMany({
-      where: fromStr||toStr ? {} : { },
+      where: (fromStr||toStr) ? {
+        startsAt: {
+          gte: fromStr ? new Date(fromStr) : undefined,
+          lte: toStr ? (()=>{ const e=new Date(toStr); if (e.getHours()===0&&e.getMinutes()===0&&e.getSeconds()===0) e.setHours(23,59,59,999); return e; })() : undefined,
+        }
+      } : {},
       orderBy: { startsAt: 'asc' },
       include: { signups: { include: { user: { select: { id:true, firstName:true, lastName:true, email:true, phone:true, role:true } } } } }
     })
@@ -133,11 +143,14 @@ export async function GET(req: Request){
     if ((r as any).status === 'DROPPED') bucket.picked += 1; // only completed rides
   }
 
-  // Build volunteer counts by shift start date
+  // Build volunteer counts only for dates that have rides (specific night)
+  const rideKeys = new Set(Object.keys(dayAgg));
   for (const s of shifts){
     const sp = localParts(s.startsAt as any, tz);
     if (!sp) continue;
-    const bucket = ensureDayBucket(sp.y, sp.m, sp.da);
+    const key = `${sp.y}-${pad2(sp.m)}-${pad2(sp.da)}`;
+    if (!rideKeys.has(key)) continue; // only count volunteers for nights with rides
+    const bucket = dayAgg[key];
     for (const su of s.signups){ bucket.volunteerIds.add(su.userId); }
   }
 
@@ -233,9 +246,13 @@ export async function GET(req: Request){
   if (wsVol){
     const headers = headerMap(wsVol, 1);
     if (wsVol.rowCount > 1) wsVol.spliceRows(2, wsVol.rowCount-1);
+    // Only list volunteers for nights with rides
+    const rideKeys = new Set(Object.keys(dayAgg));
     for (const s of shifts){
       const dp = localParts(s.startsAt as any, tz);
       if (!dp) continue;
+      const key = `${dp.y}-${pad2(dp.m)}-${pad2(dp.da)}`;
+      if (!rideKeys.has(key)) continue;
       for (const su of s.signups){
         const u = su.user as any;
         const name = [u?.firstName, u?.lastName].filter(Boolean).join(' ');
@@ -257,7 +274,7 @@ export async function GET(req: Request){
   }
 
   // Filename per request: "SADD Tracker - <TODAY'S DAY>"
-  const day = dayNameForNow(tz);
+  const day = nameDateForNow(tz);
   const filename = `SADD Tracker - ${day}.xlsx`;
 
   const xbuf: ArrayBuffer = await wb.xlsx.writeBuffer();
@@ -269,4 +286,3 @@ export async function GET(req: Request){
     }
   });
 }
-
