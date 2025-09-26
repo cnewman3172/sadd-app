@@ -26,6 +26,13 @@ async function osrmDuration(coords: Array<[number,number]>)
   const d = await r.json();
   return d?.routes?.[0]?.duration ?? null;
 }
+async function osrmPickupEta(start:[number,number], pickup:[number,number]){
+  const base = process.env.OSRM_URL || 'https://router.project-osrm.org';
+  const r = await fetch(`${base}/route/v1/driving/${start[1]},${start[0]};${pickup[1]},${pickup[0]}?overview=false&alternatives=false`);
+  if (!r.ok) return null;
+  const d = await r.json();
+  return d?.routes?.[0]?.duration ?? null;
+}
 
 export async function GET(req: Request){
   const url = new URL(req.url);
@@ -58,18 +65,24 @@ export async function GET(req: Request){
       results.push({ vanId: v.id, name: v.name, seconds, meters });
       return;
     }
-    // Try inserting pickup/drop in the existing sequence to minimize total duration
+    // Try inserting pickup/drop in the existing sequence.
+    // Objective: minimize pickup ETA first, then total duration.
     const stopsOnly = baseStops.slice(1); // exclude start
     const N = stopsOnly.length;
-    let best = Number.POSITIVE_INFINITY;
+    let bestPickup = Number.POSITIVE_INFINITY;
+    let bestTotal = Number.POSITIVE_INFINITY;
     for (let i=0;i<=N;i++){
       for (let j=i+1;j<=N+1;j++){
         const seq = baseStops.slice(0,1).concat(stopsOnly.slice(0,i), [[ride.pickupLat,ride.pickupLng] as [number,number]], stopsOnly.slice(i,j-1), [[ride.dropLat,ride.dropLng] as [number,number]], stopsOnly.slice(j-1));
-        const d = await osrmDuration(seq);
-        if (d!=null && d < best){ best = d; }
+        const total = await osrmDuration(seq);
+        const pickupEta = await osrmPickupEta([v.currentLat!,v.currentLng!], [ride.pickupLat,ride.pickupLng]);
+        if (pickupEta==null || total==null) continue;
+        if (pickupEta < bestPickup || (Math.abs(pickupEta-bestPickup)<1 && total < bestTotal)){
+          bestPickup = pickupEta; bestTotal = total;
+        }
       }
     }
-    if (best<Number.POSITIVE_INFINITY){ results.push({ vanId: v.id, name: v.name, seconds: best, meters: 0 }); }
+    if (bestTotal<Number.POSITIVE_INFINITY){ results.push({ vanId: v.id, name: v.name, seconds: bestTotal, meters: 0 }); }
   }));
 
   results.sort((a,b)=> a.seconds - b.seconds);
