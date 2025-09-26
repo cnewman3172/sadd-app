@@ -6,7 +6,7 @@ import AddressInput from '@/components/AddressInput';
 import { showToast } from '@/components/Toast';
 import type { Ride, Van } from '@/types';
 
-export default function Dashboard(){
+export default function DashboardClient(){
   const [rides, setRides] = useState<Ride[]>([]);
   const [vans, setVans] = useState<Van[]>([]);
   const [sseStatus, setSseStatus] = useState<'connecting'|'online'|'offline'>('connecting');
