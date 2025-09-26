@@ -12,6 +12,12 @@ const roleHome: Record<string, string> = {
 
 export async function middleware(req: NextRequest) {
   const { pathname } = req.nextUrl;
+  // Avoid triggering client-side RSC fetch errors on prefetches.
+  // Next.js sends these headers when it is only prefetching.
+  const isPrefetch =
+    req.headers.get('next-router-prefetch') === '1' ||
+    req.headers.get('next-router-segment-prefetch') === '1';
+  if (isPrefetch) return NextResponse.next();
   const protectedRoutes: Array<{ path: string; roles: string[] }> = [
     { path: '/executives', roles: ['ADMIN'] },
     { path: '/dashboard', roles: ['ADMIN', 'DISPATCHER'] },
