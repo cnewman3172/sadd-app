@@ -39,73 +39,115 @@ export default function AnalyticsPage(){
     })();
   },[]);
 
+  // Derived series for small, side-by-side charts
+  const ridesTotal = ridesByDay.map(r=>r.total);
+  const ridesCompleted = ridesByDay.map(r=>r.completed);
+  const completionRate = ridesByDay.map(r=> r.total? (r.completed/r.total)*100 : 0);
+  const cancellations = ridesByDay.map(r=> Math.max(0, r.total - r.completed));
+  const pickupMins = pickupTrend.map(r=> r.avgSeconds!=null ? r.avgSeconds/60 : 0);
+  const dropMins = dropTrend.map(r=> r.avgSeconds!=null ? r.avgSeconds/60 : 0);
+  const coveragePct = coverage.map(r=> r.coverage!=null ? r.coverage : (r.needed? (r.signups/r.needed)*100 : 0));
+
+  const [ridesTodayVal, ridesTodayDelta] = lastAndDelta(ridesTotal);
+  const [completedTodayVal, completedTodayDelta] = lastAndDelta(ridesCompleted);
+  const [completionTodayVal, completionTodayDelta] = lastAndDelta(completionRate);
+  const [pickupTodayVal, pickupTodayDelta] = lastAndDelta(pickupMins, 7, true);
+  const [dropTodayVal, dropTodayDelta] = lastAndDelta(dropMins, 7, true);
+  const [coverageTodayVal, coverageTodayDelta] = lastAndDelta(coveragePct);
+
+  // Weekday distribution from last 30 days
+  const weekdayTotals: number[] = Array(7).fill(0);
+  ridesByDay.forEach(r=>{
+    const d = new Date(r.day);
+    const w = isNaN(d.getTime()) ? 0 : d.getUTCDay();
+    weekdayTotals[w] += r.completed;
+  });
+  const weekdayLabels = ['Su','Mo','Tu','We','Th','Fr','Sa'];
+
   return (
     <div className="grid gap-6">
       <section className="rounded-xl p-4 bg-white/70 dark:bg-white/10 border border-white/20">
         <h2 className="font-semibold mb-3">Key Metrics</h2>
-        <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
+        <div className="grid grid-cols-2 md:grid-cols-6 gap-3">
           <Metric title="Users" value={summary?.totalUsers?.toString() ?? '—'} />
           <Metric title="Completed Rides" value={summary?.completedRides?.toString() ?? '—'} />
           <Metric title="Canceled/No-Show" value={summary?.canceledRides?.toString() ?? '—'} />
           <Metric title="Avg Pickup Time" value={summary?.avgPickupSeconds!=null ? `${Math.round((summary!.avgPickupSeconds||0)/60)} min` : '—'} />
           <Metric title="Avg Drop-off Time" value={summary?.avgDropSeconds!=null ? `${Math.round((summary!.avgDropSeconds||0)/60)} min` : '—'} />
-        </div>
-        <div className="mt-4 grid grid-cols-1 md:grid-cols-3 gap-3">
           <Metric title="Avg Rating" value={summary?.ratings?.average ? summary!.ratings!.average!.toFixed(2) + ' ★' : '—'} />
-          <Metric title="High Reviews (4–5★)" value={String(summary?.ratings?.highCount ?? '—')} />
-          <Metric title="Low Reviews (1–3★)" value={String(summary?.ratings?.lowCount ?? '—')} />
+        </div>
+        <div className="mt-4 grid grid-cols-3 gap-3">
+          <SmallExplainer label="Today rides" value={ridesTodayVal} delta={ridesTodayDelta} suffix="" />
+          <SmallExplainer label="Today completed" value={completedTodayVal} delta={completedTodayDelta} suffix="" />
+          <SmallExplainer label="Completion rate" value={completionTodayVal} delta={completionTodayDelta} suffix="%" />
         </div>
         <ExportAndResetRow />
       </section>
 
-      <section className="rounded-xl p-4 bg-white/70 dark:bg-white/10 border border-white/20">
-        <h2 className="font-semibold mb-2">Rides Per Day (last 30 days)</h2>
-        {ridesByDay.length===0 ? (
-          <div className="text-sm opacity-70">Loading…</div>
-        ) : (
-          <div>
-            <LineChart points={ridesByDay.map((r,i)=>({ x:i, y:r.total }))} color="#6b7280" fill className="h-32" />
-            <LineChart points={ridesByDay.map((r,i)=>({ x:i, y:r.completed }))} color="#0ea5e9" className="h-20 -mt-8" />
-            <div className="text-xs opacity-70 mt-1 flex items-center gap-3">
-              <span className="inline-flex items-center gap-1"><span className="inline-block w-3 h-1 bg-[#6b7280]"></span>Total</span>
-              <span className="inline-flex items-center gap-1"><span className="inline-block w-3 h-1 bg-[#0ea5e9]"></span>Completed</span>
+      <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+        <ChartCard title="Rides Per Day" subtitle="Last 30 days" stat={fmtNumber(ridesTodayVal)} delta={ridesTodayDelta}>
+          {ridesByDay.length===0 ? (
+            <div className="text-sm opacity-70">Loading…</div>
+          ) : (
+            <div>
+              <LineChart points={ridesByDay.map((r,i)=>({ x:i, y:r.total }))} color="#6b7280" fill className="h-24" />
+              <LineChart points={ridesByDay.map((r,i)=>({ x:i, y:r.completed }))} color="#0ea5e9" className="h-16 -mt-8" />
+              <div className="text-[11px] opacity-70 mt-1 flex items-center gap-3">
+                <span className="inline-flex items-center gap-1"><span className="inline-block w-3 h-1 bg-[#6b7280]"></span>Total</span>
+                <span className="inline-flex items-center gap-1"><span className="inline-block w-3 h-1 bg-[#0ea5e9]"></span>Completed</span>
+              </div>
             </div>
-          </div>
-        )}
-      </section>
+          )}
+        </ChartCard>
 
-      <section className="rounded-xl p-4 bg-white/70 dark:bg-white/10 border border-white/20">
-        <h2 className="font-semibold mb-1">Average Pickup Time (minutes)</h2>
-        {pickupTrend.length===0 ? (
-          <div className="text-sm opacity-70">Loading…</div>
-        ) : (
-          <LineChart points={pickupTrend.map((r,i)=>({ x:i, y: r.avgSeconds!=null? (r.avgSeconds/60):0 }))} color="#16a34a" fill className="h-32" />
-        )}
-        <div className="text-xs opacity-70 mt-2">Average minutes from request to pickup (daily, last 30 days).</div>
-      </section>
+        <ChartCard title="Completion Rate" subtitle="% completed of total" stat={fmtNumber(completionTodayVal) + '%'} delta={completionTodayDelta}>
+          {completionRate.length===0 ? (
+            <div className="text-sm opacity-70">No data</div>
+          ) : (
+            <LineChart points={completionRate.map((v,i)=>({x:i,y:v}))} color="#22c55e" fill className="h-24" yMax={100} />
+          )}
+        </ChartCard>
 
-      <section className="rounded-xl p-4 bg-white/70 dark:bg-white/10 border border-white/20">
-        <h2 className="font-semibold mb-1">Average Drop-off Time (minutes)</h2>
-        {dropTrend.length===0 ? (
-          <div className="text-sm opacity-70">Loading…</div>
-        ) : (
-          <LineChart points={dropTrend.map((r,i)=>({ x:i, y: r.avgSeconds!=null? (r.avgSeconds/60):0 }))} color="#ef4444" fill className="h-32" />
-        )}
-        <div className="text-xs opacity-70 mt-2">Average minutes from pickup to drop-off (daily, last 30 days).</div>
-      </section>
+        <ChartCard title="Cancellations" subtitle="Total - completed" stat={fmtNumber(cancellations.at(-1) || 0)} delta={percentDeltaFromSeries(cancellations)}>
+          {cancellations.length===0 ? (
+            <div className="text-sm opacity-70">No data</div>
+          ) : (
+            <BarChart bars={cancellations.map((v,i)=>({ label: String(i+1), value: v }))} color="#f97316" className="h-24" />
+          )}
+        </ChartCard>
 
-      <section className="rounded-xl p-4 bg-white/70 dark:bg-white/10 border border-white/20">
-        <h2 className="font-semibold mb-1">Shift Coverage (posted vs signups)</h2>
-        {coverage.length===0 ? (
-          <div className="text-sm opacity-70">Loading…</div>
-        ) : (
-          <div>
-            <BarChart bars={coverage.map(r=>({ label:r.day.slice(5), value: r.needed }))} color="#64748b" className="h-28" />
-            <BarChart bars={coverage.map(r=>({ label:r.day.slice(5), value: r.signups }))} color="#0ea5e9" className="h-28 mt-2" />
-            <div className="text-xs opacity-70 mt-2">Grey = needed, Blue = signups. Coverage target ≥ 100%.</div>
-          </div>
-        )}
-      </section>
+        <ChartCard title="Pickup Time" subtitle="Minutes (avg)" stat={fmtNumber(pickupTodayVal)} delta={pickupTodayDelta} suffix=" min">
+          {pickupMins.length===0 ? (
+            <div className="text-sm opacity-70">No data</div>
+          ) : (
+            <LineChart points={pickupMins.map((v,i)=>({x:i,y:v}))} color="#16a34a" fill className="h-24" />
+          )}
+        </ChartCard>
+
+        <ChartCard title="Drop-off Time" subtitle="Minutes (avg)" stat={fmtNumber(dropTodayVal)} delta={dropTodayDelta} suffix=" min">
+          {dropMins.length===0 ? (
+            <div className="text-sm opacity-70">No data</div>
+          ) : (
+            <LineChart points={dropMins.map((v,i)=>({x:i,y:v}))} color="#ef4444" fill className="h-24" />
+          )}
+        </ChartCard>
+
+        <ChartCard title="Coverage %" subtitle="Signups vs needed" stat={fmtNumber(coverageTodayVal) + '%'} delta={coverageTodayDelta}>
+          {coveragePct.length===0 ? (
+            <div className="text-sm opacity-70">No data</div>
+          ) : (
+            <LineChart points={coveragePct.map((v,i)=>({x:i,y:v}))} color="#6366f1" fill className="h-24" yMax={150} />
+          )}
+        </ChartCard>
+
+        <ChartCard title="By Weekday" subtitle="Completed rides (last 30d)" stat={''}>
+          {ridesByDay.length===0 ? (
+            <div className="text-sm opacity-70">No data</div>
+          ) : (
+            <BarChart bars={weekdayTotals.map((v,i)=>({ label: weekdayLabels[i], value: v }))} color="#0ea5e9" className="h-24" />
+          )}
+        </ChartCard>
+      </div>
 
       {/* Reset moved inline with Export above */}
     </div>
@@ -117,6 +159,21 @@ function Metric({title, value}:{title:string; value:string}){
     <div className="rounded-lg p-3 bg-white/60 dark:bg-white/5 border border-white/20">
       <div className="text-xs opacity-70">{title}</div>
       <div className="text-xl font-semibold">{value}</div>
+    </div>
+  );
+}
+
+function SmallExplainer({ label, value, delta, suffix='' }:{ label:string; value:number|null; delta:number|null; suffix?:string }){
+  const val = value==null ? '—' : `${fmtNumber(value)}${suffix}`;
+  const d = delta==null ? '' : `${delta>0?'+':''}${fmtNumber(delta)}%`;
+  const color = delta==null? 'opacity-60' : (delta>0? 'text-emerald-600 dark:text-emerald-400' : delta<0 ? 'text-red-600 dark:text-red-400' : 'opacity-60');
+  return (
+    <div className="rounded-lg p-3 bg-white/60 dark:bg-white/5 border border-white/20">
+      <div className="text-xs opacity-70">{label}</div>
+      <div className="flex items-baseline gap-2">
+        <div className="text-lg font-semibold tabular-nums">{val}</div>
+        <div className={`text-xs tabular-nums ${color}`}>{d}</div>
+      </div>
     </div>
   );
 }
