@@ -253,6 +253,10 @@ function ExportAndResetRow(){
     + (from?`&from=${encodeURIComponent(from)}`:'')
     + (to?`&to=${encodeURIComponent(to)}`:'')
     + (tz?`&tz=${encodeURIComponent(tz)}`:'');
+  const hrefSadd = '/api/admin/export/sadd-track'
+    + (from?`?from=${encodeURIComponent(from)}`:'')
+    + (from||to||tz?`${from?'':'?'}${from&&to?'&':''}${to?`to=${encodeURIComponent(to)}`:''}`:'')
+    + (from||to||tz?`${(from||to)?'&':'?'}tz=${encodeURIComponent(tz||'UTC')}`:'');
   return (
         <div className="mt-4 flex items-end justify-between gap-3">
           <div className="flex items-end gap-2">
@@ -265,6 +269,7 @@ function ExportAndResetRow(){
           <input type="date" value={to} onChange={(e)=> setTo(e.target.value)} className="block p-2 rounded border bg-white/80 dark:bg-neutral-800 text-sm text-black dark:text-white" />
             </div>
             <a className="rounded border px-3 py-2 text-sm" href={hrefXlsx}>Export Data</a>
+            <a className="rounded border px-3 py-2 text-sm" href={hrefSadd}>SADD Track</a>
             {tz && <div className="text-xs opacity-60 ml-2">Times in {tz}</div>}
           </div>
       <div className="ml-auto">
