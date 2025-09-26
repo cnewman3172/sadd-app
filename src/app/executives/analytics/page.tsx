@@ -1,11 +1,14 @@
 "use client";
 import { useEffect, useState } from 'react';
+import { LineChart, BarChart } from '@/components/Charts';
 
 type Summary = { totalUsers:number; totalRides:number; activeRides:number; ridesToday:number; activeVans:number; ratings?: { average:number|null; lowCount:number; highCount:number; totalReviews:number } };
 
 export default function AnalyticsPage(){
   const [summary, setSummary] = useState<Summary | null>(null);
-  const [statusCounts, setStatusCounts] = useState<Record<string, number>>({});
+  const [ridesByDay, setRidesByDay] = useState<Array<{day:string; total:number; completed:number}>>([]);
+  const [pickupTrend, setPickupTrend] = useState<Array<{day:string; avgSeconds:number|null; sample:number}>>([]);
+  const [coverage, setCoverage] = useState<Array<{day:string; shifts:number; needed:number; signups:number; coverage:number|null}>>([]);
   const [smtpConfigured, setSmtpConfigured] = useState<boolean|null>(null);
   const [smtpMissing, setSmtpMissing] = useState<string>('');
 
@@ -26,9 +29,15 @@ export default function AnalyticsPage(){
           setSmtpConfigured(false);
         }
       }catch{ setSmtpConfigured(false); }
-      const statuses = ['PENDING','ASSIGNED','EN_ROUTE','PICKED_UP','DROPPED','CANCELED'];
-      const results = await Promise.all(statuses.map(st => fetch(`/api/rides?status=${st}&take=200`, { cache: 'no-store' }).then(r=>r.json()).then((arr:any[])=>[st, arr.length] as const)));
-      setStatusCounts(Object.fromEntries(results));
+      try{
+        const tz = Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC';
+        const [rb, pt, sc] = await Promise.all([
+          fetch(`/api/admin/analytics/rides-by-day?days=30&tz=${encodeURIComponent(tz)}`, { cache:'no-store' }).then(r=>r.json()).catch(()=>[]),
+          fetch(`/api/admin/analytics/pickup-trend?days=30&tz=${encodeURIComponent(tz)}`, { cache:'no-store' }).then(r=>r.json()).catch(()=>[]),
+          fetch(`/api/admin/analytics/shift-coverage?days=30&tz=${encodeURIComponent(tz)}`, { cache:'no-store' }).then(r=>r.json()).catch(()=>[]),
+        ]);
+        setRidesByDay(rb||[]); setPickupTrend(pt||[]); setCoverage(sc||[]);
+      }catch{}
     })();
   },[]);
 
@@ -55,13 +64,39 @@ export default function AnalyticsPage(){
       </section>
 
       <section className="rounded-xl p-4 bg-white/70 dark:bg-white/10 border border-white/20">
-        <h2 className="font-semibold mb-3">Ride Status Breakdown</h2>
-        <div className="space-y-2">
-          {Object.entries(statusCounts).map(([st, n])=> (
-            <Bar key={st} label={st} value={n} max={Math.max(1, ...Object.values(statusCounts))} />
-          ))}
-          {Object.keys(statusCounts).length===0 && <div className="text-sm opacity-70">Loading…</div>}
-        </div>
+        <h2 className="font-semibold mb-3">Rides Per Day (30 days)</h2>
+        {ridesByDay.length===0 ? (
+          <div className="text-sm opacity-70">Loading…</div>
+        ) : (
+          <div>
+            <LineChart points={ridesByDay.map((r,i)=>({ x:i, y:r.total }))} color="#111" fill className="h-32" />
+            <div className="text-xs opacity-70 mt-2">Completed rides shown as darker overlay below.</div>
+            <LineChart points={ridesByDay.map((r,i)=>({ x:i, y:r.completed }))} color="#0ea5e9" className="h-16 mt-1" />
+          </div>
+        )}
+      </section>
+
+      <section className="rounded-xl p-4 bg-white/70 dark:bg-white/10 border border-white/20">
+        <h2 className="font-semibold mb-1">Average Pickup Time (minutes)</h2>
+        {pickupTrend.length===0 ? (
+          <div className="text-sm opacity-70">Loading…</div>
+        ) : (
+          <LineChart points={pickupTrend.map((r,i)=>({ x:i, y: r.avgSeconds!=null? (r.avgSeconds/60):0 }))} color="#16a34a" fill className="h-32" />
+        )}
+        <div className="text-xs opacity-70 mt-2">Daily average between request and pickup (last 30 days).</div>
+      </section>
+
+      <section className="rounded-xl p-4 bg-white/70 dark:bg-white/10 border border-white/20">
+        <h2 className="font-semibold mb-1">Shift Coverage (posted vs signups)</h2>
+        {coverage.length===0 ? (
+          <div className="text-sm opacity-70">Loading…</div>
+        ) : (
+          <div>
+            <BarChart bars={coverage.map(r=>({ label:r.day.slice(5), value: r.needed }))} color="#64748b" className="h-28" />
+            <BarChart bars={coverage.map(r=>({ label:r.day.slice(5), value: r.signups }))} color="#0ea5e9" className="h-28 mt-2" />
+            <div className="text-xs opacity-70 mt-2">Grey = needed, Blue = signups. Coverage target ≥ 100%.</div>
+          </div>
+        )}
       </section>
 
       {/* Reset moved inline with Export above */}
