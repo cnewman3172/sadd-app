@@ -76,6 +76,10 @@ export default function DrivingClient(){
   async function goOffline(){
     const res = await fetch('/api/driver/go-offline', { method:'POST' });
     if (res.ok) { stopPings(); refreshTasks(); }
+    else {
+      const d = await res.json().catch(()=>({ error:'Unable to go offline' }));
+      showToast(d.error || 'Unable to go offline');
+    }
   }
   async function setStatus(id:string, status:string){
     if (!confirm(`Mark #${id.slice(0,8)} as ${status}?`)) return;
