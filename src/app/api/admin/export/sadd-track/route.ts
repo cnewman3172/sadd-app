@@ -85,7 +85,8 @@ export async function GET(req: Request){
   const tz = url.searchParams.get('tz') || 'UTC';
   const fromStr = url.searchParams.get('from') || '';
   const toStr = url.searchParams.get('to') || '';
-  const templatePath = decodeURIComponent(url.searchParams.get('template') || '/tmp/upload-2197030802/SADD Tracker.xlsx');
+  const defaultTemplate = `${process.cwd()}/public/templates/SADD Tracker.xlsx`;
+  const templatePath = decodeURIComponent(url.searchParams.get('template') || defaultTemplate);
 
   const where: any = {};
   if (fromStr || toStr){
