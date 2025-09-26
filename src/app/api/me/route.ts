@@ -25,7 +25,8 @@ export async function PUT(req: Request){
   const payload = await verifyJwt(token);
   if (!payload) return NextResponse.json({}, { status: 401 });
   const body = await req.json();
-  const { firstName, lastName, rank, unit, phone, checkRide } = body;
-  const user = await prisma.user.update({ where: { id: payload.uid }, data: { firstName, lastName, rank, unit, phone, ...(typeof checkRide==='boolean'? { checkRide } : {}) } });
+  const { firstName, lastName, rank, unit, phone } = body;
+  // Security: checkRide is managed by executives only; ignore any client-provided value here.
+  const user = await prisma.user.update({ where: { id: payload.uid }, data: { firstName, lastName, rank, unit, phone } });
   return NextResponse.json({ ...user, password: undefined });
 }
