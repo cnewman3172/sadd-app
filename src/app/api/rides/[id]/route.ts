@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { verifyJwt } from '@/lib/jwt';
-import { verifyJwt } from '@/lib/jwt';
 import { z } from 'zod';
 import { captureError } from '@/lib/obs';
 import { publish } from '@/lib/events';
