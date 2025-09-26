@@ -79,7 +79,7 @@ export async function POST(req: Request){
       vanId: van.id,
       acceptedAt: new Date(),
     }});
-  publish('ride:update', { id: ride.id, status: ride.status, code: ride.rideCode, vanId: ride.vanId });
+  publish('ride:update', { id: ride.id, status: ride.status, code: ride.rideCode, vanId: ride.vanId, riderId: ride.riderId });
   try{
     const msg = `New walk-on #${ride.rideCode}`;
     await Promise.all([

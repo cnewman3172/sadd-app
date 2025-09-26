@@ -91,7 +91,7 @@ export async function PUT(req: NextRequest, context: { params: Promise<{ id: str
   try{
   const prev = await prisma.ride.findUnique({ where: { id } });
   const ride = await prisma.ride.update({ where: { id }, data });
-  publish('ride:update', { id: ride.id, status: ride.status, code: ride.rideCode, vanId: ride.vanId });
+  publish('ride:update', { id: ride.id, status: ride.status, code: ride.rideCode, vanId: ride.vanId, riderId: ride.riderId });
   try{
     // Notify on assignment events
     const assignedNow = (!prev?.vanId && !!ride.vanId) || (prev?.status!=='ASSIGNED' && ride.status==='ASSIGNED');
