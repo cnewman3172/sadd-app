@@ -34,10 +34,23 @@ export async function POST(req: Request){
       if (!addr) return null as null | { lat:number; lon:number };
       try{
         const endpoint = process.env.NOMINATIM_URL || 'https://nominatim.openstreetmap.org';
-        const r = await fetch(`${endpoint}/search?format=jsonv2&q=${encodeURIComponent(addr)}`, { headers: { 'User-Agent':'SADD/1.0 (admin-create)' } });
+        const countrycodes = (process.env.GEO_COUNTRYCODES || 'us').trim();
+        const viewbox = (process.env.GEO_BIAS_VIEWBOX || '-179.231086,71.5388,-129.9795,51.2097').trim();
+        const allowStates = (process.env.GEO_ALLOW_STATES || 'AK').split(',').map(s=>s.trim()).filter(Boolean);
+        const allowIsos = (process.env.GEO_ALLOW_ISO || 'US-AK').split(',').map(s=>s.trim()).filter(Boolean);
+        const allowStateNames = (process.env.GEO_ALLOW_STATE_NAMES || 'Alaska').split(',').map(s=>s.trim()).filter(Boolean);
+        const url = `${endpoint}/search?format=jsonv2&addressdetails=1&q=${encodeURIComponent(addr)}&countrycodes=${encodeURIComponent(countrycodes)}&viewbox=${encodeURIComponent(viewbox)}&bounded=1&limit=5`;
+        const r = await fetch(url, { headers: { 'User-Agent':'SADD/1.0 (admin-create)' } });
         if (!r.ok) return null;
         const d = await r.json();
-        const first = Array.isArray(d) && d[0];
+        const filtered = (Array.isArray(d)? d: []).filter((x:any)=>{
+          const addr = x.address || {};
+          const iso = addr["ISO3166-2-lvl4"] || addr["ISO3166-2-lvl3"] || '';
+          return (addr.state_code && allowStates.includes(addr.state_code))
+            || (addr.state && allowStateNames.includes(addr.state))
+            || (iso && allowIsos.includes(iso));
+        });
+        const first = filtered[0];
         if (first && first.lat && first.lon) return { lat: Number(first.lat), lon: Number(first.lon) };
       }catch{}
       return null;

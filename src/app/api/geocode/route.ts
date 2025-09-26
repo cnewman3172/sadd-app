@@ -17,6 +17,9 @@ export async function GET(req: Request){
   const limit = Number(process.env.GEOCODE_LIMIT||'10')||10;
   const countrycodes = (process.env.GEO_COUNTRYCODES || 'us').trim();
   const viewbox = (process.env.GEO_BIAS_VIEWBOX || '-179.231086,71.5388,-129.9795,51.2097').trim(); // Alaska bias (left,top,right,bottom)
+  const allowStates = (process.env.GEO_ALLOW_STATES || 'AK').split(',').map(s=>s.trim()).filter(Boolean);
+  const allowIsos = (process.env.GEO_ALLOW_ISO || 'US-AK').split(',').map(s=>s.trim()).filter(Boolean);
+  const allowStateNames = (process.env.GEO_ALLOW_STATE_NAMES || 'Alaska').split(',').map(s=>s.trim()).filter(Boolean);
   // Ask Nominatim for address + name details and bound to Alaska viewbox
   const urlSearch = `${endpoint}/search?format=jsonv2&addressdetails=1&namedetails=1&q=${encodeURIComponent(q)}&limit=${limit}&countrycodes=${encodeURIComponent(countrycodes)}&viewbox=${encodeURIComponent(viewbox)}&bounded=1`;
   const r = await fetch(urlSearch, {
@@ -26,7 +29,8 @@ export async function GET(req: Request){
   // Only return Alaska results with simplified labels
   function toLabel(d:any){
     const addr = d.address || {};
-    const stateCode = addr.state_code || (addr["ISO3166-2-lvl4"] === 'US-AK' ? 'AK' : undefined) || (addr.state === 'Alaska' ? 'AK' : undefined) || addr.state;
+    const iso = addr["ISO3166-2-lvl4"] || addr["ISO3166-2-lvl3"];
+    const stateCode = addr.state_code || (iso && allowIsos.includes(iso) ? (allowStates[0]||'') : undefined) || (allowStateNames.includes(addr.state) ? (allowStates[0]||'') : undefined) || addr.state;
     const name = (d.namedetails && (d.namedetails.name || d.namedetails["name:en"])) || d.name || addr.amenity || addr.shop || addr.tourism || addr.leisure || addr.office || addr.building || '';
     const streetName = addr.road || addr.residential || addr.pedestrian || addr.footway || addr.highway || addr.street || '';
     const house = addr.house_number ? `${addr.house_number} ` : '';
@@ -38,11 +42,13 @@ export async function GET(req: Request){
     if (name && base) return `${name}, ${base}`;
     return base || d.display_name;
   }
-  const alaskaOnly = (data as any[]).filter((d:any)=>{
+  const filtered = (data as any[]).filter((d:any)=>{
     const addr = d.address || {};
     const iso = addr["ISO3166-2-lvl4"] || addr["ISO3166-2-lvl3"] || '';
-    const inAK = addr.state === 'Alaska' || addr.state_code === 'AK' || iso === 'US-AK';
-    return inAK;
+    const inAllowed = (addr.state_code && allowStates.includes(addr.state_code))
+      || (addr.state && allowStateNames.includes(addr.state))
+      || (iso && allowIsos.includes(iso));
+    return inAllowed;
   });
-  return NextResponse.json(alaskaOnly.map((d:any)=>({ label: toLabel(d), lat: Number(d.lat), lon: Number(d.lon) })));
+  return NextResponse.json(filtered.map((d:any)=>({ label: toLabel(d), lat: Number(d.lat), lon: Number(d.lon) })));
 }
