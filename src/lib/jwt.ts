@@ -1,7 +1,17 @@
 import { SignJWT, jwtVerify } from 'jose';
 
 const encoder = new TextEncoder();
-const secret = () => encoder.encode(process.env.JWT_SECRET || 'devsecret');
+function getJwtSecret(){
+  const s = process.env.JWT_SECRET;
+  if (!s){
+    if (process.env.NODE_ENV === 'production'){
+      throw new Error('JWT_SECRET is required in production');
+    }
+    return 'devsecret';
+  }
+  return s;
+}
+const secret = () => encoder.encode(getJwtSecret());
 
 export type JwtPayload = { uid: string; role: string };
 
@@ -22,4 +32,3 @@ export async function verifyJwt(token?: string): Promise<JwtPayload | null> {
     return null;
   }
 }
-
