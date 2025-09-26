@@ -18,7 +18,10 @@ export async function POST(req: Request){
       return NextResponse.json({ error:'Complete or reassign all tasks before going offline.' }, { status: 400 });
     }
   }
-  await prisma.van.updateMany({ where:{ activeTcId: payload.uid }, data:{ activeTcId: null, status: 'OFFLINE', passengers: 0 } });
+  await prisma.$transaction(async(tx)=>{
+    await tx.van.updateMany({ where:{ activeTcId: payload.uid }, data:{ activeTcId: null, status: 'OFFLINE', passengers: 0 } });
+    if (van){ await tx.vanTask.deleteMany({ where:{ vanId: van.id } }); }
+  });
   publish('vans:update', { by: payload.uid });
   logAudit('driver_offline', payload.uid);
   return NextResponse.json({ ok:true });

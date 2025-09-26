@@ -4,6 +4,11 @@ import { verifyJwt } from '@/lib/jwt';
 
 export const runtime = 'nodejs';
 
+// Lightweight in-memory cache per process
+type CacheEntry = { ts: number; body: any };
+const cache = new Map<string, CacheEntry>();
+const TTL_MS = Number(process.env.PLAN_ETA_TTL_MS || '8000');
+
 function haversineMeters(lat1:number, lon1:number, lat2:number, lon2:number){
   const R = 6371000; const toRad = (d:number)=> d*Math.PI/180;
   const dLat = toRad(lat2-lat1); const dLon = toRad(lon2-lon1);
@@ -14,15 +19,28 @@ function haversineMeters(lat1:number, lon1:number, lat2:number, lon2:number){
 export async function GET(req: NextRequest){
   const url = new URL(req.url);
   const vanId = url.searchParams.get('vanId') || '';
+  const bust = url.searchParams.get('bust') === '1';
   const token = (req.headers.get('cookie')||'').split('; ').find(c=>c.startsWith('sadd_token='))?.split('=')[1];
   const payload = await verifyJwt(token);
   if (!payload || !['ADMIN','DISPATCHER','TC'].includes(payload.role)) return NextResponse.json({ error:'forbidden' }, { status: 403 });
   if (!vanId) return NextResponse.json({ error:'vanId required' }, { status: 400 });
 
+  // Serve from cache if fresh
+  if (!bust){
+    const ent = cache.get(vanId);
+    if (ent && (Date.now() - ent.ts) < TTL_MS){
+      return new NextResponse(JSON.stringify(ent.body), { status: 200, headers: { 'Content-Type':'application/json', 'Cache-Control': 'no-store' } });
+    }
+  }
+
   const van = await prisma.van.findUnique({ where:{ id: vanId } });
   if (!van || typeof van.currentLat!=='number' || typeof van.currentLng!=='number') return NextResponse.json({ error:'van location unknown' }, { status: 400 });
   const plan = await prisma.vanTask.findMany({ where:{ vanId }, orderBy:{ order:'asc' }, include:{ ride:true } });
-  if (plan.length===0) return NextResponse.json({ tasks: [], etas: {} });
+  if (plan.length===0){
+    const body = { tasks: [], etas: {} };
+    cache.set(vanId, { ts: Date.now(), body });
+    return NextResponse.json(body);
+  }
 
   // Build coords with collapse of near-duplicate points
   const start:[number,number]=[van.currentLat, van.currentLng];
@@ -57,6 +75,7 @@ export async function GET(req: NextRequest){
     etas[p.rideId] = entry; idx += 1;
   }
   const tasks = plan.map(p=> ({ rideId: p.rideId, phase: p.phase, order: p.order }));
-  return NextResponse.json({ tasks, etas });
+  const body = { tasks, etas };
+  cache.set(vanId, { ts: Date.now(), body });
+  return NextResponse.json(body);
 }
-
