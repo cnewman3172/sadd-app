@@ -24,6 +24,8 @@ export default function DashboardClient(){
   const [activeEtas, setActiveEtas] = useState<Record<string, { toPickupSec: number|null; toDropSec: number|null }>>({});
   const lastEtaRef = (typeof window!=='undefined' ? (window as any).__etaRef : null) || { current: 0 } as { current: number };
   const [notifOk, setNotifOk] = useState<boolean>(true);
+  const [fallbackByVan, setFallbackByVan] = useState<Record<string, boolean>>({});
+  const [autoModal, setAutoModal] = useState<{ open:boolean; ride: Ride|null; best: { vanId:string; name:string; seconds:number }|null }>({ open:false, ride:null, best:null });
 
   async function refresh(){
     const [r, v] = await Promise.all([
@@ -94,9 +96,12 @@ export default function DashboardClient(){
     rArr.filter((r:any)=> ['ASSIGNED','EN_ROUTE','PICKED_UP'].includes(r.status) && r.vanId)
       .forEach((r:any)=>{ (byVan[r.vanId!] ||= []).push(r); });
     const result: Record<string, { toPickupSec: number|null; toDropSec: number|null }> = { };
+    const fb: Record<string, boolean> = {};
     for (const vanId of Object.keys(byVan)){
       try{
-        const d = await fetch(`/api/plan/eta?vanId=${vanId}`, { cache:'no-store' }).then(r=>r.json());
+        const res = await fetch(`/api/plan/eta?vanId=${vanId}`, { cache:'no-store' });
+        const d = await res.json();
+        fb[vanId] = res.headers.get('X-Plan-ETA-Fallback') === '1';
         const m = (d?.etas)||{};
         for (const r of byVan[vanId]){
           result[r.id] = { toPickupSec: m[r.id]?.toPickupSec ?? null, toDropSec: m[r.id]?.toDropSec ?? null };
@@ -104,6 +109,7 @@ export default function DashboardClient(){
       }catch{}
     }
     setActiveEtas(result);
+    setFallbackByVan(fb);
   }
   function candidateCount(r: Ride){
     return vans.filter(v=> v.status==='ACTIVE' && typeof v.currentLat==='number' && typeof v.currentLng==='number' && (v.capacity||0) >= (r.passengers||1)).length;
@@ -112,10 +118,8 @@ export default function DashboardClient(){
   async function quickAssign(r: Ride){
     const s = await fetch(`/api/assign/suggest?rideId=${r.id}`).then(r=>r.json());
     const best = s.ranked?.[0];
-    if (!best) return showToast('No suitable vans online.');
-    const mins = Math.round((best.seconds||0)/60);
-    if (!confirm(`Assign ${best.name} (~${mins} min) to #${r.rideCode}?`)) return;
-    await setStatus(r.id, 'ASSIGNED', best.vanId);
+    if (!best) { showToast('No suitable vans online.'); return; }
+    setAutoModal({ open:true, ride: r, best: { vanId: best.vanId, name: best.name, seconds: Number(best.seconds||0) } });
   }
 
   async function setStatus(id:string, status:string, vanId?:string){
@@ -246,7 +250,7 @@ export default function DashboardClient(){
               <div key={r.id} className="rounded border p-3 flex flex-col gap-2">
                 <div className="flex items-center justify-between">
                   <div className="font-medium">#{r.rideCode} · {displayName(r as any)}</div>
-                  <div className="text-xs opacity-70">
+                  <div className="text-xs opacity-70 flex items-center gap-2 flex-wrap">
                     {r.status}
                     {(() => {
                       const e = activeEtas[r.id];
@@ -257,6 +261,12 @@ export default function DashboardClient(){
                       if (pick && drop) return <> · Pickup ETA {pick} · Drop ETA {drop}</>;
                       if (pick) return <> · Pickup ETA {pick}</>;
                       return null;
+                    })()}
+                    {(() => {
+                      const vid = (r as any).vanId as string|undefined;
+                      if (!vid) return null;
+                      if (!fallbackByVan[vid]) return null;
+                      return <span className="text-[10px] rounded-full px-2 py-0.5 border border-amber-500 text-amber-700">Fallback ETA</span>;
                     })()}
                   </div>
                 </div>
@@ -366,6 +376,25 @@ export default function DashboardClient(){
                   finally{ setManualBusy(false); }
                 }} className="rounded bg-black text-white px-3 py-1 text-sm">Create Ride</button>
               </div>
+            </div>
+          </div>
+        </div>
+      )}
+      {autoModal.open && autoModal.ride && autoModal.best && (
+        <div className="fixed inset-0 bg-black/40 grid place-items-center p-4" role="dialog" aria-modal="true">
+          <div className="w-full max-w-md rounded-xl bg-white dark:bg-neutral-900 border border-white/20 p-4">
+            <div className="flex items-center justify-between mb-2">
+              <h3 className="font-semibold">Auto Assign</h3>
+              <button onClick={()=> setAutoModal({ open:false, ride:null, best:null })} aria-label="Close">✕</button>
+            </div>
+            <div className="text-sm opacity-80 mb-3">
+              Assign <span className="font-medium">{autoModal.best.name}</span>
+              {` (~${Math.max(1, Math.round((autoModal.best.seconds||0)/60))} min)`}
+              {` to #${autoModal.ride.rideCode}?`}
+            </div>
+            <div className="flex justify-end gap-2">
+              <button onClick={()=> setAutoModal({ open:false, ride:null, best:null })} className="rounded border px-3 py-1 text-sm">Cancel</button>
+              <button onClick={async()=>{ await setStatus(autoModal.ride!.id, 'ASSIGNED', autoModal.best!.vanId); setAutoModal({ open:false, ride:null, best:null }); }} className="rounded bg-black text-white px-3 py-1 text-sm">Assign</button>
             </div>
           </div>
         </div>
