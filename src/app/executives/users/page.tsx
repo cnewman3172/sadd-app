@@ -1,5 +1,6 @@
 "use client";
 import { useEffect, useState } from 'react';
+import { showToast } from '@/components/Toast';
 import Modal from '@/components/Modal';
 
 type U = { id:string; email:string; firstName:string; lastName:string; role:string; createdAt:string };
@@ -51,7 +52,7 @@ export default function UsersPage(){
                   <select defaultValue={u.role} className="p-1 rounded border bg-white/80 dark:bg-neutral-800 text-black dark:text-white" onChange={async(e)=>{
                     const role = e.target.value;
                     const res = await fetch(`/api/admin/users/${u.id}`, { method:'PUT', headers:{ 'Content-Type':'application/json' }, body: JSON.stringify({ role }) });
-                    if (!res.ok) { alert('Update failed'); (e.target as HTMLSelectElement).value = u.role; return; }
+                    if (!res.ok) { showToast('Update failed'); (e.target as HTMLSelectElement).value = u.role; return; }
                     setUsers(prev=> prev.map(x=> x.id===u.id ? { ...x, role } : x));
                   }}>
                     <option value="ADMIN">ADMIN</option>
@@ -105,7 +106,7 @@ function EditModal({ open, onClose, form, setForm, user, onSaved }:{ open:boolea
                 if (!res.ok){ const d = await res.json().catch(()=>({error:'failed'})); throw new Error(d.error||'Save failed'); }
                 const updated = await res.json();
                 onSaved({ ...user, ...form });
-              }catch(e:any){ alert(e.message||'Save failed'); }
+              }catch(e:any){ showToast(e?.message||'Save failed'); }
             }}>Save</button>
           </div>
         </div>
