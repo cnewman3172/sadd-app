@@ -76,6 +76,18 @@ function ExportSaddTracker(){
     + (fy?`?fy=${encodeURIComponent(fy)}`:(from?`?from=${encodeURIComponent(from)}`:''))
     + (from||to ? `${fy?'&':''}${from&&to?'&':''}${to?`to=${encodeURIComponent(to)}`:''}`:'')
     + `${(fy||from||to)?'&':'?'}tz=${encodeURIComponent(tz||'UTC')}`;
+  function fileName(){
+    try{
+      const d = new Date();
+      const z = tz || 'UTC';
+      const fmt = new Intl.DateTimeFormat('en-US', { timeZone: z, year:'2-digit', month:'short', day:'numeric' });
+      // We want like 1OCT25
+      const mm = new Intl.DateTimeFormat('en-US', { timeZone: z, month:'short' }).format(d).toUpperCase();
+      const day = new Intl.DateTimeFormat('en-US', { timeZone: z, day:'numeric' }).format(d);
+      const yy = new Intl.DateTimeFormat('en-US', { timeZone: z, year:'2-digit' }).format(d);
+      return `SADD Tracker - ${day}${mm}${yy}.xlsx`;
+    }catch{ return 'SADD Tracker.xlsx'; }
+  }
 
   return (
     <section className="rounded-xl p-4 bg-white/70 dark:bg-white/10 border border-white/20">
@@ -99,7 +111,7 @@ function ExportSaddTracker(){
         <div className="text-xs opacity-60">Times in {tz||'UTC'}</div>
       </div>
       <div className="mt-3">
-        <a className={`rounded border px-3 py-2 text-sm ${hasData?'':'pointer-events-none opacity-50'}`} aria-disabled={!hasData} href={hasData? href : undefined}>Export SADD Tracker</a>
+        <a className={`rounded border px-3 py-2 text-sm ${hasData?'':'pointer-events-none opacity-50'}`} aria-disabled={!hasData} href={hasData? href : undefined} download={fileName()}>Export SADD Tracker</a>
         {!hasData && <div className="mt-2 text-xs opacity-70">No data in selected range.</div>}
       </div>
     </section>
@@ -153,4 +165,3 @@ function ResetRidesCard(){
     </section>
   );
 }
-
