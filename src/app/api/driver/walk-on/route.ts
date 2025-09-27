@@ -24,7 +24,12 @@ const schema = z.object({
 export async function POST(req: Request){
   const token = (req.headers.get('cookie')||'').split('; ').find(c=>c.startsWith('sadd_token='))?.split('=')[1];
   const payload = await verifyJwt(token);
-  if (!payload || payload.role !== 'TC') return NextResponse.json({ error:'forbidden' }, { status: 403 });
+  // Allow staff roles to add walk-ons. The van must still be claimed by
+  // the current user (checked below via activeTcId), so this does not
+  // broaden access to unclaimed vans.
+  if (!payload || !['ADMIN','DISPATCHER','TC'].includes(payload.role)){
+    return NextResponse.json({ error:'forbidden' }, { status: 403 });
+  }
   try{
     const body = schema.parse(await req.json());
 
