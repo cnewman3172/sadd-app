@@ -43,7 +43,7 @@ export default function Training(){
       const d = await r.json();
       setUser((u:any)=> ({ ...u, ...d.user }));
       setPhase('done');
-    }catch(e:any){ alert(e.message||'Failed'); }
+    }catch(e:any){ showToast(`Failed: ${e?.message||'Unknown error'}`); }
     finally{ setBusy(false); }
   }
 
