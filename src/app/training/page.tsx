@@ -6,22 +6,21 @@ type Cat = 'SAFETY'|'DRIVER'|'TC'|'DISPATCHER';
 const ORDER: Cat[] = ['SAFETY','DRIVER','TC','DISPATCHER'];
 const LABEL: Record<Cat,string> = { SAFETY:'Safety', DRIVER:'Driver', TC:'Truck Commander', DISPATCHER:'Dispatcher' };
 const VIDEOS: Record<Cat,string> = {
-  SAFETY: 'dQw4w9WgXcQ', // placeholder
-  DRIVER: 'dQw4w9WgXcQ',
-  TC: 'dQw4w9WgXcQ',
-  DISPATCHER: 'dQw4w9WgXcQ',
+  SAFETY: 'Mchhy3yWC18',
+  DRIVER: '6ujWxQkdhXg',
+  TC: 'ZPIBHhJ_iEg',
+  DISPATCHER: 's6kaZKtDgmk',
 };
 
 export default function Training(){
   const [user, setUser] = useState<any>(null);
   const [tab, setTab] = useState<Cat>('SAFETY');
-  const [phase, setPhase] = useState<'video'|'quiz'|'done'>('video');
+  const [phase, setPhase] = useState<'video'|'done'>('video');
   const [watched, setWatched] = useState(false);
-  const [answered, setAnswered] = useState(false);
   const [busy, setBusy] = useState(false);
 
   useEffect(()=>{ fetch('/api/me', { cache:'no-store' }).then(r=>r.json()).then(setUser).catch(()=>{}); },[]);
-  useEffect(()=>{ setPhase('video'); setWatched(false); setAnswered(false); },[tab]);
+  useEffect(()=>{ setPhase('video'); setWatched(false); },[tab]);
 
   const role: Cat | null = useMemo(()=>{
     switch(user?.role){ case 'SAFETY': return 'SAFETY'; case 'DRIVER': return 'DRIVER'; case 'TC': return 'TC'; case 'DISPATCHER': return 'DISPATCHER'; default: return null; }
@@ -83,22 +82,9 @@ export default function Training(){
               <section className="grid gap-3">
                 <YouTubeRequired videoId={VIDEOS[tab]} onFinished={()=> setWatched(true)} />
                 <div className="flex items-center gap-2">
-                  <button disabled={!watched} onClick={()=> setPhase('quiz')} className="rounded px-4 py-2 border disabled:opacity-50">{watched ? 'Begin Test' : 'Watch video to continue'}</button>
+                  <button disabled={busy} onClick={async()=>{ await complete(); alert('Temporary training completed'); }} className="rounded px-4 py-2 border disabled:opacity-50">{busy ? 'Saving…' : 'Mark Training Complete'}</button>
                   {tab==='DRIVER' && <span className="text-xs opacity-70">Driver also requires Check Ride.</span>}
                 </div>
-              </section>
-            )}
-
-            {phase==='quiz' && (
-              <section className="rounded border p-3">
-                <div className="font-medium mb-2">Quick Check</div>
-                <div className="text-sm mb-2">What is the safe following distance?</div>
-                <div className="flex flex-col gap-1">
-                  <label className="text-sm"><input type="radio" name="q1" onChange={()=> setAnswered(false)} /> 1 second</label>
-                  <label className="text-sm"><input type="radio" name="q1" onChange={()=> setAnswered(true)} /> 3 seconds</label>
-                  <label className="text-sm"><input type="radio" name="q1" onChange={()=> setAnswered(false)} /> 0.5 seconds</label>
-                </div>
-                <button disabled={!answered || busy} onClick={complete} className="mt-3 btn-primary">{busy ? 'Saving…' : 'Mark Complete'}</button>
               </section>
             )}
 
