@@ -25,7 +25,19 @@ export default function YouTubeRequired({ videoId, onFinished }:{ videoId: strin
         height: '315', width: '560', videoId,
         host: 'https://www.youtube-nocookie.com',
         playerVars: { controls: 0, disablekb: 1, rel: 0, modestbranding: 1, origin: window.location.origin },
-        events: { onReady: ()=> setReady(true), onStateChange: (e:any)=>{ if (e.data === 0) onFinished(); } }
+        events: {
+          onReady: ()=>{
+            try {
+              const iframe = player?.getIframe?.();
+              if (iframe) {
+                iframe.setAttribute('referrerpolicy','strict-origin-when-cross-origin');
+                iframe.setAttribute('allow','accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share');
+              }
+            } catch {}
+            setReady(true);
+          },
+          onStateChange: (e:any)=>{ if (e.data === 0) onFinished(); }
+        }
       });
     })();
     return ()=>{ try{ player?.destroy?.(); }catch{} };
