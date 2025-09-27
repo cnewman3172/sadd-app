@@ -537,21 +537,17 @@ export async function GET(req: Request){
     wsStats.getCell('G11').value = { formula: 'IFERROR(AVERAGE(Table2[Drop Off Travel Time (min)]),0)' } as any;
     wsStats.getCell('G11').numFmt = '0';
 
-    // Light borders for the two sections
-    const borderBox = (tl:string, br:string)=>{
-      const r = wsStats.getCell(tl).row;
-      const c = wsStats.getCell(tl).col;
-      const r2 = wsStats.getCell(br).row;
-      const c2 = wsStats.getCell(br).col;
-      for (let i=r;i<=r2;i++){
-        for (let j=c;j<=c2;j++){
+    // Light borders for sections [A9:C13] and [F9:H11]
+    const setBorders = (r1:number,c1:number,r2:number,c2:number)=>{
+      for (let i=r1;i<=r2;i++){
+        for (let j=c1;j<=c2;j++){
           const cell = wsStats.getRow(i).getCell(j);
           cell.border = { top:{style:'thin', color:{argb:'FFCCCCCC'}}, left:{style:'thin', color:{argb:'FFCCCCCC'}}, bottom:{style:'thin', color:{argb:'FFCCCCCC'}}, right:{style:'thin', color:{argb:'FFCCCCCC'}} } as any;
         }
       }
     };
-    borderBox('A9','C13');
-    borderBox('F9','H11');
+    setBorders(9,1,13,3);
+    setBorders(9,6,11,8);
 
     // Footer note
     wsStats.getCell('A15').value = 'Logo placeholders above (black blocks). Will be replaced when assets are provided.';
