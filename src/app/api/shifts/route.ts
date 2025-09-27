@@ -20,7 +20,7 @@ export async function GET(req: Request){
       : payload.role === 'TC'
         ? ['TC','DRIVER','SAFETY']
         : payload.role === 'DRIVER'
-          ? ['DRIVER']
+          ? ['DRIVER','SAFETY']
           : payload.role === 'SAFETY'
             ? ['SAFETY']
             : [];
