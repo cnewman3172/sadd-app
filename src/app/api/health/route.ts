@@ -24,45 +24,15 @@ export async function GET(req: Request){
     const base = Boolean(setting?.active);
     if (!base) return false;
     if (!setting?.autoDisableEnabled) return base;
-    // Anchor cutoff evaluation from when schedule was enabled (or fallback to when SADD was turned on)
-    const since = (setting?.scheduleSince ? new Date(setting.scheduleSince) : (setting?.activeSince ? new Date(setting.activeSince) : null));
-    if (!since) return base;
-    const tz = setting?.autoDisableTz || "America/Anchorage";
-    const hhmm = String(setting?.autoDisableTime || "22:00");
-    const sh = parseInt(hhmm.split(":")[0]||"0",10);
-    const sm = parseInt(hhmm.split(":")[1]||"0",10);
-
-    // Helper to extract local Y/M/D and minutes since midnight in a timezone
-    const getLocal = (d: Date) => {
-      const parts = new Intl.DateTimeFormat('en-US', { timeZone: tz, year:'numeric', month:'2-digit', day:'2-digit', hour:'2-digit', minute:'2-digit', hour12:false }).formatToParts(d);
-      const get = (t:string)=> (parts.find(p=>p.type===t)?.value)||'0';
-      const y = parseInt(get('year'),10);
-      const m = parseInt(get('month'),10);
-      const da = parseInt(get('day'),10);
-      const h = parseInt(get('hour'),10);
-      const mi = parseInt(get('minute'),10);
-      const min = h*60 + mi;
-      const dayIndex = Math.floor(Date.UTC(y, m-1, da) / 86400000);
-      return { y, m, da, min, dayIndex };
-    };
-
-    const now = new Date();
-    const a = getLocal(since);
-    const n = getLocal(now);
+    const tz = setting?.autoDisableTz || 'America/Anchorage';
+    const hhmm = String(setting?.autoDisableTime || '22:00');
+    const [sh, sm] = hhmm.split(':').map(x=> parseInt(x,10) || 0);
     const cut = sh*60 + sm;
-
-    if (a.dayIndex === n.dayIndex){
-      // Same local day: disable only if we crossed the cutoff since activation
-      return a.min < cut && n.min >= cut ? false : true;
-    }
-    const dayDiff = n.dayIndex - a.dayIndex;
-    if (dayDiff === 1){
-      // Next local day: if activated after cutoff and it's before today's cutoff, not yet disabled
-      if (a.min >= cut && n.min < cut) return true;
-      return false;
-    }
-    // 2+ days later: cutoff definitely occurred
-    return false;
+    const parts = new Intl.DateTimeFormat('en-US', { timeZone: tz, hour:'2-digit', minute:'2-digit', hour12:false }).formatToParts(new Date());
+    const h = parseInt(parts.find(p=>p.type==='hour')?.value||'0',10);
+    const mi = parseInt(parts.find(p=>p.type==='minute')?.value||'0',10);
+    const nowMin = h*60 + mi;
+    return nowMin < cut;
   }
   const elapsed = Date.now() - start;
   return NextResponse.json({
