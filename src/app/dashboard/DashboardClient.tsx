@@ -112,7 +112,7 @@ export default function DashboardClient(){
   async function quickAssign(r: Ride){
     const s = await fetch(`/api/assign/suggest?rideId=${r.id}`).then(r=>r.json());
     const best = s.ranked?.[0];
-    if (!best) return alert('No suitable vans online.');
+    if (!best) return showToast('No suitable vans online.');
     const mins = Math.round((best.seconds||0)/60);
     if (!confirm(`Assign ${best.name} (~${mins} min) to #${r.rideCode}?`)) return;
     await setStatus(r.id, 'ASSIGNED', best.vanId);
@@ -175,7 +175,7 @@ export default function DashboardClient(){
             <h3 className="font-semibold mb-2">Enable Notifications</h3>
             <p className="text-sm opacity-80 mb-3">Dispatch requires notifications so you don’t miss new requests.</p>
             <div className="flex justify-center gap-2">
-              <button className="btn-primary" onClick={async()=>{ const ok = await ensureNotifications(true); setNotifOk(ok); if (!ok) alert('Please allow notifications in your browser settings.'); }}>Enable</button>
+              <button className="btn-primary" onClick={async()=>{ const ok = await ensureNotifications(true); setNotifOk(ok); if (!ok) showToast('Please allow notifications in your browser settings.'); }}>Enable</button>
             </div>
           </div>
         </div>
@@ -362,7 +362,7 @@ export default function DashboardClient(){
                     setManualOpen(false); setManual({});
                     showToast('Manual ride created');
                     refresh();
-                  }catch(e:any){ alert(e.message||'Failed'); }
+                  }catch(e:any){ showToast(e?.message||'Failed'); }
                   finally{ setManualBusy(false); }
                 }} className="rounded bg-black text-white px-3 py-1 text-sm">Create Ride</button>
               </div>
