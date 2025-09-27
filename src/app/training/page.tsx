@@ -39,7 +39,18 @@ export default function Training(){
     setBusy(true);
     try{
       const r = await fetch('/api/training/complete', { method:'POST', headers:{ 'Content-Type':'application/json' }, body: JSON.stringify({ category: tab }) });
-      if (!r.ok){ const d = await r.json().catch(()=>({error:'failed'})); throw new Error(d.error||'failed'); }
+      if (!r.ok){
+        // Try to extract meaningful server error
+        const raw = await r.text();
+        let msg = 'failed';
+        try{
+          const d = JSON.parse(raw);
+          if (typeof d === 'string') msg = d;
+          else if (Array.isArray(d)) msg = d.map((x:any)=> x?.message || x?.error).filter(Boolean).join('; ') || raw;
+          else msg = d?.error || raw || 'failed';
+        }catch{ msg = raw || 'failed'; }
+        throw new Error(msg);
+      }
       const d = await r.json();
       setUser((u:any)=> ({ ...u, ...d.user }));
       setPhase('done');
