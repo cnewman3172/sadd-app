@@ -271,7 +271,11 @@ function ExportAndResetRow(){
   useEffect(()=>{
     let ignore=false;
     (async()=>{
-      const qp = fy?`fy=${encodeURIComponent(fy)}`:[from?`from=${encodeURIComponent(from)}`,'',to?`to=${encodeURIComponent(to)}`:''].filter(Boolean).join('&');
+      const qp = fy
+        ? `fy=${encodeURIComponent(fy)}`
+        : [from && `from=${encodeURIComponent(from)}`, to && `to=${encodeURIComponent(to)}`]
+            .filter(Boolean)
+            .join('&');
       const url = `/api/admin/export/sadd-track?preview=1${qp?`&${qp}`:''}&tz=${encodeURIComponent(tz||'UTC')}`;
       try{
         const r = await fetch(url, { cache:'no-store' });
