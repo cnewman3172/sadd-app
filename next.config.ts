@@ -9,8 +9,8 @@ const securityHeaders = [
       "default-src 'self'",
       "base-uri 'self'",
       "frame-ancestors 'self'",
-      // Allow YouTube embed for executives brief page
-      "frame-src 'self' https://www.youtube-nocookie.com",
+      // Allow YouTube embeds (nocookie preferred) and API script
+      "frame-src 'self' https://www.youtube.com https://www.youtube-nocookie.com",
       // Inline styles may be used by Next; consider tightening if possible
       "style-src 'self' 'unsafe-inline'",
       "img-src 'self' data: https:",
@@ -19,7 +19,7 @@ const securityHeaders = [
       // RSC, Next navigation fetches, Sentry (if configured), EventSource, etc.
       "connect-src 'self' https: blob: data:",
       // Some browsers still require eval for certain optimizations; keep minimal
-      "script-src 'self' 'unsafe-inline' 'unsafe-eval'",
+      "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://www.youtube.com",
       // Allow Next.js web workers if used
       "worker-src 'self' blob:",
       // App manifest

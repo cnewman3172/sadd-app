@@ -23,7 +23,8 @@ export default function YouTubeRequired({ videoId, onFinished }:{ videoId: strin
       // eslint-disable-next-line new-cap
       player = new window.YT.Player(elRef.current, {
         height: '315', width: '560', videoId,
-        playerVars: { controls: 0, disablekb: 1, rel: 0, modestbranding: 1 },
+        host: 'https://www.youtube-nocookie.com',
+        playerVars: { controls: 0, disablekb: 1, rel: 0, modestbranding: 1, origin: window.location.origin },
         events: { onReady: ()=> setReady(true), onStateChange: (e:any)=>{ if (e.data === 0) onFinished(); } }
       });
     })();
@@ -36,4 +37,3 @@ export default function YouTubeRequired({ videoId, onFinished }:{ videoId: strin
     </div>
   );
 }
-
