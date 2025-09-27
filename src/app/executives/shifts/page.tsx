@@ -99,7 +99,7 @@ function BulkModal({ open, onClose, bulk, setBulk, onCreated }:{ open:boolean; o
       if (!res.ok){ const d = await res.json().catch(()=>({error:'failed'})); throw new Error(d.error||'failed'); }
       onCreated();
       onClose();
-    }catch(e:any){ alert(e.message||'Failed'); }
+    }catch(e:any){ const { showToast } = await import('@/components/Toast'); showToast(e?.message||'Failed'); }
   }
   return (
     <Modal open={open} onClose={onClose}>
