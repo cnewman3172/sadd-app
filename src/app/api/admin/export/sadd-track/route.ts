@@ -46,6 +46,20 @@ async function findShiftForInstant(instant: Date){
   });
 }
 
+// Shift-aligned date: treat 00:00–05:59 as previous day (local tz)
+function shiftDateParts(d: Date | string, tz: string){
+  const p = localParts(d, tz);
+  if (!p) return null;
+  if (p.h < 6){
+    // subtract one day
+    const dt = new Date(Date.UTC(p.y, p.m-1, p.da, p.h, p.mi, p.s));
+    dt.setUTCDate(dt.getUTCDate()-1);
+    const pp = localParts(dt, tz)!;
+    return { y: pp.y, m: pp.m, da: pp.da };
+  }
+  return { y: p.y, m: p.m, da: p.da };
+}
+
 function classifyLocation(addr?: string): string{
   const a = (addr||'').toLowerCase();
   const map: Array<{ label:string; match:string[] }> = [
@@ -117,7 +131,7 @@ export async function GET(req: Request){
   }
 
   // Fetch rides and shifts/signups we need
-  const [rides, shifts] = await Promise.all([
+  const [rides, shifts, users] = await Promise.all([
     prisma.ride.findMany({
       where,
       orderBy: { requestedAt: 'asc' },
@@ -133,13 +147,33 @@ export async function GET(req: Request){
       } : {},
       orderBy: { startsAt: 'asc' },
       include: { signups: { include: { user: { select: { id:true, firstName:true, lastName:true, email:true, phone:true, role:true } } } } }
+    }),
+    prisma.user.findMany({
+      where: { role: { in: ['ADMIN','DISPATCHER','TC','DRIVER','SAFETY'] } },
+      orderBy: [{ lastName: 'asc' }, { firstName: 'asc' }],
+      select: {
+        firstName: true,
+        lastName: true,
+        email: true,
+        phone: true,
+        unit: true,
+        role: true,
+        vmisRegistered: true,
+        volunteerAgreement: true,
+        saddSopRead: true,
+        trainingSafetyAt: true,
+        trainingDriverAt: true,
+        trainingTcAt: true,
+        trainingDispatcherAt: true,
+        checkRide: true,
+      }
     })
   ]);
 
   // Precompute a cache of shifts lookup by instant to avoid many queries: index by day buckets
   // For simplicity, we will look up via Prisma call per ride (could be optimized), but ok for export sizes.
 
-  // Aggregations per shift date (yyyy-mm-dd)
+  // Aggregations per shift-aligned date (yyyy-mm-dd with 6am cutoff)
   const dayAgg: Record<string, { dateParts: {y:number;m:number;da:number}; requests:number; picked:number; volunteerIds:Set<string> } > = {};
 
   // Helper to get/ensure date bucket
@@ -151,8 +185,7 @@ export async function GET(req: Request){
 
   // Build ride-derived metrics
   for (const r of rides){
-    const shift = await findShiftForInstant(r.requestedAt);
-    const parts = localParts((shift?.startsAt ?? r.requestedAt) as any, tz)!;
+    const parts = shiftDateParts(r.requestedAt as any, tz)!;
     const bucket = ensureDayBucket(parts.y, parts.m, parts.da);
     bucket.requests += 1; // all requests regardless of status
     if ((r as any).status === 'DROPPED') bucket.picked += 1; // only completed rides
@@ -214,8 +247,20 @@ export async function GET(req: Request){
   // Fill Data sheet (daily aggregates)
   const wsData = wb.getWorksheet('Data') || wb.worksheets.find(w=> String(w.name).toLowerCase().includes('data'));
   if (wsData){
-    // If a table exists on the Data sheet, use it; else write under header row 1
-    const table = (wsData as any).getTable?.('Data') || (wsData as any).tables?.[0];
+    // Normalize headers: Date, Requests, Total Picked Up, Number of Volunteers
+    wsData.getCell('A1').value = 'Date';
+    wsData.getCell('B1').value = 'Requests';
+    wsData.getCell('C1').value = 'Total Picked Up';
+    wsData.getCell('D1').value = 'Number of Volunteers';
+    // If a named table exists, reuse; else create one named DataTable
+    let table = (wsData as any).getTable?.('DataTable') || (wsData as any).tables?.find((t:any)=>/data(table)?/i.test(t.name||''));
+    if (!table && (wsData as any).addTable){
+      // Create minimal table
+      (wsData as any).addTable({ name:'DataTable', ref:'A1', headerRow: true, totalsRow: false, columns:[
+        { name:'Date' }, { name:'Requests' }, { name:'Total Picked Up' }, { name:'Number of Volunteers' }
+      ], rows: [] });
+      table = (wsData as any).getTable?.('DataTable');
+    }
     const keys = Object.keys(dayAgg).sort();
     if (table){
       // Clear table data rows
@@ -259,20 +304,31 @@ export async function GET(req: Request){
   }
 
   // Prepare per-ride rows for Time Data and per-volunteer rows
-  type RideRow = { dateSerial:number; reqTime:number|null; pickupTime:number|null; dropTime:number|null; location:string; rideCode:number; };
+  type RideRow = { dateSerial:number; pickupTime:number|null; dropTime:number|null; pickupMin:number|null; dropMin:number|null; location:string; rideCode:number };
   const rideRows: RideRow[] = [];
   for (const r of rides){
     const shift = await findShiftForInstant(r.requestedAt);
-    const dp = localParts((shift?.startsAt ?? r.requestedAt) as any, tz);
+    const dp = shiftDateParts(r.requestedAt as any, tz);
     if (!dp) continue;
-    const reqP = localParts(r.requestedAt as any, tz);
     const puP = localParts(r.pickupAt as any, tz);
     const drP = localParts(r.dropAt as any, tz);
+    if ((r as any).status !== 'DROPPED') continue; // only successful rides
+    const pickupTime = puP ? excelSerialTime(puP.h, puP.mi, puP.s) : null;
+    const dropTime = drP ? excelSerialTime(drP.h, drP.mi, drP.s) : null;
+    // Precompute durations in minutes
+    let pickupMin: number|null = null;
+    let dropMin: number|null = null;
+    if (puP && r.requestedAt){
+      const rqP = localParts(r.requestedAt as any, tz);
+      if (rqP){ pickupMin = Math.round(((puP.h*3600+puP.mi*60+puP.s) - (rqP.h*3600+rqP.mi*60+rqP.s)) / 60); }
+    }
+    if (puP && drP){ dropMin = Math.round(((drP.h*3600+drP.mi*60+drP.s) - (puP.h*3600+puP.mi*60+puP.s)) / 60); }
     rideRows.push({
       dateSerial: excelSerialDate(dp.y, dp.m, dp.da),
-      reqTime: reqP ? excelSerialTime(reqP.h, reqP.mi, reqP.s) : null,
-      pickupTime: puP ? excelSerialTime(puP.h, puP.mi, puP.s) : null,
-      dropTime: drP ? excelSerialTime(drP.h, drP.mi, drP.s) : null,
+      pickupTime,
+      dropTime,
+      pickupMin,
+      dropMin,
       location: classifyLocation((r as any).pickupAddr),
       rideCode: (r as any).rideCode,
     });
@@ -280,7 +336,27 @@ export async function GET(req: Request){
 
   const wsTime = wb.getWorksheet('Time Data') || wb.worksheets.find(w=> String(w.name).toLowerCase().includes('time'));
   if (wsTime){
-    const table = (wsTime as any).getTable?.('Table2') || (wsTime as any).getTable?.('table2') || (wsTime as any).tables?.find((t:any)=>/table2/i.test(t.name||''));
+    // Normalize header labels
+    wsTime.getCell('A1').value = 'Date';
+    wsTime.getCell('B1').value = 'Ride ID';
+    wsTime.getCell('C1').value = 'Pickup Time';
+    wsTime.getCell('D1').value = 'Drop Off Time';
+    wsTime.getCell('E1').value = 'Pickup Travel Time (min)';
+    wsTime.getCell('F1').value = 'Drop Off Travel Time (min)';
+    // Recreate Table2 with 6 columns if needed
+    let table = (wsTime as any).getTable?.('Table2');
+    if (table){ try{ (wsTime as any).removeTable('Table2'); }catch{} table = null as any; }
+    if ((wsTime as any).addTable){
+      (wsTime as any).addTable({ name:'Table2', ref:'A1', headerRow:true, totalsRow:true, columns:[
+        { name: 'Date' },
+        { name: 'Ride ID' },
+        { name: 'Pickup Time' },
+        { name: 'Drop Off Time' },
+        { name: 'Pickup Travel Time (min)' },
+        { name: 'Drop Off Travel Time (min)' },
+      ], rows: [] });
+      table = (wsTime as any).getTable?.('Table2');
+    }
     if (table){
       const ref: string = (table.table && table.tableRef) || table.tableRef || '';
       const m = /^([A-Z]+)(\d+):([A-Z]+)(\d+)$/.exec(ref||'');
@@ -289,36 +365,19 @@ export async function GET(req: Request){
         const endRow = Number(m[4]);
         if (endRow > startRow) wsTime.spliceRows(startRow+1, endRow-startRow);
       }
-      const colNames: string[] = (table.table?.columns || table.columns || []).map((c:any)=> String(c.name||'').toLowerCase());
-      const idx = (label:string, fallback:number)=>{
-        const i = colNames.findIndex(n=> n === label.toLowerCase());
-        return i>=0 ? i : fallback;
-      };
-      const dIdx = idx('date', 0);
-      const rqIdx = idx('request time', 1);
-      const puIdx = idx('pickup time', 2);
-      const drIdx = idx('dropoff time', 3);
-      const locIdx = idx('location', 4);
-      const codeIdx = idx('ride code', 5);
       for (const rr of rideRows){
-        const row:any[] = [];
-        row[dIdx] = rr.dateSerial;
-        row[rqIdx] = rr.reqTime;
-        row[puIdx] = rr.pickupTime;
-        row[drIdx] = rr.dropTime;
-        row[locIdx] = rr.location;
-        row[codeIdx] = rr.rideCode;
+        const row:any[] = [ rr.dateSerial, rr.rideCode, rr.pickupTime, rr.dropTime, rr.pickupMin, rr.dropMin ];
         table.addRow(row);
       }
       table.commit?.();
-      // Apply formats to the absolute columns encompassing the table
-      if (m){
-        const startColLetter = m[1];
-        const startCol = colLetterToNumber(startColLetter);
-        wsTime.getColumn(startCol + dIdx).numFmt = 'yyyy-mm-dd';
-        wsTime.getColumn(startCol + rqIdx).numFmt = 'hh:mm';
-        wsTime.getColumn(startCol + puIdx).numFmt = 'hh:mm';
-        wsTime.getColumn(startCol + drIdx).numFmt = 'hh:mm';
+      // Apply formats
+      const tRef: string = (table.table && table.tableRef) || table.tableRef || '';
+      const m2 = /^([A-Z]+)(\d+):([A-Z]+)(\d+)$/.exec(tRef||'');
+      if (m2){
+        const startCol = colLetterToNumber(m2[1]);
+        wsTime.getColumn(startCol + 0).numFmt = 'yyyy-mm-dd';
+        wsTime.getColumn(startCol + 2).numFmt = 'hh:mm';
+        wsTime.getColumn(startCol + 3).numFmt = 'hh:mm';
       }
     } else {
       // Fallback to header-based append
@@ -326,18 +385,18 @@ export async function GET(req: Request){
       if (wsTime.rowCount > 1) wsTime.spliceRows(2, wsTime.rowCount-1);
       for (const rr of rideRows){
         const r = wsTime.addRow([]);
-        const dateCol = headers['date'] || headers['shift date'] || 1;
-        const reqCol = headers['request time'] || headers['requested'] || 2;
+        const dateCol = headers['date'] || 1;
+        const idCol = headers['ride id'] || 2;
         const puCol = headers['pickup time'] || 3;
-        const drCol = headers['dropoff time'] || headers['drop time'] || 4;
-        const locCol = headers['location'] || headers['pickup location'] || 5;
-        const codeCol = headers['ride code'] || headers['ride id'] || 6;
+        const drCol = headers['drop off time'] || headers['dropoff time'] || 4;
+        const pminCol = headers['pickup travel time (min)'] || 5;
+        const dminCol = headers['drop off travel time (min)'] || 6;
         r.getCell(dateCol).value = rr.dateSerial; r.getCell(dateCol).numFmt = 'yyyy-mm-dd';
-        if (rr.reqTime!=null){ r.getCell(reqCol).value = rr.reqTime; r.getCell(reqCol).numFmt = 'hh:mm'; }
+        r.getCell(idCol).value = rr.rideCode;
         if (rr.pickupTime!=null){ r.getCell(puCol).value = rr.pickupTime; r.getCell(puCol).numFmt = 'hh:mm'; }
         if (rr.dropTime!=null){ r.getCell(drCol).value = rr.dropTime; r.getCell(drCol).numFmt = 'hh:mm'; }
-        r.getCell(locCol).value = rr.location;
-        r.getCell(codeCol).value = rr.rideCode;
+        if (rr.pickupMin!=null){ r.getCell(pminCol).value = rr.pickupMin; }
+        if (rr.dropMin!=null){ r.getCell(dminCol).value = rr.dropMin; }
       }
     }
   }
@@ -345,77 +404,83 @@ export async function GET(req: Request){
   // Volunteer List sheet
   const wsVol = wb.getWorksheet('Volunteer List') || wb.worksheets.find(w=> String(w.name).toLowerCase().includes('volunteer'));
   if (wsVol){
-    const table = (wsVol as any).getTable?.('Table1') || (wsVol as any).getTable?.('table1') || (wsVol as any).tables?.find((t:any)=>/table1/i.test(t.name||''));
-    const rideKeys = new Set(Object.keys(dayAgg));
-    if (table){
-      const ref: string = (table.table && table.tableRef) || table.tableRef || '';
-      const m = /^([A-Z]+)(\d+):([A-Z]+)(\d+)$/.exec(ref||'');
-      if (m){
-        const startRow = Number(m[2]);
-        const endRow = Number(m[4]);
-        if (endRow > startRow) wsVol.spliceRows(startRow+1, endRow-startRow);
+    // Rebuild Table1 to match training roster: SADD Volunteer, Unit, VMIS Enrolled, Volunteer Agreement, SADD SOP Read, Safety Trained, Driver Trained, Check Ride, TC Trained, Dispatcher Trained
+    // Normalize header row
+    const headers = ['SADD Volunteer','Unit','VMIS Enrolled','Volunteer Agreement','SADD SOP Read','Safety Trained','Driver Trained','Check Ride','TC Trained','Dispatcher Trained'];
+    headers.forEach((h,i)=> wsVol.getCell(1, i+1).value = h);
+    // Remove existing Table1 and re-add to cover A1:J1
+    let vtable = (wsVol as any).getTable?.('Table1');
+    if (vtable){ try{ (wsVol as any).removeTable('Table1'); }catch{} vtable = null as any; }
+    if ((wsVol as any).addTable){
+      (wsVol as any).addTable({ name:'Table1', ref:'A1', headerRow:true, totalsRow:false, columns: headers.map(n=>({name:n})), rows: [] });
+      vtable = (wsVol as any).getTable?.('Table1');
+    }
+    // Fill from users
+    const status = (b?: boolean|null) => b ? 'Completed' : 'Not Completed';
+    const dateStatus = (d?: Date|null) => d ? 'Completed' : 'Not Completed';
+    if (vtable){
+      for (const u of users){
+        const name = [u.firstName, u.lastName].filter(Boolean).join(' ');
+        const row:any[] = [
+          name,
+          u.unit || '',
+          status(u.vmisRegistered),
+          status(u.volunteerAgreement),
+          status(u.saddSopRead),
+          dateStatus(u.trainingSafetyAt as any),
+          dateStatus(u.trainingDriverAt as any),
+          status(u.checkRide),
+          dateStatus(u.trainingTcAt as any),
+          dateStatus(u.trainingDispatcherAt as any),
+        ];
+        vtable.addRow(row);
       }
-      const colNames: string[] = (table.table?.columns || table.columns || []).map((c:any)=> String(c.name||'').toLowerCase());
-      const idx = (label:string, fallback:number)=>{
-        const i = colNames.findIndex(n=> n === label.toLowerCase());
-        return i>=0 ? i : fallback;
-      };
-      const dateIdx = idx('date', 0);
-      const nameIdx = idx('name', 1);
-      const emailIdx = idx('email', 2);
-      const phoneIdx = idx('phone', 3);
-      const roleIdx = idx('role', 4);
-      const titleIdx = idx('title', 5);
-      for (const s of shifts){
-        const dp = localParts(s.startsAt as any, tz);
-        if (!dp) continue;
-        const key = `${dp.y}-${pad2(dp.m)}-${pad2(dp.da)}`;
-        if (!rideKeys.has(key)) continue;
-        for (const su of s.signups){
-          const u = su.user as any;
-          const name = [u?.firstName, u?.lastName].filter(Boolean).join(' ');
-          const row:any[] = [];
-          row[dateIdx] = excelSerialDate(dp.y, dp.m, dp.da);
-          row[nameIdx] = name;
-          row[emailIdx] = u?.email || '';
-          row[phoneIdx] = u?.phone || '';
-          row[roleIdx] = u?.role || '';
-          row[titleIdx] = s.title || '';
-          table.addRow(row);
-        }
-      }
-      table.commit?.();
-      if (m){
-        const startCol = colLetterToNumber(m[1]);
-        wsVol.getColumn(startCol + dateIdx).numFmt = 'yyyy-mm-dd';
-      }
+      vtable.commit?.();
     }else{
-      // Fallback
-      const headers = headerMap(wsVol, 1);
       if (wsVol.rowCount > 1) wsVol.spliceRows(2, wsVol.rowCount-1);
-      for (const s of shifts){
-        const dp = localParts(s.startsAt as any, tz);
-        if (!dp) continue;
-        const key = `${dp.y}-${pad2(dp.m)}-${pad2(dp.da)}`;
-        if (!rideKeys.has(key)) continue;
-        for (const su of s.signups){
-          const u = su.user as any;
-          const name = [u?.firstName, u?.lastName].filter(Boolean).join(' ');
-          const r = wsVol.addRow([]);
-          const dateCol = headers['date'] || headers['shift date'] || 1;
-          const nameCol = headers['name'] || headers['full name'] || 2;
-          const emailCol = headers['email'] || 3;
-          const phoneCol = headers['phone'] || 4;
-          const roleCol = headers['role'] || 5;
-          const titleCol = headers['title'] || headers['shift'] || 6;
-          r.getCell(dateCol).value = excelSerialDate(dp.y, dp.m, dp.da); r.getCell(dateCol).numFmt = 'yyyy-mm-dd';
-          r.getCell(nameCol).value = name;
-          r.getCell(emailCol).value = u?.email || '';
-          r.getCell(phoneCol).value = u?.phone || '';
-          r.getCell(roleCol).value = u?.role || '';
-          r.getCell(titleCol).value = s.title || '';
-        }
+      for (const u of users){
+        const name = [u.firstName, u.lastName].filter(Boolean).join(' ');
+        wsVol.addRow([
+          name, u.unit||'', status(u.vmisRegistered), status(u.volunteerAgreement), status(u.saddSopRead),
+          dateStatus(u.trainingSafetyAt as any), dateStatus(u.trainingDriverAt as any), status(u.checkRide), dateStatus(u.trainingTcAt as any), dateStatus(u.trainingDispatcherAt as any)
+        ]);
       }
+    }
+  }
+
+  // Populate Location Data sheet by month (OCT..SEP) and location categories
+  const wsLoc = wb.getWorksheet('Location Data') || wb.worksheets.find(w=> String(w.name).toLowerCase().includes('location'));
+  if (wsLoc){
+    const months = ['OCT','NOV','DEC','JAN','FEB','MAR','APR','MAY','JUN','JUL','AUG','SEP'];
+    // Header row
+    wsLoc.getCell('A1').value = 'Location';
+    months.forEach((m, i)=> wsLoc.getCell(1, i+2).value = m);
+    const locs = [
+      'Fairbanks International Airport', 'City Center Community Activity Center', 'Midnite Mine', 'North Pole Ale House', 'The Red Fox Bar & Grill', 'The Round Up', 'The Big I', 'The Cabin', 'The Library', 'The Spur', 'Warrior Zone', 'Other'
+    ];
+    // Zero matrix
+    const counts:number[][] = Array.from({ length: locs.length }, ()=> Array(12).fill(0));
+    for (const r of rides){
+      if ((r as any).status !== 'DROPPED') continue;
+      const sp = shiftDateParts(r.requestedAt as any, tz); if (!sp) continue;
+      // Month index in FY order with OCT as 0
+      const month = sp.m; // 1..12
+      const idx = (month+2)%12; // Oct=10 -> 0, Nov=11 ->1, Dec=12 ->2, Jan=1 ->3, ...
+      const cat = classifyLocation((r as any).pickupAddr);
+      const row = locs.indexOf(cat);
+      if (row>=0) counts[row][idx] += 1;
+    }
+    // Write rows 2..N
+    for (let i=0;i<locs.length;i++){
+      wsLoc.getCell(i+2, 1).value = locs[i];
+      for (let j=0;j<12;j++) wsLoc.getCell(i+2, j+2).value = counts[i][j];
+    }
+    // Totals row at row 14 (after 12 location rows)
+    const totalRow = 14;
+    wsLoc.getCell(totalRow,1).value = 'Totals';
+    for (let j=0;j<12;j++){
+      const colLetter = String.fromCharCode('A'.charCodeAt(0) + 1 + j);
+      wsLoc.getCell(totalRow, j+2).value = { formula: `SUM(${colLetter}2:${colLetter}13)` } as any;
     }
   }
 
