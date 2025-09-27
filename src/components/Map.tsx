@@ -16,9 +16,10 @@ export default function Map({ height=300, markers=[], vanMarkers=[], pickups=[],
   const ref = useRef<HTMLDivElement>(null);
   const mapRef = useRef<any>(null);
   const layerRef = useRef<any>(null);
+  // Keep route layer UNDER van markers so routes never block clicks
+  const routeRef = useRef<any>(null);
   const vansRef = useRef<any>(null);
   const poiRef = useRef<any>(null);
-  const routeRef = useRef<any>(null);
 
   useEffect(()=>{
     (async()=>{
@@ -31,9 +32,10 @@ export default function Map({ height=300, markers=[], vanMarkers=[], pickups=[],
         L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 19 }).addTo(mapRef.current);
       }
       if (!layerRef.current){ layerRef.current = L.layerGroup().addTo(mapRef.current); }
+      // Add route layer before vans layer so it sits beneath markers
+      if (!routeRef.current){ routeRef.current = L.layerGroup().addTo(mapRef.current); }
       if (!vansRef.current){ vansRef.current = L.layerGroup().addTo(mapRef.current); }
       if (!poiRef.current){ poiRef.current = L.layerGroup().addTo(mapRef.current); }
-      if (!routeRef.current){ routeRef.current = L.layerGroup().addTo(mapRef.current); }
 
       // Clear and redraw generic markers
       layerRef.current.clearLayers();
@@ -54,7 +56,8 @@ export default function Map({ height=300, markers=[], vanMarkers=[], pickups=[],
 
       // Routes
       routeRef.current.clearLayers();
-      polylines.forEach(coords=> L.polyline(coords, { color:'#2563eb', weight:3, opacity:0.8 }).addTo(routeRef.current));
+      // Make routes non-interactive so they don't intercept clicks
+      polylines.forEach(coords=> L.polyline(coords, { color:'#2563eb', weight:3, opacity:0.8, interactive:false }).addTo(routeRef.current));
 
       const allBounds = [
         ...markers.map(m=> [m.lat,m.lng] as [number,number]),
