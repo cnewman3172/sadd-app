@@ -1,5 +1,6 @@
 "use client";
 import { useEffect, useState } from 'react';
+import { showToast } from '@/components/Toast';
 
 export default function ProfileClient() {
   const [form, setForm] = useState<any>({});
@@ -11,8 +12,8 @@ export default function ProfileClient() {
 
   async function save(e: React.FormEvent) {
     e.preventDefault();
-    await fetch('/api/me', { method:'PUT', body: JSON.stringify(form) });
-    alert('Saved');
+    const r = await fetch('/api/me', { method:'PUT', body: JSON.stringify(form) });
+    if (r.ok) showToast('Saved'); else showToast('Failed to save');
   }
 
   async function changePassword() {
@@ -20,7 +21,7 @@ export default function ProfileClient() {
     const next = prompt('New password');
     if (!current || !next) return;
     const res = await fetch('/api/auth/change-password', { method:'POST', body: JSON.stringify({current, next}) });
-    alert(res.ok ? 'Password changed' : 'Failed');
+    showToast(res.ok ? 'Password changed' : 'Failed to change password');
   }
 
   if (!loaded) return <div className="p-6">Loading…</div>;

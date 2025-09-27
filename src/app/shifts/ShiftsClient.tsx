@@ -1,5 +1,6 @@
 "use client";
 import { useEffect, useMemo, useState } from 'react';
+import { showToast } from '@/components/Toast';
 
 type ShiftItem = { id:string; title?:string|null; role:'DISPATCHER'|'TC'|'DRIVER'|'SAFETY'; startsAt:string; endsAt:string; needed:number; signupCount:number; isSigned:boolean };
 
@@ -17,7 +18,7 @@ export default function Shifts(){
     setBusy(id);
     try{
       const r = await fetch(`/api/shifts/${id}/signup`, { method: on ? 'POST' : 'DELETE' });
-      if (!r.ok){ const d = await r.json().catch(()=>({error:'failed'})); alert(d.error||'Failed'); }
+      if (!r.ok){ const d = await r.json().catch(()=>({error:'failed'})); showToast(d.error||'Failed'); }
       await load();
     }finally{ setBusy(null); }
   }
