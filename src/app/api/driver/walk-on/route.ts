@@ -10,19 +10,25 @@ import bcrypt from 'bcryptjs';
 
 export const runtime = 'nodejs';
 
+// Accept common "empty string" placeholders from clients by coercing
+// them to undefined before validation. This avoids failures like
+// "Invalid uuid" for riderId: "" and allows pickupAddr: "" when the
+// pickup should be inferred from the current task context.
+const emptyToUndefined = (v: unknown) => (typeof v === 'string' && v.trim() === '' ? undefined : v);
+
 const schema = z.object({
-  riderId: z.string().uuid().optional(),
+  riderId: z.preprocess(emptyToUndefined, z.string().uuid().optional()),
   name: z.string().min(1).optional(),
   phone: z.string().min(7).optional(),
-  // New: allow specifying pickup when no task context
-  pickupAddr: z.string().min(1).optional(),
+  // Allow specifying pickup when not on a task; coerce "" to undefined
+  pickupAddr: z.preprocess(emptyToUndefined, z.string().min(1).optional()),
   pickupLat: z.number().optional(),
   pickupLng: z.number().optional(),
   dropAddr: z.string().min(1),
   dropLat: z.number().optional(),
   dropLng: z.number().optional(),
   passengers: z.coerce.number().int().min(1).max(11).default(1),
-  taskId: z.string().uuid().optional(),
+  taskId: z.preprocess(emptyToUndefined, z.string().uuid().optional()),
 });
 
 export async function POST(req: Request){
