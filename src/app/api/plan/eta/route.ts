@@ -55,11 +55,29 @@ export async function GET(req: NextRequest){
   }
   const base = process.env.OSRM_URL || 'https://router.project-osrm.org';
   const pairs = filtered.map(([lat,lng])=> `${lng},${lat}`).join(';');
-  const r = await fetch(`${base}/route/v1/driving/${pairs}?overview=false&steps=false&annotations=duration`);
-  if (!r.ok) return NextResponse.json({ error:'osrm failed' }, { status: 502 });
-  const data = await r.json();
-  const route = data.routes?.[0];
-  const legs: number[] = Array.isArray(route?.legs) ? route.legs.map((l:any)=> Number(l?.duration||0)) : [];
+  let legs: number[] = [];
+  let usedFallback = false;
+  try{
+    const r = await fetch(`${base}/route/v1/driving/${pairs}?overview=false&steps=false&annotations=duration`);
+    if (r.ok){
+      const data = await r.json();
+      const route = data.routes?.[0];
+      legs = Array.isArray(route?.legs) ? route.legs.map((l:any)=> Number(l?.duration||0)) : [];
+    } else {
+      usedFallback = true;
+    }
+  }catch{
+    usedFallback = true;
+  }
+  if (usedFallback){
+    // Fallback: straight-line distance estimated at 30 mph (~13.41 m/s)
+    const speed = Number(process.env.FALLBACK_SPEED_MPS || (30 * 0.44704));
+    legs = [];
+    for (let i=1; i<filtered.length; i++){
+      const d = haversineMeters(filtered[i-1][0], filtered[i-1][1], filtered[i][0], filtered[i][1]);
+      legs.push(d / speed);
+    }
+  }
   const cum: number[] = [0];
   for (let i=0;i<legs.length;i++){ cum[i+1] = cum[i] + legs[i]; }
 
@@ -77,5 +95,7 @@ export async function GET(req: NextRequest){
   const tasks = plan.map(p=> ({ rideId: p.rideId, phase: p.phase, order: p.order }));
   const body = { tasks, etas };
   cache.set(vanId, { ts: Date.now(), body });
-  return NextResponse.json(body);
+  const res = NextResponse.json(body);
+  if (usedFallback){ res.headers.set('X-Plan-ETA-Fallback','1'); }
+  return res;
 }
