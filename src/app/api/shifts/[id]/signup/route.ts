@@ -11,19 +11,37 @@ export async function POST(req: Request, ctx: { params: Promise<{ id:string }> }
   const { id } = await ctx.params;
   const shift = await prisma.shift.findUnique({ where: { id }, include: { _count: { select: { signups: true } } } });
   if (!shift) return NextResponse.json({ error:'not found' }, { status:404 });
-  // Check role authorization for this shift
-  const allowedRoles = payload.role === 'ADMIN'
+  // Fetch user for training gates
+  const user = await prisma.user.findUnique({ where: { id: payload.uid }, select: {
+    role: true,
+    trainingDispatcherAt: true,
+    trainingTcAt: true,
+    trainingDriverAt: true,
+    trainingSafetyAt: true,
+    checkRide: true,
+  }});
+  if (!user) return NextResponse.json({ error:'forbidden' }, { status: 403 });
+  const baseRoles = payload.role === 'ADMIN'
     ? ['DISPATCHER','TC','DRIVER','SAFETY']
     : payload.role === 'DISPATCHER'
       ? ['DISPATCHER','TC','DRIVER','SAFETY']
       : payload.role === 'TC'
         ? ['TC','DRIVER','SAFETY']
         : payload.role === 'DRIVER'
-          ? ['DRIVER']
+          ? ['DRIVER','SAFETY']
           : payload.role === 'SAFETY'
             ? ['SAFETY']
             : [];
-  if (!allowedRoles.includes(shift.role as any)) return NextResponse.json({ error:'forbidden' }, { status: 403 });
+  function hasTrainingFor(role: 'DISPATCHER'|'TC'|'DRIVER'|'SAFETY'){
+    switch(role){
+      case 'DISPATCHER': return !!user.trainingDispatcherAt;
+      case 'TC': return !!user.trainingTcAt;
+      case 'DRIVER': return !!user.trainingDriverAt && !!user.checkRide;
+      case 'SAFETY': return !!user.trainingSafetyAt;
+    }
+  }
+  const allowedRoles = payload.role === 'ADMIN' ? baseRoles : baseRoles.filter((r:any)=> hasTrainingFor(r));
+  if (!allowedRoles.includes(shift.role as any)) return NextResponse.json({ error:'training required' }, { status: 403 });
   if (shift.endsAt < new Date()) return NextResponse.json({ error:'shift ended' }, { status: 400 });
   if (shift._count.signups >= shift.needed) return NextResponse.json({ error:'shift full' }, { status: 409 });
   try{
