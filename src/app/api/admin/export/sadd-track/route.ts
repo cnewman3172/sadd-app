@@ -489,11 +489,16 @@ export async function GET(req: Request){
     const day = nameDateForNow(tz);
     const filename = `SADD Tracker - ${day}.xlsx`;
     const xbuf: ArrayBuffer = await wb.xlsx.writeBuffer();
-    return new NextResponse(xbuf as any, {
+    const nodeBuf = Buffer.from(new Uint8Array(xbuf));
+    const asciiName = `SADD_Tracker_-_${day}.xlsx`;
+    const encodedName = encodeURIComponent(filename).replace(/\*/g,'%2A');
+    return new NextResponse(nodeBuf as any, {
       headers: {
         'Content-Type': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-        'Content-Disposition': `attachment; filename="${filename}"`,
+        'Content-Disposition': `attachment; filename="${asciiName}"; filename*=UTF-8''${encodedName}`,
+        'Content-Length': String(nodeBuf.length),
         'Cache-Control': 'no-store',
+        'X-Content-Type-Options': 'nosniff',
       }
     });
   }catch(e:any){
