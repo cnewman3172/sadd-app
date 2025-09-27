@@ -14,6 +14,10 @@ const schema = z.object({
   riderId: z.string().uuid().optional(),
   name: z.string().min(1).optional(),
   phone: z.string().min(7).optional(),
+  // New: allow specifying pickup when no task context
+  pickupAddr: z.string().min(1).optional(),
+  pickupLat: z.number().optional(),
+  pickupLng: z.number().optional(),
   dropAddr: z.string().min(1),
   dropLat: z.number().optional(),
   dropLng: z.number().optional(),
@@ -37,7 +41,7 @@ export async function POST(req: Request){
     const van = await prisma.van.findFirst({ where:{ activeTcId: payload.uid } });
     if (!van) return NextResponse.json({ error:'not online with a van' }, { status: 400 });
 
-    // Determine current task to source pickup location
+    // Determine current task to source pickup location (optional)
     let task = null as any;
     if (body.taskId){
       task = await prisma.ride.findFirst({ where: { id: body.taskId, vanId: van.id, status: { in: ['ASSIGNED','EN_ROUTE','PICKED_UP'] } } });
@@ -45,7 +49,10 @@ export async function POST(req: Request){
     if (!task){
       task = await prisma.ride.findFirst({ where: { vanId: van.id, status: { in: ['ASSIGNED','EN_ROUTE','PICKED_UP'] } }, orderBy: { requestedAt: 'asc' } });
     }
-    if (!task) return NextResponse.json({ error:'no active task to derive pickup' }, { status: 400 });
+    // If no task context, require explicit pickup address from client
+    if (!task && !body.pickupAddr){
+      return NextResponse.json({ error:'pickup required when not on a task' }, { status: 400 });
+    }
 
     // Require existing rider account
     let rider = body.riderId ? await prisma.user.findUnique({ where: { id: body.riderId } }) : null;
@@ -71,12 +78,12 @@ export async function POST(req: Request){
     }
   const ride = await prisma.ride.create({ data: {
       riderId: rider.id,
-      pickupAddr: task.pickupAddr,
+      pickupAddr: task?.pickupAddr || body.pickupAddr!,
       dropAddr: body.dropAddr,
-      pickupLat: task.pickupLat ?? 0,
-      pickupLng: task.pickupLng ?? 0,
-      dropLat: body.dropLat ?? 0,
-      dropLng: body.dropLng ?? 0,
+      pickupLat: task?.pickupLat ?? (typeof body.pickupLat==='number' ? body.pickupLat : 0),
+      pickupLng: task?.pickupLng ?? (typeof body.pickupLng==='number' ? body.pickupLng : 0),
+      dropLat: typeof body.dropLat==='number' ? body.dropLat : 0,
+      dropLng: typeof body.dropLng==='number' ? body.dropLng : 0,
       passengers: Number(body.passengers) || 1,
       notes: notes || 'WALK_ON',
       source: 'REQUEST',
