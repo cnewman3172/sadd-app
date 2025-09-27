@@ -27,7 +27,15 @@ export default function Training(){
     switch(user?.role){ case 'SAFETY': return 'SAFETY'; case 'DRIVER': return 'DRIVER'; case 'TC': return 'TC'; case 'DISPATCHER': return 'DISPATCHER'; default: return null; }
   },[user]);
 
-  const canAccess = (c: Cat)=> user?.role==='ADMIN' || role===c;
+  const canAccess = (c: Cat)=>{
+    const r = user?.role;
+    if (r==='ADMIN') return true;
+    if (r==='DISPATCHER') return ['DISPATCHER','TC','DRIVER','SAFETY'].includes(c);
+    if (r==='TC') return ['TC','DRIVER','SAFETY'].includes(c);
+    if (r==='DRIVER') return ['DRIVER','SAFETY'].includes(c);
+    if (r==='SAFETY') return c==='SAFETY';
+    return false;
+  };
   const isDone = (c: Cat)=> !!user && (
     c==='SAFETY' ? Boolean(user.trainingSafetyAt) :
     c==='DRIVER' ? Boolean(user.trainingDriverAt) && Boolean(user.checkRide) :
