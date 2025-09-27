@@ -20,6 +20,7 @@ export async function GET(req: NextRequest){
   const url = new URL(req.url);
   const vanId = url.searchParams.get('vanId') || '';
   const bust = url.searchParams.get('bust') === '1';
+  const maxAgeMs = Number(url.searchParams.get('maxAgeMs') || process.env.VAN_LOCATION_MAX_AGE_MS || '60000');
   const token = (req.headers.get('cookie')||'').split('; ').find(c=>c.startsWith('sadd_token='))?.split('=')[1];
   const payload = await verifyJwt(token);
   if (!payload || !['ADMIN','DISPATCHER','TC'].includes(payload.role)) return NextResponse.json({ error:'forbidden' }, { status: 403 });
@@ -34,7 +35,14 @@ export async function GET(req: NextRequest){
   }
 
   const van = await prisma.van.findUnique({ where:{ id: vanId } });
-  if (!van || typeof van.currentLat!=='number' || typeof van.currentLng!=='number') return NextResponse.json({ error:'van location unknown' }, { status: 400 });
+  if (!van || typeof van.currentLat!=='number' || typeof van.currentLng!=='number'){
+    return NextResponse.json({ error:'van location unknown' }, { status: 400 });
+  }
+  // Only use last-known position if it is fresh enough (<= maxAgeMs)
+  const lastPingTs = van.lastPing ? new Date(van.lastPing as any).getTime() : 0;
+  if (!lastPingTs || (Date.now() - lastPingTs) > maxAgeMs){
+    return NextResponse.json({ error:'van location stale' }, { status: 400 });
+  }
   const plan = await prisma.vanTask.findMany({ where:{ vanId }, orderBy:{ order:'asc' }, include:{ ride:true } });
   if (plan.length===0){
     const body = { tasks: [], etas: {} };
