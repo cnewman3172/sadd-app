@@ -486,6 +486,79 @@ export async function GET(req: Request){
   }
 
   // Filename per request: "SADD Tracker - <TODAY'S DAY>"
+  // Add a Statistics sheet with summary cards and logo placeholders
+  try {
+    const wsStats = wb.addWorksheet('Statistics');
+    // Layout and columns
+    wsStats.columns = [
+      { width: 14 }, { width: 18 }, { width: 18 }, { width: 18 },
+      { width: 4 },
+      { width: 16 }, { width: 18 }, { width: 18 }, { width: 18 },
+      { width: 4 },
+      { width: 16 }, { width: 18 }, { width: 18 }
+    ];
+    // Logo blocks
+    wsStats.mergeCells('A1:D5');
+    wsStats.mergeCells('J1:M5');
+    const logoL = wsStats.getCell('A1');
+    const logoR = wsStats.getCell('J1');
+    for (const c of [logoL, logoR]){
+      c.fill = { type:'pattern', pattern:'solid', fgColor:{ argb:'FF000000' } } as any;
+    }
+    wsStats.getCell('A6').value = 'SADD Tracker Metrics';
+    wsStats.getCell('A6').font = { bold:true, size:16 } as any;
+    // Context row
+    const rangeText = (fromStr||toStr) ? `${fromStr||'—'} to ${toStr||'—'}` : (fyParam ? `FY ${String(fyParam).replace(/[^0-9]/g,'')}` : 'All Time');
+    wsStats.getCell('A7').value = `Range: ${rangeText}`;
+    wsStats.getCell('A7').font = { color:{argb:'FF444444'} } as any;
+    wsStats.getCell('F7').value = `Timezone: ${tz}`;
+    wsStats.getCell('F7').font = { color:{argb:'FF444444'} } as any;
+
+    // Cards: Totals
+    wsStats.getCell('A9').value = 'Totals';
+    wsStats.getCell('A9').font = { bold:true } as any;
+    wsStats.getCell('A10').value = 'Requests';
+    wsStats.getCell('B10').value = { formula: 'SUM(DataTable[Requests])' } as any;
+    wsStats.getCell('A11').value = 'Picked Up';
+    wsStats.getCell('B11').value = { formula: 'SUM(DataTable[Total Picked Up])' } as any;
+    wsStats.getCell('A12').value = 'Volunteers';
+    wsStats.getCell('B12').value = { formula: 'SUM(DataTable[Number of Volunteers])' } as any;
+    wsStats.getCell('A13').value = 'Completion Rate';
+    wsStats.getCell('B13').value = { formula: 'IFERROR(SUM(DataTable[Total Picked Up])/SUM(DataTable[Requests]),0)' } as any;
+    wsStats.getCell('B13').numFmt = '0%';
+
+    // Cards: Average Times (minutes)
+    wsStats.getCell('F9').value = 'Averages (minutes)';
+    wsStats.getCell('F9').font = { bold:true } as any;
+    wsStats.getCell('F10').value = 'Pickup Avg';
+    wsStats.getCell('G10').value = { formula: 'IFERROR(AVERAGE(Table2[Pickup Travel Time (min)]),0)' } as any;
+    wsStats.getCell('G10').numFmt = '0';
+    wsStats.getCell('F11').value = 'Drop Off Avg';
+    wsStats.getCell('G11').value = { formula: 'IFERROR(AVERAGE(Table2[Drop Off Travel Time (min)]),0)' } as any;
+    wsStats.getCell('G11').numFmt = '0';
+
+    // Light borders for the two sections
+    const borderBox = (tl:string, br:string)=>{
+      const r = wsStats.getCell(tl).row;
+      const c = wsStats.getCell(tl).col;
+      const r2 = wsStats.getCell(br).row;
+      const c2 = wsStats.getCell(br).col;
+      for (let i=r;i<=r2;i++){
+        for (let j=c;j<=c2;j++){
+          const cell = wsStats.getRow(i).getCell(j);
+          cell.border = { top:{style:'thin', color:{argb:'FFCCCCCC'}}, left:{style:'thin', color:{argb:'FFCCCCCC'}}, bottom:{style:'thin', color:{argb:'FFCCCCCC'}}, right:{style:'thin', color:{argb:'FFCCCCCC'}} } as any;
+        }
+      }
+    };
+    borderBox('A9','C13');
+    borderBox('F9','H11');
+
+    // Footer note
+    wsStats.getCell('A15').value = 'Logo placeholders above (black blocks). Will be replaced when assets are provided.';
+    wsStats.getCell('A15').font = { italic:true, color:{argb:'FF666666'} } as any;
+  } catch {}
+
+  // Filename per request: "SADD Tracker - <TODAY'S DAY>"
   try{
     const day = nameDateForNow(tz);
     const filename = `SADD Tracker - ${day}.xlsx`;
