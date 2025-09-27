@@ -6,13 +6,20 @@ import { z } from 'zod';
 export const runtime = 'nodejs';
 
 const Cat = z.enum(['SAFETY','DRIVER','TC','DISPATCHER']);
+const Body = z.union([
+  z.object({ category: Cat }),
+  Cat
+]);
 
 export async function POST(req: Request){
   const token = (req.headers.get('cookie')||'').split('; ').find(c=>c.startsWith('sadd_token='))?.split('=')[1];
   const payload = await verifyJwt(token);
   if (!payload) return NextResponse.json({ error:'unauthorized' }, { status: 401 });
   try{
-    const { category } = Cat.transform(v=>({ category: v })).parse(await req.json());
+    const raw = await req.json();
+    const parsed = Body.safeParse(raw);
+    if (!parsed.success) return NextResponse.json(parsed.error.issues, { status: 400 });
+    const category: z.infer<typeof Cat> = (typeof parsed.data === 'string') ? parsed.data : parsed.data.category;
     const now = new Date();
     const data: any = {};
     if (category==='SAFETY') data.trainingSafetyAt = now;
@@ -25,4 +32,3 @@ export async function POST(req: Request){
     return NextResponse.json({ error: e?.message || 'failed' }, { status: 400 });
   }
 }
-
