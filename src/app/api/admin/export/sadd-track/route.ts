@@ -112,6 +112,7 @@ export async function GET(req: Request){
       toStr = `${y2}-09-30`;
     }
   }
+  // For now, always generate a fresh workbook (ignore template)
   const defaultTemplate = `${process.cwd()}/public/templates/SADD Tracker.xlsx`;
   const templatePath = decodeURIComponent(url.searchParams.get('template') || defaultTemplate);
 
@@ -216,16 +217,8 @@ export async function GET(req: Request){
   }
 
   const ExcelJS = (await import('exceljs')).default;
-  const fs = await import('fs/promises');
   const wb = new ExcelJS.Workbook();
   let loadedTemplate = false;
-  try{
-    const buf = await fs.readFile(templatePath);
-    await wb.xlsx.load(buf);
-    loadedTemplate = true;
-  }catch{
-    // Will fall back to fresh workbook
-  }
 
   // Utility to find header columns by name (row 1 default)
   function headerMap(ws: any, rowIdx=1){
@@ -252,11 +245,13 @@ export async function GET(req: Request){
     wsData.getCell('B1').value = 'Requests';
     wsData.getCell('C1').value = 'Total Picked Up';
     wsData.getCell('D1').value = 'Number of Volunteers';
+    wsData.views = [{ state:'frozen', ySplit:1 }];
+    wsData.columns = [ { width: 13 }, { width: 16 }, { width: 18 }, { width: 22 } ];
     // If a named table exists, reuse; else create one named DataTable
     let table = (wsData as any).getTable?.('DataTable') || (wsData as any).tables?.find((t:any)=>/data(table)?/i.test(t.name||''));
     if (!table && (wsData as any).addTable){
       // Create minimal table
-      (wsData as any).addTable({ name:'DataTable', ref:'A1', headerRow: true, totalsRow: false, columns:[
+      (wsData as any).addTable({ name:'DataTable', ref:'A1', headerRow: true, totalsRow: false, style:{ theme:'TableStyleMedium9', showRowStripes:true }, columns:[
         { name:'Date' }, { name:'Requests' }, { name:'Total Picked Up' }, { name:'Number of Volunteers' }
       ], rows: [] });
       table = (wsData as any).getTable?.('DataTable');
@@ -343,11 +338,13 @@ export async function GET(req: Request){
     wsTime.getCell('D1').value = 'Drop Off Time';
     wsTime.getCell('E1').value = 'Pickup Travel Time (min)';
     wsTime.getCell('F1').value = 'Drop Off Travel Time (min)';
+    wsTime.views = [{ state:'frozen', ySplit:1 }];
+    wsTime.columns = [ { width: 13 }, { width: 10 }, { width: 12 }, { width: 14 }, { width: 22 }, { width: 24 } ];
     // Recreate Table2 with 6 columns if needed
     let table = (wsTime as any).getTable?.('Table2');
     if (table){ try{ (wsTime as any).removeTable('Table2'); }catch{} table = null as any; }
     if ((wsTime as any).addTable){
-      (wsTime as any).addTable({ name:'Table2', ref:'A1', headerRow:true, totalsRow:true, columns:[
+      (wsTime as any).addTable({ name:'Table2', ref:'A1', headerRow:true, totalsRow:true, style:{ theme:'TableStyleMedium9', showRowStripes:true }, columns:[
         { name: 'Date' },
         { name: 'Ride ID' },
         { name: 'Pickup Time' },
@@ -408,11 +405,13 @@ export async function GET(req: Request){
     // Normalize header row
     const headers = ['SADD Volunteer','Unit','VMIS Enrolled','Volunteer Agreement','SADD SOP Read','Safety Trained','Driver Trained','Check Ride','TC Trained','Dispatcher Trained'];
     headers.forEach((h,i)=> wsVol.getCell(1, i+1).value = h);
+    wsVol.views = [{ state:'frozen', ySplit:1 }];
+    wsVol.columns = [ { width: 24 }, { width: 16 }, { width: 16 }, { width: 18 }, { width: 16 }, { width: 16 }, { width: 16 }, { width: 12 }, { width: 14 }, { width: 18 } ];
     // Remove existing Table1 and re-add to cover A1:J1
     let vtable = (wsVol as any).getTable?.('Table1');
     if (vtable){ try{ (wsVol as any).removeTable('Table1'); }catch{} vtable = null as any; }
     if ((wsVol as any).addTable){
-      (wsVol as any).addTable({ name:'Table1', ref:'A1', headerRow:true, totalsRow:false, columns: headers.map(n=>({name:n})), rows: [] });
+      (wsVol as any).addTable({ name:'Table1', ref:'A1', headerRow:true, totalsRow:false, style:{ theme:'TableStyleMedium9', showRowStripes:true }, columns: headers.map(n=>({name:n})), rows: [] });
       vtable = (wsVol as any).getTable?.('Table1');
     }
     // Fill from users
@@ -455,6 +454,8 @@ export async function GET(req: Request){
     // Header row
     wsLoc.getCell('A1').value = 'Location';
     months.forEach((m, i)=> wsLoc.getCell(1, i+2).value = m);
+    wsLoc.views = [{ state:'frozen', ySplit:1 }];
+    wsLoc.columns = [ { width: 34 }, ...months.map(()=>({ width: 10 })) ];
     const locs = [
       'Fairbanks International Airport', 'City Center Community Activity Center', 'Midnite Mine', 'North Pole Ale House', 'The Red Fox Bar & Grill', 'The Round Up', 'The Big I', 'The Cabin', 'The Library', 'The Spur', 'Warrior Zone', 'Other'
     ];
