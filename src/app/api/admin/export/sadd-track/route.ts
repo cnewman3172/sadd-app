@@ -215,17 +215,17 @@ export async function GET(req: Request){
     });
   }
 
-  // Load Excel template
-  const fs = await import('fs/promises');
-  let buf: Buffer;
-  try{
-    buf = await fs.readFile(templatePath);
-  }catch(e:any){
-    return NextResponse.json({ error:`Template not found at ${templatePath}` }, { status: 400 });
-  }
   const ExcelJS = (await import('exceljs')).default;
+  const fs = await import('fs/promises');
   const wb = new ExcelJS.Workbook();
-  await wb.xlsx.load(buf);
+  let loadedTemplate = false;
+  try{
+    const buf = await fs.readFile(templatePath);
+    await wb.xlsx.load(buf);
+    loadedTemplate = true;
+  }catch{
+    // Will fall back to fresh workbook
+  }
 
   // Utility to find header columns by name (row 1 default)
   function headerMap(ws: any, rowIdx=1){
@@ -245,7 +245,7 @@ export async function GET(req: Request){
   }
 
   // Fill Data sheet (daily aggregates)
-  const wsData = wb.getWorksheet('Data') || wb.worksheets.find(w=> String(w.name).toLowerCase().includes('data'));
+  const wsData = (loadedTemplate ? (wb.getWorksheet('Data') || wb.worksheets.find(w=> String(w.name).toLowerCase().includes('data'))) : wb.addWorksheet('Data')) as any;
   if (wsData){
     // Normalize headers: Date, Requests, Total Picked Up, Number of Volunteers
     wsData.getCell('A1').value = 'Date';
@@ -334,7 +334,7 @@ export async function GET(req: Request){
     });
   }
 
-  const wsTime = wb.getWorksheet('Time Data') || wb.worksheets.find(w=> String(w.name).toLowerCase().includes('time'));
+  const wsTime = (loadedTemplate ? (wb.getWorksheet('Time Data') || wb.worksheets.find(w=> String(w.name).toLowerCase().includes('time'))) : wb.addWorksheet('Time Data')) as any;
   if (wsTime){
     // Normalize header labels
     wsTime.getCell('A1').value = 'Date';
@@ -402,7 +402,7 @@ export async function GET(req: Request){
   }
 
   // Volunteer List sheet
-  const wsVol = wb.getWorksheet('Volunteer List') || wb.worksheets.find(w=> String(w.name).toLowerCase().includes('volunteer'));
+  const wsVol = (loadedTemplate ? (wb.getWorksheet('Volunteer List') || wb.worksheets.find(w=> String(w.name).toLowerCase().includes('volunteer'))) : wb.addWorksheet('Volunteer List')) as any;
   if (wsVol){
     // Rebuild Table1 to match training roster: SADD Volunteer, Unit, VMIS Enrolled, Volunteer Agreement, SADD SOP Read, Safety Trained, Driver Trained, Check Ride, TC Trained, Dispatcher Trained
     // Normalize header row
@@ -449,7 +449,7 @@ export async function GET(req: Request){
   }
 
   // Populate Location Data sheet by month (OCT..SEP) and location categories
-  const wsLoc = wb.getWorksheet('Location Data') || wb.worksheets.find(w=> String(w.name).toLowerCase().includes('location'));
+  const wsLoc = (loadedTemplate ? (wb.getWorksheet('Location Data') || wb.worksheets.find(w=> String(w.name).toLowerCase().includes('location'))) : wb.addWorksheet('Location Data')) as any;
   if (wsLoc){
     const months = ['OCT','NOV','DEC','JAN','FEB','MAR','APR','MAY','JUN','JUL','AUG','SEP'];
     // Header row
