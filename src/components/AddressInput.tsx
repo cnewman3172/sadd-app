@@ -9,12 +9,14 @@ export default function AddressInput({
   value,
   onSelect,
   onChange,
+  autoGeocodeOnBlur = true,
 }: {
   label: string;
   placeholder?: string;
   value?: string;
   onSelect: (opt: Option) => void;
   onChange?: (text: string) => void;
+  autoGeocodeOnBlur?: boolean;
 }){
   const rootRef = useRef<HTMLDivElement>(null);
   const [q, setQ] = useState(value || "");
@@ -63,7 +65,23 @@ export default function AddressInput({
         value={q}
         onChange={(e)=>{ setQ(e.target.value); onChange?.(e.target.value); if (!e.target.value || e.target.value.length<3) setOpen(false); }}
         onFocus={()=>{ if(opts.length>0) setOpen(true); }}
-        onBlur={()=> setTimeout(()=> setOpen(false), 120)}
+        onBlur={async()=> {
+          setTimeout(()=> setOpen(false), 120);
+          // Best-effort: if user typed an address but didn't pick a suggestion,
+          // attempt a geocode so downstream logic receives lat/lon.
+          if (!autoGeocodeOnBlur) return;
+          const text = (q||'').trim();
+          if (text.length < 3) return;
+          try{
+            const r = await fetch(`/api/geocode?q=${encodeURIComponent(text)}`);
+            if (!r.ok) return;
+            const data = await r.json();
+            const first = (data||[])[0];
+            if (first && typeof first.lat==='number' && typeof first.lon==='number'){
+              onSelect({ label: first.label||text, lat: first.lat, lon: first.lon });
+            }
+          }catch{}
+        }}
         onKeyDown={(e)=>{ if (e.key==='Escape') setOpen(false); }}
       />
       {open && opts.length>0 && (
