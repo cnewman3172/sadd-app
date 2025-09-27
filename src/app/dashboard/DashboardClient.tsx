@@ -452,8 +452,13 @@ function CoordinatorMap({ vans }:{ vans: any[] }){
 
   async function loadTasks(id:string){
     setRoutes([]); setPoi({ pickups:[], drops:[] });
-    const r = await fetch(`/api/vans/${id}/tasks`).then(r=>r.json());
-    const tasks = r.tasks||[];
+    let tasks: any[] = [];
+    try{
+      const resp = await fetch(`/api/vans/${id}/tasks`, { cache:'no-store' });
+      if (!resp.ok){ showToast('Failed to load van tasks'); return; }
+      const data = await resp.json();
+      tasks = data?.tasks || [];
+    }catch{ showToast('Failed to load van tasks'); return; }
     // Guard against invalid coords bleeding into the map
     const clean = (v:number)=> typeof v==='number' && isFinite(v);
     setPoi({
@@ -472,8 +477,9 @@ function CoordinatorMap({ vans }:{ vans: any[] }){
       if (coords.length >= 2){
         try{
           const res = await fetch('/api/route', { method:'POST', headers:{ 'Content-Type':'application/json' }, body: JSON.stringify({ coords }) });
-        if (res.ok){ const d = await res.json(); setRoutes([d.coordinates||[]]); }
-        }catch{}
+          if (res.ok){ const d = await res.json(); setRoutes([d.coordinates||[]]); }
+          else { showToast('Failed to load route'); }
+        }catch{ showToast('Failed to load route'); }
       }
     }
     setPanel({ name: van?.name || 'Van', pax: Number(van?.passengers||0), cap: Number(van?.capacity||0), tasks: tasks.length });
