@@ -1,6 +1,7 @@
 "use client";
 import { useEffect, useMemo, useState } from 'react';
 import YouTubeRequired from '@/components/YouTubeRequired';
+import { showToast } from '@/components/Toast';
 
 type Cat = 'SAFETY'|'DRIVER'|'TC'|'DISPATCHER';
 const ORDER: Cat[] = ['SAFETY','DRIVER','TC','DISPATCHER'];
@@ -82,7 +83,8 @@ export default function Training(){
               <section className="grid gap-3">
                 <YouTubeRequired videoId={VIDEOS[tab]} onFinished={()=> setWatched(true)} />
                 <div className="flex items-center gap-2">
-                  <button disabled={busy} onClick={async()=>{ await complete(); alert('Temporary training completed'); }} className="rounded px-4 py-2 border disabled:opacity-50">{busy ? 'Saving…' : 'Mark Training Complete'}</button>
+                  <button disabled={!watched || busy} onClick={async()=>{ await complete(); showToast('Temporary training completed'); }} className="rounded px-4 py-2 border disabled:opacity-50">{busy ? 'Saving…' : 'Mark Training Complete'}</button>
+                  {!watched && <span className="text-xs opacity-70">Watch the full video to enable.</span>}
                   {tab==='DRIVER' && <span className="text-xs opacity-70">Driver also requires Check Ride.</span>}
                 </div>
               </section>
