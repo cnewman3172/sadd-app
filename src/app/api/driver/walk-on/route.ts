@@ -18,8 +18,8 @@ const emptyToUndefined = (v: unknown) => (typeof v === 'string' && v.trim() === 
 
 const schema = z.object({
   riderId: z.preprocess(emptyToUndefined, z.string().uuid().optional()),
-  name: z.string().min(1).optional(),
-  phone: z.string().min(7).optional(),
+  name: z.preprocess(emptyToUndefined, z.string().min(1).optional()),
+  phone: z.preprocess(emptyToUndefined, z.string().min(7).optional()),
   // Allow specifying pickup when not on a task; coerce "" to undefined
   pickupAddr: z.preprocess(emptyToUndefined, z.string().min(1).optional()),
   pickupLat: z.number().optional(),
