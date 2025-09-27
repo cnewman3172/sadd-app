@@ -117,17 +117,18 @@ export async function GET(req: Request){
   const templatePath = decodeURIComponent(url.searchParams.get('template') || defaultTemplate);
 
   const where: any = {};
+  // Build a wide DB range to accommodate 6am shift cutoff: include previous/next day
+  let fromParts: {y:number;m:number;da:number}|null = null;
+  let toParts: {y:number;m:number;da:number}|null = null;
+  if (fromStr) { const d = new Date(fromStr+'T00:00:00Z'); const p = localParts(d, tz); if (p) fromParts = { y:p.y, m:p.m, da:p.da }; }
+  if (toStr) { const d = new Date(toStr+'T00:00:00Z'); const p = localParts(d, tz); if (p) toParts = { y:p.y, m:p.m, da:p.da }; }
   if (fromStr || toStr){
     const from = fromStr ? new Date(fromStr) : undefined;
     const to = toStr ? new Date(toStr) : undefined;
     if (from || to){
       where.requestedAt = {} as any;
-      if (from) (where.requestedAt as any).gte = from;
-      if (to){
-        const end = new Date(to);
-        if (end.getHours()===0 && end.getMinutes()===0 && end.getSeconds()===0) end.setHours(23,59,59,999);
-        (where.requestedAt as any).lte = end;
-      }
+      if (from){ const g = new Date(from); g.setUTCDate(g.getUTCDate()-1); (where.requestedAt as any).gte = g; }
+      if (to){ const e = new Date(to); e.setUTCDate(e.getUTCDate()+1); e.setUTCHours(23,59,59,999); (where.requestedAt as any).lte = e; }
     }
   }
 
@@ -184,9 +185,16 @@ export async function GET(req: Request){
     return dayAgg[key];
   }
 
-  // Build ride-derived metrics
+  const inRange = (dp: {y:number;m:number;da:number}) => {
+    if (fromParts){ const a = dp.y*10000+dp.m*100+dp.da; const b = fromParts.y*10000+fromParts.m*100+fromParts.da; if (a < b) return false; }
+    if (toParts){ const a = dp.y*10000+dp.m*100+dp.da; const b = toParts.y*10000+toParts.m*100+toParts.da; if (a > b) return false; }
+    return true;
+  };
+
+  // Build ride-derived metrics (respect selected range by shift date)
   for (const r of rides){
     const parts = shiftDateParts(r.requestedAt as any, tz)!;
+    if (!inRange(parts)) continue;
     const bucket = ensureDayBucket(parts.y, parts.m, parts.da);
     bucket.requests += 1; // all requests regardless of status
     if ((r as any).status === 'DROPPED') bucket.picked += 1; // only completed rides
@@ -204,7 +212,8 @@ export async function GET(req: Request){
   }
 
   if (preview){
-    const rideCount = rides.length;
+    let rideCount = 0;
+    for (const r of rides){ const dp = shiftDateParts(r.requestedAt as any, tz)!; if (inRange(dp)) rideCount++; }
     // Count unique volunteers across nights with rides
     const vSet = new Set<string>();
     Object.values(dayAgg).forEach(d=> d.volunteerIds.forEach(id=> vSet.add(id)));
@@ -305,6 +314,7 @@ export async function GET(req: Request){
     const shift = await findShiftForInstant(r.requestedAt);
     const dp = shiftDateParts(r.requestedAt as any, tz);
     if (!dp) continue;
+    if (!inRange(dp)) continue;
     const puP = localParts(r.pickupAt as any, tz);
     const drP = localParts(r.dropAt as any, tz);
     if ((r as any).status !== 'DROPPED') continue; // only successful rides
@@ -464,6 +474,7 @@ export async function GET(req: Request){
     for (const r of rides){
       if ((r as any).status !== 'DROPPED') continue;
       const sp = shiftDateParts(r.requestedAt as any, tz); if (!sp) continue;
+      if (!inRange(sp)) continue;
       // Month index in FY order with OCT as 0
       const month = sp.m; // 1..12
       const idx = (month+2)%12; // Oct=10 -> 0, Nov=11 ->1, Dec=12 ->2, Jan=1 ->3, ...
