@@ -1,5 +1,6 @@
 "use client";
 import { useEffect, useState } from 'react';
+import { showToast } from '@/components/Toast';
 
 export default function Login() {
   const [mode, setMode] = useState<'login'|'register'>('login');
@@ -69,7 +70,7 @@ export default function Login() {
                     // Dev helper: if server returned a reset link, open it for convenience
                     try{ window.open(d.link, '_blank'); }catch{}
                   }
-                  alert('If the email exists, you will receive reset instructions.');
+                  showToast('If the email exists, you will receive reset instructions.');
                 } else {
                   setError('Please try again later.');
                 }

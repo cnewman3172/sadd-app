@@ -56,7 +56,7 @@ export default function DrivingClient(){
   useEffect(()=>{ try{ setWakeSupported('wakeLock' in navigator); }catch{ setWakeSupported(false); } },[]);
 
   async function goOnline(){
-    if (!selected) return alert('Select a van');
+    if (!selected) return showToast('Select a van');
     // Require notifications permission and push subscription
     const ok = await ensureNotifications();
     if (!ok){ showToast('Please allow notifications to go online.'); return; }
