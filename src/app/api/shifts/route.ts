@@ -9,11 +9,31 @@ export async function GET(req: Request){
   const payload = await verifyJwt(token);
   if (!payload || !['ADMIN','DISPATCHER','TC','DRIVER','SAFETY'].includes(payload.role)) return NextResponse.json({ error:'forbidden' }, { status: 403 });
 
+  // Fetch user to check training gates
+  const user = await prisma.user.findUnique({ where: { id: payload.uid }, select: {
+    role: true,
+    trainingDispatcherAt: true,
+    trainingTcAt: true,
+    trainingDriverAt: true,
+    trainingSafetyAt: true,
+    checkRide: true,
+  }});
+  if (!user) return NextResponse.json({ error:'forbidden' }, { status: 403 });
+
+  function hasTrainingFor(role: 'DISPATCHER'|'TC'|'DRIVER'|'SAFETY'){
+    switch(role){
+      case 'DISPATCHER': return !!user.trainingDispatcherAt;
+      case 'TC': return !!user.trainingTcAt;
+      case 'DRIVER': return !!user.trainingDriverAt && !!user.checkRide;
+      case 'SAFETY': return !!user.trainingSafetyAt;
+    }
+  }
+
   // Determine which shift roles this user may view/signup for
   // - ADMIN: all roles
   // - COORDINATOR: COORDINATOR and roles below (TC)
   // - TC: only TC
-  const allowedRoles = payload.role === 'ADMIN'
+  const baseRoles = payload.role === 'ADMIN'
     ? ['DISPATCHER','TC','DRIVER','SAFETY']
     : payload.role === 'DISPATCHER'
       ? ['DISPATCHER','TC','DRIVER','SAFETY']
@@ -24,6 +44,7 @@ export async function GET(req: Request){
           : payload.role === 'SAFETY'
             ? ['SAFETY']
             : [];
+  const allowedRoles = payload.role === 'ADMIN' ? baseRoles : (baseRoles as any[]).filter((r)=> hasTrainingFor(r as any));
 
   // Volunteers see shifts up to 1 day in the past (recent) and future
   const from = new Date(Date.now() - 1*24*60*60*1000);
