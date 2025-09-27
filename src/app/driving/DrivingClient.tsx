@@ -15,7 +15,7 @@ export default function DrivingClient(){
   const [wakeOn, setWakeOn] = useState(true);
   const [walkOpen, setWalkOpen] = useState(false);
   const [walkTaskId, setWalkTaskId] = useState<string>('');
-  const [walkForm, setWalkForm] = useState<any>({ riderId:'', name:'', phone:'', dropAddr:'', dropLat: undefined as number|undefined, dropLng: undefined as number|undefined });
+  const [walkForm, setWalkForm] = useState<any>({ riderId:'', name:'', phone:'', pickupAddr:'', pickupLat: undefined as number|undefined, pickupLng: undefined as number|undefined, dropAddr:'', dropLat: undefined as number|undefined, dropLng: undefined as number|undefined });
   const [walkSelRider, setWalkSelRider] = useState<any|null>(null);
   const [walkNameOpts, setWalkNameOpts] = useState<any[]>([]);
   const [walkNameOpen, setWalkNameOpen] = useState(false);
@@ -215,7 +215,10 @@ export default function DrivingClient(){
         </div>
       </section>
       <section className="rounded-xl p-4 bg-white/70 dark:bg-white/10 border border-white/20">
-        <h2 className="font-semibold mb-2">Tasks</h2>
+        <div className="flex items-center justify-between mb-2">
+          <h2 className="font-semibold">Tasks</h2>
+          <button onClick={()=>{ setWalkTaskId(''); setWalkSelRider(null); setWalkForm({ riderId:'', name:'', phone:'', pickupAddr:'', pickupLat: undefined, pickupLng: undefined, dropAddr:'', dropLat: undefined, dropLng: undefined }); setWalkOpen(true); }} className="rounded border px-3 py-1 text-sm">Walk On…</button>
+        </div>
         {tasks.length===0 && <div className="text-sm opacity-80">No tasks yet.</div>}
         <div className="space-y-2">
           {tasks.map((t:any)=> (
@@ -252,7 +255,7 @@ export default function DrivingClient(){
                 {(t.status==='ASSIGNED' || t.status==='EN_ROUTE') && (
                   <button onClick={async()=>{ if (!confirm(`Mark #${t.rideCode} as No Show and cancel?`)) return; await fetch(`/api/rides/${t.id}`, { method:'PUT', body: JSON.stringify({ status:'CANCELED', notes:'No Show' }) }); refreshTasks(); }} className="rounded border px-3 py-1 text-sm border-red-500 text-red-600">No Show</button>
                 )}
-                <button onClick={()=>{ setWalkTaskId(t.id); setWalkForm({ name:'', phone:'', dropAddr:'', dropLat: undefined, dropLng: undefined }); setWalkOpen(true); }} className="rounded border px-3 py-1 text-sm">Walk On…</button>
+                <button onClick={()=>{ setWalkTaskId(t.id); setWalkSelRider(null); setWalkForm({ riderId:'', name:'', phone:'', pickupAddr:'', pickupLat: undefined, pickupLng: undefined, dropAddr:'', dropLat: undefined, dropLng: undefined }); setWalkOpen(true); }} className="rounded border px-3 py-1 text-sm">Walk On…</button>
               </div>
             </div>
           ))}
@@ -267,9 +270,13 @@ export default function DrivingClient(){
             </div>
             {(() => {
               const t = tasks.find(x=> x.id===walkTaskId);
+              const needsPickup = !t;
               return (
                 <div className="grid gap-2">
-                  <div className="text-xs opacity-70">Pickup: {t?.pickupAddr || '—'}</div>
+                  <div className="text-xs opacity-70">{needsPickup ? 'Pickup: specify address' : `Pickup: ${t?.pickupAddr || '—'}`}</div>
+                  {needsPickup && (
+                    <AddressInput label="Pickup" value={walkForm.pickupAddr} onChange={(txt)=> setWalkForm((f:any)=> ({ ...f, pickupAddr: txt }))} onSelect={(o)=> setWalkForm((f:any)=> ({ ...f, pickupAddr: o.label, pickupLat: o.lat, pickupLng: o.lon }))} />
+                  )}
                   <div className="relative">
                     <input className="p-2 rounded border text-sm w-full" placeholder="Name" value={walkForm.name} onChange={(e)=> setWalkForm((f:any)=> ({ ...f, name: e.target.value }))} onFocus={()=>{ if (walkNameOpts.length>0) setWalkNameOpen(true); }} />
                     {walkNameOpen && walkNameOpts.length>0 && (
@@ -297,7 +304,7 @@ export default function DrivingClient(){
                       try{
                         const res = await fetch('/api/driver/walk-on', { method:'POST', headers:{ 'Content-Type':'application/json' }, body: JSON.stringify({ ...walkForm, taskId: walkTaskId }) });
                         if (!res.ok){ const d = await res.json().catch(()=>({error:'Failed'})); throw new Error(d.error||'Failed'); }
-                        showToast('Walk-on added'); setWalkOpen(false); setWalkTaskId(''); setWalkForm({ name:'', phone:'', dropAddr:'' }); refreshTasks();
+                        showToast('Walk-on added'); setWalkOpen(false); setWalkTaskId(''); setWalkSelRider(null); setWalkForm({ riderId:'', name:'', phone:'', pickupAddr:'', pickupLat: undefined, pickupLng: undefined, dropAddr:'', dropLat: undefined, dropLng: undefined }); refreshTasks();
                       }catch(e:any){ showToast(e.message||'Failed'); }
                     }} className="rounded bg-black text-white px-3 py-1 text-sm">Add</button>
                   </div>
