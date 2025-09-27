@@ -485,15 +485,18 @@ export async function GET(req: Request){
   }
 
   // Filename per request: "SADD Tracker - <TODAY'S DAY>"
-  const day = nameDateForNow(tz);
-  const filename = `SADD Tracker - ${day}.xlsx`;
-
-  const xbuf: ArrayBuffer = await wb.xlsx.writeBuffer();
-  return new NextResponse(xbuf as any, {
-    headers: {
-      'Content-Type': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-      'Content-Disposition': `attachment; filename="${filename}"`,
-      'Cache-Control': 'no-store',
-    }
-  });
+  try{
+    const day = nameDateForNow(tz);
+    const filename = `SADD Tracker - ${day}.xlsx`;
+    const xbuf: ArrayBuffer = await wb.xlsx.writeBuffer();
+    return new NextResponse(xbuf as any, {
+      headers: {
+        'Content-Type': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+        'Content-Disposition': `attachment; filename="${filename}"`,
+        'Cache-Control': 'no-store',
+      }
+    });
+  }catch(e:any){
+    return NextResponse.json({ error: 'failed_to_generate_workbook', message: e?.message || String(e) }, { status: 500 });
+  }
 }
