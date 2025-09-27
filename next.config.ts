@@ -26,7 +26,11 @@ const securityHeaders = [
       "manifest-src 'self'"
     ].join('; '),
   },
-  { key: 'Referrer-Policy', value: 'no-referrer' },
+  // YouTube embeds (and the IFrame API with enablejsapi/origin) require
+  // a referrer so Google can validate the requesting origin. Using
+  // strict-origin-when-cross-origin preserves privacy while fixing
+  // "Video player configuration error (Error 153)" on training videos.
+  { key: 'Referrer-Policy', value: 'strict-origin-when-cross-origin' },
   { key: 'X-Frame-Options', value: 'SAMEORIGIN' },
   { key: 'X-Content-Type-Options', value: 'nosniff' },
   { key: 'Permissions-Policy', value: 'camera=(), microphone=(), geolocation=(self)' },
