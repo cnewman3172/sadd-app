@@ -234,7 +234,7 @@ export default function RequestClient(){
               {history.map((r)=> (
                 <div key={r.id} className="text-sm border-t border-white/20 pt-2">
                   <div className="flex items-center justify-between">
-                    <div>#{r.rideCode} — {r.status} — {new Date(r.requestedAt).toLocaleString()}</div>
+                    <div>#{r.rideCode} — {r.status} — {new Date(r.requestedAt).toLocaleString('en-US', { timeZone: 'UTC', year:'numeric', month:'2-digit', day:'2-digit', hour:'2-digit', minute:'2-digit' })} UTC</div>
                     {r.status==='DROPPED' && !r.rating && !pendingReview && (
                       <ReviewInline ride={r} iceUrl={ICE_URL} onDone={()=> reloadHistory()} />
                     )}

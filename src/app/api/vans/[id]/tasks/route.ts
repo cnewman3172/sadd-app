@@ -11,7 +11,12 @@ export async function GET(req: NextRequest, context: { params: { id: string } })
   const payload = await verifyJwt(token);
   if (!payload || !['ADMIN','DISPATCHER'].includes(payload.role)) return NextResponse.json({ error:'forbidden' }, { status: 403 });
   try{
-    const id = z.string().uuid().parse(context.params.id);
+    const idParam = context.params?.id || '';
+    const parsed = z.string().uuid().safeParse(idParam);
+    if (!parsed.success){
+      return NextResponse.json({ error:'bad id' }, { status: 400 });
+    }
+    const id = parsed.data;
     // Return tasks in planned order (VanTask)
     const plan = await prisma.vanTask.findMany({ where:{ vanId: id }, orderBy:{ order:'asc' }, include:{ ride:true } });
     const tasks = plan.map(p=> ({ id: p.rideId, status: p.ride.status, pickupLat: p.ride.pickupLat, pickupLng: p.ride.pickupLng, dropLat: p.ride.dropLat, dropLng: p.ride.dropLng, phase: p.phase }));

@@ -100,6 +100,7 @@ export default function DashboardClient(){
     for (const vanId of Object.keys(byVan)){
       try{
         const res = await fetch(`/api/plan/eta?vanId=${vanId}`, { cache:'no-store' });
+        if (!res.ok){ continue; }
         const d = await res.json();
         fb[vanId] = res.headers.get('X-Plan-ETA-Fallback') === '1';
         const m = (d?.etas)||{};
@@ -215,7 +216,7 @@ export default function DashboardClient(){
               <div key={r.id} className="rounded border p-3 flex flex-col gap-2">
                 <div className="flex items-center justify-between">
                   <div className="font-medium">#{r.rideCode} · {displayName(r as any)}</div>
-                  <div className="text-xs opacity-70">{new Date(r.requestedAt).toLocaleString()}</div>
+              <div className="text-xs opacity-70">{new Date(r.requestedAt).toLocaleString('en-US', { timeZone: 'UTC', year:'numeric', month:'2-digit', day:'2-digit', hour:'2-digit', minute:'2-digit' })} UTC</div>
                 </div>
                 <div className="text-sm opacity-80 flex items-center gap-2">
                   <span>{r.pickupAddr} → {r.dropAddr}</span>
