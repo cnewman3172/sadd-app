@@ -246,7 +246,6 @@ export async function GET(req: Request){
     const COL_DROPOFF_TIME = header.indexOf('dropoff_time') + 1;
     for (const r of rides){
       const riderName = [r.rider?.firstName, r.rider?.lastName].filter(Boolean).join(' ');
-      const tcName = [r.driver?.firstName, r.driver?.lastName].filter(Boolean).join(' ');
       let contactName = '';
       let contactPhone = '';
       try{
@@ -259,6 +258,10 @@ export async function GET(req: Request){
       const effectivePhone = contactPhone || (r.rider?.phone || '');
 
       const shift = await findShiftForInstant(r.requestedAt);
+      const tcSignup = shift?.signups?.find((su: any) => String(su.role||'').toUpperCase() === 'TC');
+      const tcUser = (r.driver as any) || (tcSignup?.user as any) || null;
+      const tcName = tcUser ? [tcUser.firstName, tcUser.lastName].filter(Boolean).join(' ') : '';
+      const tcEmail = tcUser?.email || '';
       const shiftDate = localParts(shift?.startsAt as any, tz) || localParts(r.requestedAt as any, tz);
       const reqDateSerial = shiftDate ? excelSerialDate(shiftDate.y, shiftDate.m, shiftDate.da) : null;
 
@@ -275,7 +278,7 @@ export async function GET(req: Request){
         effectivePhone,
         r.rider?.unit || '',
         tcName,
-        r.driver?.email || '',
+        tcEmail,
         r.van?.name || '',
         // request_date (as Excel date serial)
         reqDateSerial,
