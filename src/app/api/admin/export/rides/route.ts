@@ -145,23 +145,18 @@ function humanizeStatus(s?: string){
 // Van status no longer exported
 
 export async function GET(req: Request){
-  try{
-    return await handleGet(req);
-  }catch(err){
-    console.error('rides export failed', err);
-    const message = err instanceof Error ? err.message : String(err);
-    return NextResponse.json({ error: 'internal_error', message }, { status: 500 });
-  }
+  return handleGet(req);
 }
 
 async function handleGet(req: Request){
+  const url = new URL(req.url);
+  const format = (url.searchParams.get('format') || 'csv').toLowerCase();
+  const tz = url.searchParams.get('tz') || 'UTC';
+
   const token = (req.headers.get('cookie')||'').split('; ').find(c=>c.startsWith('sadd_token='))?.split('=')[1];
   const payload = await verifyJwt(token);
   if (!payload || payload.role !== 'ADMIN') return NextResponse.json({ error:'forbidden' }, { status: 403 });
 
-  const url = new URL(req.url);
-  const format = (url.searchParams.get('format') || 'csv').toLowerCase();
-  const tz = url.searchParams.get('tz') || 'UTC';
   const fromStr = url.searchParams.get('from') || '';
   const toStr = url.searchParams.get('to') || '';
   const where: any = {};
@@ -183,47 +178,60 @@ async function handleGet(req: Request){
     }
   }
 
-  const rides = await prisma.ride.findMany({
-    where,
-    orderBy: { requestedAt: 'desc' },
-    include: {
-      rider: { select: { firstName: true, lastName: true, email: true, phone: true, rank: true, unit: true } },
-      driver: { select: { firstName: true, lastName: true, email: true, phone: true } },
-      coordinator: { select: { firstName: true, lastName: true, email: true, phone: true, role: true } },
-      van: {
-        select: {
-          name: true,
-          status: true,
-          passengers: true,
-          activeTcId: true,
-          activeTc: { select: { firstName: true, lastName: true, email: true, phone: true, role: true } },
-        },
-      },
-    }
-  });
-
-  const rideIds = rides.map(r => r.id);
-  const walkonAudits = rideIds.length ? await prisma.audit.findMany({
-    where: { action: 'ride_create_walkon', subject: { in: rideIds } },
-    orderBy: { createdAt: 'desc' },
-  }) : [];
-  const walkonActorIds = new Set<string>();
-  for (const audit of walkonAudits){
-    if (audit.actorId) walkonActorIds.add(audit.actorId);
+  if (!process.env.DATABASE_URL){
+    console.warn('rides export requested without DATABASE_URL configured');
+    return respondWithExportError(format, tz, 'missing_database_url');
   }
-  const walkonActors = walkonActorIds.size ? await prisma.user.findMany({
-    where: { id: { in: Array.from(walkonActorIds) } },
-    select: { id: true, firstName: true, lastName: true, email: true, phone: true, role: true },
-  }) : [];
-  const walkonActorMap = new Map<string, any>();
-  const walkonUserById = new Map<string, any>(walkonActors.map(u => [u.id, u]));
-  for (const audit of walkonAudits){
-    if (!audit.subject) continue;
-    if (walkonActorMap.has(audit.subject)) continue;
-    if (audit.actorId){
-      const actor = walkonUserById.get(audit.actorId);
-      if (actor) walkonActorMap.set(audit.subject, actor);
+
+  let rides: Awaited<ReturnType<typeof prisma.ride.findMany>> = [];
+  let walkonActorMap = new Map<string, any>();
+
+  try{
+    rides = await prisma.ride.findMany({
+      where,
+      orderBy: { requestedAt: 'desc' },
+      include: {
+        rider: { select: { firstName: true, lastName: true, email: true, phone: true, rank: true, unit: true } },
+        driver: { select: { firstName: true, lastName: true, email: true, phone: true } },
+        coordinator: { select: { firstName: true, lastName: true, email: true, phone: true, role: true } },
+        van: {
+          select: {
+            name: true,
+            status: true,
+            passengers: true,
+            activeTcId: true,
+            activeTc: { select: { firstName: true, lastName: true, email: true, phone: true, role: true } },
+          },
+        },
+      }
+    });
+
+    const rideIds = rides.map(r => r.id);
+    const walkonAudits = rideIds.length ? await prisma.audit.findMany({
+      where: { action: 'ride_create_walkon', subject: { in: rideIds } },
+      orderBy: { createdAt: 'desc' },
+    }) : [];
+    const walkonActorIds = new Set<string>();
+    for (const audit of walkonAudits){
+      if (audit.actorId) walkonActorIds.add(audit.actorId);
     }
+    const walkonActors = walkonActorIds.size ? await prisma.user.findMany({
+      where: { id: { in: Array.from(walkonActorIds) } },
+      select: { id: true, firstName: true, lastName: true, email: true, phone: true, role: true },
+    }) : [];
+    walkonActorMap = new Map<string, any>();
+    const walkonUserById = new Map<string, any>(walkonActors.map(u => [u.id, u]));
+    for (const audit of walkonAudits){
+      if (!audit.subject) continue;
+      if (walkonActorMap.has(audit.subject)) continue;
+      if (audit.actorId){
+        const actor = walkonUserById.get(audit.actorId);
+        if (actor) walkonActorMap.set(audit.subject, actor);
+      }
+    }
+  }catch(err){
+    console.error('rides export failed to query database', err);
+    return respondWithExportError(format, tz, 'database_query_failed');
   }
 
   if (format === 'json'){
