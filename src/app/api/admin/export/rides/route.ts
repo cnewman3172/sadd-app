@@ -170,6 +170,30 @@ export async function GET(req: Request){
     }
   });
 
+  const rideIds = rides.map(r => r.id);
+  const walkonAudits = rideIds.length ? await prisma.audit.findMany({
+    where: { action: 'ride_create_walkon', subject: { in: rideIds } },
+    orderBy: { createdAt: 'desc' },
+  }) : [];
+  const walkonActorIds = new Set<string>();
+  for (const audit of walkonAudits){
+    if (audit.actorId) walkonActorIds.add(audit.actorId);
+  }
+  const walkonActors = walkonActorIds.size ? await prisma.user.findMany({
+    where: { id: { in: Array.from(walkonActorIds) } },
+    select: { id: true, firstName: true, lastName: true, email: true, role: true },
+  }) : [];
+  const walkonActorMap = new Map<string, any>();
+  const walkonUserById = new Map<string, any>(walkonActors.map(u => [u.id, u]));
+  for (const audit of walkonAudits){
+    if (!audit.subject) continue;
+    if (walkonActorMap.has(audit.subject)) continue;
+    if (audit.actorId){
+      const actor = walkonUserById.get(audit.actorId);
+      if (actor) walkonActorMap.set(audit.subject, actor);
+    }
+  }
+
   if (format === 'json'){
     return NextResponse.json(rides);
   }
@@ -219,7 +243,8 @@ export async function GET(req: Request){
       r.driver ? Promise.resolve(null) : findShiftForInstant(r.requestedAt, 'TC'),
     ]);
     const tcSignupUser = pickTcFromShift(tcShift) || pickTcFromShift(shift);
-    const tcUser = (r.driver as any) || (tcSignupUser as any) || (r.van?.activeTc as any) || null;
+    const auditUser = walkonActorMap.get(r.id);
+    const tcUser = (r.driver as any) || (tcSignupUser as any) || (r.van?.activeTc as any) || (auditUser as any) || null;
     const tcName = tcUser ? [tcUser.firstName, tcUser.lastName].filter(Boolean).join(' ') : '';
     const tcEmail = tcUser?.email || '';
 
@@ -286,7 +311,8 @@ export async function GET(req: Request){
         r.driver ? Promise.resolve(null) : findShiftForInstant(r.requestedAt, 'TC'),
       ]);
       const tcSignupUser = pickTcFromShift(tcShift) || pickTcFromShift(shift);
-      const tcUser = (r.driver as any) || (tcSignupUser as any) || (r.van?.activeTc as any) || null;
+      const auditUser = walkonActorMap.get(r.id);
+      const tcUser = (r.driver as any) || (tcSignupUser as any) || (r.van?.activeTc as any) || (auditUser as any) || null;
       const tcName = tcUser ? [tcUser.firstName, tcUser.lastName].filter(Boolean).join(' ') : '';
       const tcEmail = tcUser?.email || '';
       const shiftDate = localParts(shift?.startsAt as any, tz) || localParts(r.requestedAt as any, tz);
