@@ -177,7 +177,7 @@ export default function RequestClient(){
   }, [vanPos?.lat, vanPos?.lng, status?.status]);
 
   return (
-    <div className="grid md:grid-cols-3 gap-6 p-4 max-w-6xl mx-auto">
+    <div className="grid w-full max-w-6xl gap-6 px-4 py-6 mx-auto md:grid-cols-[minmax(0,2fr)_minmax(0,1fr)] md:items-start">
       <div className="md:col-span-2 space-y-4">
         {/* Gate: prompt review first if there is an unrated DROPPED ride */}
         {pendingReview && (
@@ -217,7 +217,12 @@ export default function RequestClient(){
             <div>
               <input className="p-3 rounded border w-full" placeholder="Notes (optional)" onChange={(e)=>setForm({...form, notes:e.target.value})} />
             </div>
-            <button disabled={active===false} className="rounded bg-black text-white py-3 disabled:opacity-50 disabled:cursor-not-allowed">Submit Request</button>
+            <button
+              disabled={active===false}
+              className="btn-primary w-full py-3 font-semibold disabled:opacity-60 disabled:cursor-not-allowed"
+            >
+              Submit Request
+            </button>
           </form>
         )}
         {status && (
@@ -245,7 +250,7 @@ export default function RequestClient(){
           </div>
         )}
       </div>
-      <aside className="space-y-4">
+      <aside className="space-y-4 md:sticky md:top-6">
         <div className="rounded-xl overflow-hidden border border-white/20">
           <Map
             height={400}
