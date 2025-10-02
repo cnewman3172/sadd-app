@@ -184,7 +184,7 @@ export default function DrivingClient(){
   return (
     <div className="p-6 max-w-3xl mx-auto space-y-4">
       <h1 className="text-2xl font-semibold">Truck Commander <span className="text-sm opacity-70">{sseStatus==='online'?'• Live':sseStatus==='connecting'?'• Connecting':'• Offline'}</span></h1>
-      <section className="rounded-xl p-4 bg-white/70 dark:bg-white/10 border border-white/20 space-y-2">
+      <section className="glass rounded-[32px] border border-white/20 p-5 shadow-lg dark:border-white/10 space-y-2">
         <div className="text-sm">{currentVan ? `Online as ${currentVan.name}` : 'Offline'}</div>
         {!currentVan && (
           <div className="flex gap-2 items-center">
@@ -209,7 +209,7 @@ export default function DrivingClient(){
           </div>
         )}
       </section>
-      <section className="rounded-xl p-3 bg-amber-100 text-amber-900 dark:bg-amber-900/30 dark:text-amber-200 border border-amber-200 dark:border-amber-700">
+      <section className="glass rounded-[28px] border border-amber-200/70 bg-amber-100/80 p-4 text-amber-900 shadow-lg dark:border-amber-700/70 dark:bg-amber-900/30 dark:text-amber-200">
         <div className="text-sm">
           Keep this page open while you are Online so your location updates reliably every 5 seconds. Turning on “Keep screen awake” can help prevent the device from sleeping.
         </div>
