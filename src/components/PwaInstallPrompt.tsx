@@ -113,7 +113,7 @@ export default function PwaInstallPrompt(){
             <div className="text-base font-semibold">Install SADD</div>
             <div className="text-xs opacity-70">Add the app to your home screen for faster access and offline notices.</div>
           </div>
-          <button type="button" onClick={hidePrompt} aria-label="Dismiss" className="rounded-full p-1 text-xl leading-none opacity-80 hover:opacity-100">×</button>
+          <button type="button" onClick={hidePrompt} aria-label="Dismiss" className="rounded-full p-1 text-xs font-semibold opacity-70 hover:opacity-100">Close</button>
         </div>
         {deferred ? (
           <button
@@ -126,7 +126,7 @@ export default function PwaInstallPrompt(){
         ) : null}
         {showIosHint ? (
           <div className="mt-2 rounded-lg border border-black/10 bg-black/5 px-3 py-2 text-xs text-black dark:border-white/10 dark:bg-white/10 dark:text-white">
-            On Safari, tap the share button <span aria-hidden className="mx-1">▵</span> then choose “Add to Home Screen”.
+            On Safari, tap the Share button (square with arrow) and choose 'Add to Home Screen'.
           </div>
         ) : null}
       </div>
