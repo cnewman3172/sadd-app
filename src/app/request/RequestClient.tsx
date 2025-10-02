@@ -99,18 +99,21 @@ export default function RequestClient(){
     setLocating(true);
     navigator.geolocation.getCurrentPosition(async (pos)=>{
       const { latitude, longitude } = pos.coords;
-      setForm((f:any)=>({ ...f, pickupLat: latitude, pickupLng: longitude }));
+      let resolvedLabel: string | null = null;
       try{
         const res = await fetch(`/api/geocode/reverse?lat=${latitude}&lon=${longitude}`, { cache: 'no-store' });
         if (res.ok){
           const data = await res.json();
-          const label = (data?.label && typeof data.label === 'string' && data.label.trim().length>0)
-            ? data.label
-            : `${latitude.toFixed(5)}, ${longitude.toFixed(5)}`;
-          setForm((f:any)=>({ ...f, pickupAddr: label, pickupLat: latitude, pickupLng: longitude }));
+          if (data?.label && typeof data.label === 'string' && data.label.trim().length>0){
+            resolvedLabel = data.label.trim();
+          }
         }
       }catch(error){ console.error('Reverse geocode failed', error); }
-      finally { setLocating(false); }
+      finally {
+        const fallback = resolvedLabel || `${latitude.toFixed(5)}, ${longitude.toFixed(5)}`;
+        setForm((f:any)=>({ ...f, pickupAddr: fallback, pickupLat: latitude, pickupLng: longitude }));
+        setLocating(false);
+      }
     }, (err)=>{ console.error('Geolocation error', err); setLocating(false); }, { enableHighAccuracy: true, timeout: 10000 });
   }
 
