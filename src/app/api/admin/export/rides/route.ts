@@ -230,8 +230,6 @@ export async function GET(req: Request){
     'rider_unit',
     'truck_commander_name',
     'truck_commander_email',
-    'truck_commander_phone',
-    'truck_commander_source',
     'van_name',
     // Date tied to start of the active shift at request time
     'request_date',
@@ -274,16 +272,14 @@ export async function GET(req: Request){
     const tcSignupUser = pickTcFromShift(tcShift) || pickTcFromShift(shift);
     const auditUser = walkonActorMap.get(r.id);
     let tcUser: any = null;
-    let tcSource = 'none';
-    if (r.driver){ tcUser = r.driver; tcSource = 'driver'; }
-    else if (r.coordinator){ tcUser = r.coordinator; tcSource = 'coordinator'; }
-    else if (tcSignupUser){ tcUser = tcSignupUser; tcSource = 'shift'; }
-    else if (r.van?.activeTc){ tcUser = r.van.activeTc; tcSource = 'van_active_tc'; }
-    else if (auditUser){ tcUser = auditUser; tcSource = 'audit'; }
-    else if (walkOnTc){ tcUser = walkOnTc; tcSource = 'notes'; }
+    if (r.driver){ tcUser = r.driver; }
+    else if (r.coordinator){ tcUser = r.coordinator; }
+    else if (tcSignupUser){ tcUser = tcSignupUser; }
+    else if (r.van?.activeTc){ tcUser = r.van.activeTc; }
+    else if (auditUser){ tcUser = auditUser; }
+    else if (walkOnTc){ tcUser = walkOnTc; }
     const tcName = tcUser ? [tcUser.firstName, tcUser.lastName].filter(Boolean).join(' ') : '';
     const tcEmail = tcUser?.email || '';
-    const tcPhone = tcUser?.phone || '';
 
     const shiftDateParts = localParts(shift?.startsAt as any, tz) || localParts(r.requestedAt as any, tz);
     const reqDateStr = shiftDateParts ? `${shiftDateParts.y}-${pad2(shiftDateParts.m)}-${pad2(shiftDateParts.da)}` : '';
@@ -303,8 +299,6 @@ export async function GET(req: Request){
       r.rider?.unit || '',
       tcName,
       tcEmail,
-      tcPhone,
-      tcSource,
       r.van?.name || '',
       reqDateStr,
       reqTimeStr,
@@ -357,16 +351,14 @@ export async function GET(req: Request){
       const tcSignupUser = pickTcFromShift(tcShift) || pickTcFromShift(shift);
       const auditUser = walkonActorMap.get(r.id);
       let tcUser: any = null;
-      let tcSource = 'none';
-      if (r.driver){ tcUser = r.driver; tcSource = 'driver'; }
-      else if (r.coordinator){ tcUser = r.coordinator; tcSource = 'coordinator'; }
-      else if (tcSignupUser){ tcUser = tcSignupUser; tcSource = 'shift'; }
-      else if (r.van?.activeTc){ tcUser = r.van.activeTc; tcSource = 'van_active_tc'; }
-      else if (auditUser){ tcUser = auditUser; tcSource = 'audit'; }
-      else if (walkOnTc){ tcUser = walkOnTc; tcSource = 'notes'; }
+      if (r.driver){ tcUser = r.driver; }
+      else if (r.coordinator){ tcUser = r.coordinator; }
+      else if (tcSignupUser){ tcUser = tcSignupUser; }
+      else if (r.van?.activeTc){ tcUser = r.van.activeTc; }
+      else if (auditUser){ tcUser = auditUser; }
+      else if (walkOnTc){ tcUser = walkOnTc; }
       const tcName = tcUser ? [tcUser.firstName, tcUser.lastName].filter(Boolean).join(' ') : '';
       const tcEmail = tcUser?.email || '';
-      const tcPhone = tcUser?.phone || '';
       const shiftDate = localParts(shift?.startsAt as any, tz) || localParts(r.requestedAt as any, tz);
       const reqDateSerial = shiftDate ? excelSerialDate(shiftDate.y, shiftDate.m, shiftDate.da) : null;
 
@@ -384,8 +376,6 @@ export async function GET(req: Request){
         r.rider?.unit || '',
         tcName,
         tcEmail,
-        tcPhone,
-        tcSource,
         r.van?.name || '',
         // request_date (as Excel date serial)
         reqDateSerial,
