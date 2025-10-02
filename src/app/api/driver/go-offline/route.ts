@@ -20,9 +20,13 @@ export async function POST(req: Request){
   }
   await prisma.$transaction(async(tx)=>{
     await tx.van.updateMany({ where:{ activeTcId: payload.uid }, data:{ activeTcId: null, status: 'OFFLINE', passengers: 0 } });
-    if (van){ await tx.vanTask.deleteMany({ where:{ vanId: van.id } }); }
+    if (van){
+      await tx.vanTask.deleteMany({ where:{ vanId: van.id } });
+      await tx.tcTransfer.updateMany({ where:{ vanId: van.id, status: 'PENDING' }, data:{ status: 'CANCELLED', respondedAt: new Date() } });
+    }
   });
   publish('vans:update', { by: payload.uid });
+  if (van){ publish('transfer:update', { vanId: van.id, type: 'bulk-cancelled' }); }
   logAudit('driver_offline', payload.uid);
   return NextResponse.json({ ok:true });
 }
