@@ -20,26 +20,13 @@ export async function GET(req: Request){
     dbOk = false;
   }
   const setting = await prisma.setting.findUnique({ where: { id: 1 } }).catch(()=>null);
-  function isActive(){
-    const base = Boolean(setting?.active);
-    if (!base) return false;
-    if (!setting?.autoDisableEnabled) return base;
-    const tz = setting?.autoDisableTz || 'America/Anchorage';
-    const hhmm = String(setting?.autoDisableTime || '22:00');
-    const [sh, sm] = hhmm.split(':').map(x=> parseInt(x,10) || 0);
-    const cut = sh*60 + sm;
-    const parts = new Intl.DateTimeFormat('en-US', { timeZone: tz, hour:'2-digit', minute:'2-digit', hour12:false }).formatToParts(new Date());
-    const h = parseInt(parts.find(p=>p.type==='hour')?.value||'0',10);
-    const mi = parseInt(parts.find(p=>p.type==='minute')?.value||'0',10);
-    const nowMin = h*60 + mi;
-    return nowMin < cut;
-  }
+  const isActive = Boolean(setting?.active);
   const elapsed = Date.now() - start;
   return NextResponse.json({
     ok: true,
     uptime: process.uptime(),
     db: { ok: dbOk, userCount, ms: elapsed },
-    active: isActive(),
+    active: isActive,
     buildSha: process.env.BUILD_SHA || 'dev',
     env: {
       hasDatabaseUrl: Boolean(process.env.DATABASE_URL),

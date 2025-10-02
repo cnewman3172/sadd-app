@@ -14,10 +14,12 @@ export async function POST(req: Request){
     const turningOn = !s.active;
     // When turning ON while auto-disable is enabled, anchor the schedule from now so it stays
     // active until the next cutoff time, then auto-disables as expected.
-    const data: any = { active: turningOn, activeSince: turningOn ? new Date() : null };
-    if (turningOn && s.autoDisableEnabled){
-      data.scheduleSince = new Date();
-    }
+    const data: any = {
+      active: turningOn,
+      activeSince: turningOn ? new Date() : null,
+      autoDisableEnabled: false,
+      scheduleSince: null,
+    };
     const toggled = await prisma.setting.update({ where:{ id:1 }, data });
     return NextResponse.json(toggled);
   }catch(e:any){
