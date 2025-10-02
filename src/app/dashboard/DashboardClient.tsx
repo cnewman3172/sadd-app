@@ -382,8 +382,8 @@ export default function DashboardClient(){
         </div>
       )}
       {autoModal.open && autoModal.ride && autoModal.best && (
-        <div className="fixed inset-0 bg-black/40 grid place-items-center p-4" role="dialog" aria-modal="true">
-          <div className="w-full max-w-md rounded-xl bg-white dark:bg-neutral-900 border border-white/20 p-4">
+        <div className="fixed inset-0 grid place-items-center bg-black/50 p-4 backdrop-blur" role="dialog" aria-modal="true">
+          <div className="glass w-full max-w-md rounded-[32px] border border-white/20 p-5 shadow-xl dark:border-white/10">
             <div className="flex items-center justify-between mb-2">
               <h3 className="font-semibold">Auto Assign</h3>
               <button onClick={()=> setAutoModal({ open:false, ride:null, best:null })} aria-label="Close">✕</button>
