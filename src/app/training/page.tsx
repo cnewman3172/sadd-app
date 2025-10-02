@@ -49,6 +49,10 @@ export default function Training(){
 
   const pendingDriverCheckRide = tab==='DRIVER' && driverTrainingComplete && !driverCheckRideComplete;
 
+  useEffect(()=>{
+    if (isDone(tab)) setPhase('done');
+  },[tab, user]);
+
   async function complete(){
     setBusy(true);
     try{
