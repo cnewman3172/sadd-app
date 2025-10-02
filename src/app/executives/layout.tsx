@@ -1,16 +1,11 @@
-import type { ReactNode } from 'react';
-import TabNav from './tabs';
-import { requireRoles } from '@/lib/guards';
+import PageShell from '@/components/PageShell';
 
-export default async function ExecutivesLayout({ children }: { children: ReactNode }){
-  await requireRoles(['ADMIN']);
+export default function ExecutivesLayout({ children }: { children: React.ReactNode }) {
   return (
-    <div className="p-6 max-w-6xl mx-auto">
-      <h1 className="text-2xl font-semibold mb-4">Executives</h1>
-      <TabNav />
-      <div className="mt-4">
+    <PageShell pad={false} widthClassName="max-w-7xl">
+      <div className="mx-auto w-full max-w-6xl px-4 py-10">
         {children}
       </div>
-    </div>
+    </PageShell>
   );
 }
