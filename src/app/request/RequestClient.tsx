@@ -264,7 +264,7 @@ export default function RequestClient(){
             <div className="space-y-4">
               {history.map((r)=> (
                 <div key={r.id} className="text-sm border-t border-white/20 pt-2">
-                  <div className="flex items-center justify-between">
+                  <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
                     <div>#{r.rideCode} — {r.status} — {new Date(r.requestedAt).toLocaleString('en-US', { timeZone: 'UTC', year:'numeric', month:'2-digit', day:'2-digit', hour:'2-digit', minute:'2-digit' })} UTC</div>
                     {r.status==='DROPPED' && !r.rating && !pendingReview && (
                       <ReviewInline ride={r} iceUrl={ICE_URL} onDone={()=> reloadHistory()} />
@@ -329,12 +329,31 @@ function ReviewInline({ ride, iceUrl, onDone }:{ ride:any; iceUrl:string; onDone
   }
 
   return (
-    <div className="flex items-center gap-3">
-      <StarRating value={stars} onChange={setStars} />
-      <input className="flex-1 p-2 rounded border" placeholder="Optional feedback" value={comment} onChange={(e)=> setComment(e.target.value)} />
-      <button disabled={busy} onClick={()=> submit(false)} className="rounded border px-3 py-1">Submit</button>
-      <button disabled={busy} onClick={()=> submit(true)} className="rounded border px-3 py-1 opacity-80">Skip extra</button>
-      {error && <span className="text-red-600 text-xs">{error}</span>}
+    <div className="flex w-full flex-wrap items-center gap-2">
+      <div className="shrink-0">
+        <StarRating value={stars} onChange={setStars} />
+      </div>
+      <input
+        className="w-full flex-1 min-w-0 rounded border p-2 sm:w-auto"
+        placeholder="Optional feedback"
+        value={comment}
+        onChange={(e)=> setComment(e.target.value)}
+      />
+      <button
+        disabled={busy}
+        onClick={()=> submit(false)}
+        className="w-full rounded border px-3 py-1 sm:w-auto"
+      >
+        Submit
+      </button>
+      <button
+        disabled={busy}
+        onClick={()=> submit(true)}
+        className="w-full rounded border px-3 py-1 opacity-80 sm:w-auto"
+      >
+        Skip extra
+      </button>
+      {error && <span className="w-full text-red-600 text-xs">{error}</span>}
     </div>
   );
 }
