@@ -66,6 +66,11 @@ function timeOnlyStr(d: Date | string | null | undefined, tz: string){
   return `${pad2(p.h)}:${pad2(p.mi)}`;
 }
 
+function formatTimeParts(parts: ReturnType<typeof localParts>){
+  if (!parts) return '';
+  return `${pad2(parts.h)}:${pad2(parts.mi)}`;
+}
+
 // Excel serial date (1900 system) from a local Y-M-D
 function excelSerialDate(y: number, m: number, d: number){
   const utc = Date.UTC(y, m-1, d);
@@ -277,48 +282,39 @@ async function handleGet(req: Request){
   }
 
   const header = [
-    'ride_code',
-    'ride_uuid',
-    'rider_name',
-    'rider_rank',
-    'rider_email',
-    'rider_phone',
-    'rider_unit',
-    'truck_commander_name',
-    'truck_commander_email',
-    'van_name',
-    // Date tied to start of the active shift at request time
-    'request_date',
-    // Only time portions for request/pickup/drop
-    'request_time',
-    'pickup_time',
-    'dropoff_time',
-    'pickup_address',
-    'dropoff_address',
-    'status',
-    'rating',
-    'review_comment',
-    'time_zone',
+    'Ride Code',
+    'Ride UUID',
+    "Rider Name",
+    'Rider Rank',
+    'Rider Email',
+    'Rider Phone',
+    'Truck Commander',
+    "Truck Commander Email",
+    'Van',
+    'Request Date',
+    'Request Time',
+    'Pickup Time',
+    'Dropoff Time',
+    'Pickup Address',
+    'Dropoff Address',
+    'Ride Status',
+    'Rating',
+    'Review Comment',
   ];
   const rows: string[][] = [header];
   for (const r of rides){
     const riderName = [r.rider?.firstName, r.rider?.lastName].filter(Boolean).join(' ');
-    let contactName = '';
-    let contactPhone = '';
     let walkOnTc: any = null;
     try{
       if (typeof r.notes === 'string' && r.notes.trim().startsWith('{')){
         const meta = JSON.parse(r.notes);
-        if (meta?.manualContact){ contactName = meta.manualContact.name || ''; contactPhone = meta.manualContact.phone || ''; }
         walkOnTc = normalizeTcMeta(meta?.walkOnTc)
           || normalizeTcMeta(meta?.walkOn?.tc)
           || normalizeTcMeta(meta?.walkOn?.truckCommander)
           || walkOnTc;
       }
     }catch{}
-    // Prefer manual contact details when present
-    const effectiveName = contactName || riderName;
-    const effectivePhone = contactPhone || (r.rider?.phone || '');
+    const riderPhone = formatPhone(r.rider?.phone || '');
 
     // Compute shift-based request date (falls back to request local date if no shift found)
     const [shift, tcShift] = await Promise.all([
@@ -337,22 +333,24 @@ async function handleGet(req: Request){
     const tcName = tcUser ? [tcUser.firstName, tcUser.lastName].filter(Boolean).join(' ') : '';
     const tcEmail = tcUser?.email || '';
 
-    const shiftDateParts = localParts(shift?.startsAt as any, tz) || localParts(r.requestedAt as any, tz);
-    const reqDateStr = shiftDateParts ? `${shiftDateParts.y}-${pad2(shiftDateParts.m)}-${pad2(shiftDateParts.da)}` : '';
+    const requestLocal = localParts(r.requestedAt as any, tz);
+    const pickupLocal = localParts(r.pickupAt as any, tz);
+    const dropLocal = localParts(r.dropAt as any, tz);
+    const requestDateParts = computeRequestDateParts(shift, requestLocal, tz);
+    const reqDateStr = requestDateParts ? formatDateParts(requestDateParts) : '';
 
     // Time-only strings for CSV readability and Excel inference
-    const reqTimeStr = timeOnlyStr(r.requestedAt as any, tz);
-    const pickupTimeStr = timeOnlyStr(r.pickupAt as any, tz);
-    const dropTimeStr = timeOnlyStr(r.dropAt as any, tz);
+    const reqTimeStr = formatTimeParts(requestLocal);
+    const pickupTimeStr = formatTimeParts(pickupLocal);
+    const dropTimeStr = formatTimeParts(dropLocal);
 
     rows.push([
       String(r.rideCode),
       r.id,
-      effectiveName,
+      riderName,
       r.rider?.rank || '',
       r.rider?.email || '',
-      effectivePhone,
-      r.rider?.unit || '',
+      riderPhone,
       tcName,
       tcEmail,
       r.van?.name || '',
@@ -365,7 +363,6 @@ async function handleGet(req: Request){
       humanizeStatus((r as any).status),
       r.rating!=null ? String(r.rating) : '',
       r.reviewComment || '',
-      tz,
     ]);
   }
 
