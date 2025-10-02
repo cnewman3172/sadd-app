@@ -47,7 +47,7 @@ export async function POST(req: Request){
     const van = await prisma.van.findFirst({ where:{ activeTcId: payload.uid } });
     if (!van) return NextResponse.json({ error:'not online with a van' }, { status: 400 });
 
-    const tcUser = await prisma.user.findUnique({ where: { id: payload.uid }, select: { id: true, firstName: true, lastName: true, email: true } });
+    const tcUser = await prisma.user.findUnique({ where: { id: payload.uid }, select: { id: true, firstName: true, lastName: true, email: true, phone: true } });
 
     // Determine current task to source pickup location (optional)
     let task = null as any;
@@ -90,6 +90,7 @@ export async function POST(req: Request){
         firstName: tcUser.firstName,
         lastName: tcUser.lastName,
         email: tcUser.email,
+        phone: tcUser.phone,
       };
     }
     let notes: string | undefined = undefined;

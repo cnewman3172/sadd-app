@@ -177,15 +177,15 @@ export async function GET(req: Request){
     orderBy: { requestedAt: 'desc' },
     include: {
       rider: { select: { firstName: true, lastName: true, email: true, phone: true, rank: true, unit: true } },
-      driver: { select: { firstName: true, lastName: true, email: true } },
-      coordinator: { select: { firstName: true, lastName: true, email: true, role: true } },
+      driver: { select: { firstName: true, lastName: true, email: true, phone: true } },
+      coordinator: { select: { firstName: true, lastName: true, email: true, phone: true, role: true } },
       van: {
         select: {
           name: true,
           status: true,
           passengers: true,
           activeTcId: true,
-          activeTc: { select: { firstName: true, lastName: true, email: true, role: true } },
+          activeTc: { select: { firstName: true, lastName: true, email: true, phone: true, role: true } },
         },
       },
     }
@@ -202,7 +202,7 @@ export async function GET(req: Request){
   }
   const walkonActors = walkonActorIds.size ? await prisma.user.findMany({
     where: { id: { in: Array.from(walkonActorIds) } },
-    select: { id: true, firstName: true, lastName: true, email: true, role: true },
+    select: { id: true, firstName: true, lastName: true, email: true, phone: true, role: true },
   }) : [];
   const walkonActorMap = new Map<string, any>();
   const walkonUserById = new Map<string, any>(walkonActors.map(u => [u.id, u]));
