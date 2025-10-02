@@ -45,6 +45,8 @@ function ExportRides(){
       </div>
     </section>
   );
+}
+
 function ResetRidesCard(){
   const [open, setOpen] = useState(false);
   const [token, setToken] = useState('');
