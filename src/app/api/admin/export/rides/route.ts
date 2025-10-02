@@ -97,6 +97,18 @@ async function findShiftForInstant(instant: Date, role?: 'DISPATCHER'|'TC'|'DRIV
   });
 }
 
+function pickTcFromShift(shift: any){
+  if (!shift?.signups) return null;
+  try{
+    const users = (shift.signups as any[]).map(su=>su?.user).filter(Boolean);
+    const byRole = users.find(u=>String(u?.role||'').toUpperCase()==='TC');
+    if (byRole) return byRole;
+    return users[0] || null;
+  }catch{
+    return null;
+  }
+}
+
 function humanizeStatus(s?: string){
   switch(String(s||'').toUpperCase()){
     case 'PENDING': return 'Pending';
@@ -198,8 +210,8 @@ export async function GET(req: Request){
       findShiftForInstant(r.requestedAt),
       r.driver ? Promise.resolve(null) : findShiftForInstant(r.requestedAt, 'TC'),
     ]);
-    const tcSignupUser = tcShift?.signups?.[0]?.user as any;
-    const tcUser = (r.driver as any) || tcSignupUser || null;
+    const tcSignupUser = pickTcFromShift(tcShift) || pickTcFromShift(shift);
+    const tcUser = (r.driver as any) || (tcSignupUser as any) || null;
     const tcName = tcUser ? [tcUser.firstName, tcUser.lastName].filter(Boolean).join(' ') : '';
     const tcEmail = tcUser?.email || '';
 
@@ -261,9 +273,12 @@ export async function GET(req: Request){
       const effectiveName = contactName || riderName;
       const effectivePhone = contactPhone || (r.rider?.phone || '');
 
-      const shift = await findShiftForInstant(r.requestedAt);
-      const tcSignup = shift?.signups?.find((su: any) => String(su.role||'').toUpperCase() === 'TC');
-      const tcUser = (r.driver as any) || (tcSignup?.user as any) || null;
+      const [shift, tcShift] = await Promise.all([
+        findShiftForInstant(r.requestedAt),
+        r.driver ? Promise.resolve(null) : findShiftForInstant(r.requestedAt, 'TC'),
+      ]);
+      const tcSignupUser = tcShift?.signups?.[0]?.user as any;
+      const tcUser = (r.driver as any) || tcSignupUser || null;
       const tcName = tcUser ? [tcUser.firstName, tcUser.lastName].filter(Boolean).join(' ') : '';
       const tcEmail = tcUser?.email || '';
       const shiftDate = localParts(shift?.startsAt as any, tz) || localParts(r.requestedAt as any, tz);
