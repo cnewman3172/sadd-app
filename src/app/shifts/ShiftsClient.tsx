@@ -1,6 +1,7 @@
 "use client";
 import { useEffect, useMemo, useState } from 'react';
 import { showToast } from '@/components/Toast';
+import PageShell from '@/components/PageShell';
 
 type ShiftItem = { id:string; title?:string|null; role:'DISPATCHER'|'TC'|'DRIVER'|'SAFETY'; startsAt:string; endsAt:string; needed:number; signupCount:number; isSigned:boolean };
 
@@ -32,7 +33,8 @@ export default function Shifts(){
   },[items]);
 
   return (
-    <div className="mx-auto max-w-5xl p-4 grid gap-6">
+    <PageShell pad={false} widthClassName="max-w-6xl">
+      <div className="mx-auto grid w-full max-w-5xl gap-6 px-4 py-10">
       {groups.dispatch.length>0 && (
         <section>
           <h2 className="font-semibold mb-2">Dispatcher Shifts</h2>
@@ -78,9 +80,10 @@ export default function Shifts(){
       )}
 
       {items.length===0 && (
-        <div className="opacity-70 text-sm">No shifts posted yet.</div>
+        <div className="glass rounded-[28px] border border-white/20 p-5 text-sm opacity-70 shadow-lg dark:border-white/10">No shifts posted yet.</div>
       )}
-    </div>
+      </div>
+    </PageShell>
   );
 }
 
