@@ -475,6 +475,10 @@ async function handleGet(req: Request){
     wsRides.getColumn(COL_REQUEST_TIME).numFmt = 'hh:mm';
     wsRides.getColumn(COL_PICKUP_TIME).numFmt = 'hh:mm';
     wsRides.getColumn(COL_DROPOFF_TIME).numFmt = 'hh:mm';
+    const RIDES_PHONE_COL = header.indexOf("Rider's Phone Number") + 1;
+    if (RIDES_PHONE_COL > 0){
+      wsRides.getColumn(RIDES_PHONE_COL).alignment = { horizontal: 'center' };
+    }
 
     // Sheet 2: Training (per user)
     const users = await prisma.user.findMany({
@@ -505,7 +509,7 @@ async function handleGet(req: Request){
     const trainingHeader = [
       'Name',
       'Email',
-      'Phone',
+      'Phone Number',
       'Unit',
       'Role',
       'VMIS Registered',
@@ -543,7 +547,7 @@ async function handleGet(req: Request){
       ]);
     }
     wsTraining.columns = trainingHeader.map(()=>({ width: 22 }));
-    const TRAINING_PHONE_COL = trainingHeader.indexOf('Phone') + 1;
+    const TRAINING_PHONE_COL = trainingHeader.indexOf('Phone Number') + 1;
     if (TRAINING_PHONE_COL > 0){
       wsTraining.getColumn(TRAINING_PHONE_COL).alignment = { horizontal: 'center' };
     }
@@ -553,7 +557,7 @@ async function handleGet(req: Request){
       'Shift ID', 'Role Required', 'Shift Title',
       // Date column, then start/end time-only
       'Shift Date', 'Start Time', 'End Time', 'Required People',
-      'User ID', 'Signup Name', 'Signup Email', 'Signup Phone', 'Signup Role', 'Signup Time'
+      'User ID', 'Signup Name', 'Signup Email', 'Signup Phone Number', 'Signup Role', 'Signup Time'
     ];
     const wsShift = wb.addWorksheet('Shift Log');
     wsShift.addRow(shiftHeader);
@@ -615,7 +619,7 @@ async function handleGet(req: Request){
     wsShift.getColumn(COL_S_DATE).numFmt = 'yyyy-mm-dd';
     wsShift.getColumn(COL_S_START).numFmt = 'hh:mm';
     wsShift.getColumn(COL_S_END).numFmt = 'hh:mm';
-    const SHIFT_PHONE_COL = shiftHeader.indexOf('Signup Phone') + 1;
+    const SHIFT_PHONE_COL = shiftHeader.indexOf('Signup Phone Number') + 1;
     if (SHIFT_PHONE_COL > 0){
       wsShift.getColumn(SHIFT_PHONE_COL).alignment = { horizontal: 'center' };
     }
