@@ -1,6 +1,7 @@
 "use client";
 import dynamic from 'next/dynamic';
 import { useEffect, useState } from 'react';
+import PageShell from '@/components/PageShell';
 
 const Map = dynamic(() => import('../../components/Map'), { ssr: false });
 import AddressInput from '@/components/AddressInput';
@@ -196,7 +197,8 @@ export default function RequestClient(){
   }, [vanPos?.lat, vanPos?.lng, status?.status]);
 
   return (
-    <div className="grid w-full max-w-6xl gap-6 px-4 py-6 mx-auto md:grid-cols-[minmax(0,2fr)_minmax(0,1fr)] md:items-start">
+    <PageShell pad={false}>
+      <div className="mx-auto grid w-full max-w-6xl gap-6 px-4 py-10 md:grid-cols-[minmax(0,2fr)_minmax(0,1fr)] md:items-start">
       <div className="md:col-span-2 space-y-4">
         {/* Gate: prompt review first if there is an unrated DROPPED ride */}
         {pendingReview && (
@@ -295,7 +297,8 @@ export default function RequestClient(){
           </div>
         )}
       </aside>
-    </div>
+      </div>
+    </PageShell>
   );
 }
 
