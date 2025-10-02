@@ -110,6 +110,7 @@ export async function POST(req: Request){
       status: 'ASSIGNED',
       vanId: van.id,
       driverId: van.activeTcId ?? payload.uid,
+      coordinatorId: payload.uid,
       acceptedAt: new Date(),
     }});
     if (!ride.driverId){
@@ -117,6 +118,9 @@ export async function POST(req: Request){
       if (fallbackDriverId){
         try{ ride = await prisma.ride.update({ where: { id: ride.id }, data: { driverId: fallbackDriverId } }); }catch{}
       }
+    }
+    if (!ride.coordinatorId && payload.uid){
+      try{ ride = await prisma.ride.update({ where: { id: ride.id }, data: { coordinatorId: payload.uid } }); }catch{}
     }
   publish('ride:update', { id: ride.id, status: ride.status, code: ride.rideCode, vanId: ride.vanId, riderId: ride.riderId });
   try{ const { rebuildPlanForVan } = await import('@/lib/plan'); await rebuildPlanForVan(van.id); }catch{}
