@@ -110,6 +110,17 @@ function formatPhone(phone?: string | null){
   return phone;
 }
 
+function humanizeRole(role?: string | null){
+  switch(String(role || '').toUpperCase()){
+    case 'TC': return 'Truck Commander';
+    case 'DRIVER': return 'Driver';
+    case 'DISPATCHER': return 'Dispatcher';
+    case 'SAFETY': return 'Safety';
+    case 'ADMIN': return 'Admin';
+    default: return role || '';
+  }
+}
+
 function computeRequestDateParts(shift: any, requestLocal: ReturnType<typeof localParts>, tz: string): LocalDateParts | null {
   const shiftLocal = shift ? localParts((shift as any).startsAt as any, tz) : null;
   let dateParts: LocalDateParts | null = shiftLocal ? { y: shiftLocal.y, m: shiftLocal.m, da: shiftLocal.da } : null;
@@ -499,7 +510,7 @@ async function handleGet(req: Request){
         u.email ?? '',
         formatPhone(u.phone),
         u.unit ?? '',
-        u.role,
+        humanizeRole(u.role),
         status(u.vmisRegistered),
         status(u.volunteerAgreement),
         status(u.saddSopRead),
@@ -544,7 +555,7 @@ async function handleGet(req: Request){
         const endP = localParts(s.endsAt as any, tz);
         wsShift.addRow([
           s.id,
-          s.role,
+          humanizeRole(s.role),
           s.title || '',
           dateSerial,
           startP ? excelSerialTime(startP.h, startP.mi, startP.s) : null,
@@ -554,7 +565,7 @@ async function handleGet(req: Request){
           full,
           u?.email || '',
           formatPhone(u?.phone),
-          u?.role || '',
+          humanizeRole(u?.role),
           fmtInTz((su as any).createdAt as any, tz),
         ]);
       }
@@ -565,7 +576,7 @@ async function handleGet(req: Request){
         const endP = localParts(s.endsAt as any, tz);
         wsShift.addRow([
           s.id,
-          s.role,
+          humanizeRole(s.role),
           s.title || '',
           dateSerial,
           startP ? excelSerialTime(startP.h, startP.mi, startP.s) : null,
