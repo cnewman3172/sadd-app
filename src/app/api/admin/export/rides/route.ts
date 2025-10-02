@@ -231,6 +231,7 @@ export async function GET(req: Request){
     'truck_commander_name',
     'truck_commander_email',
     'truck_commander_phone',
+    'truck_commander_source',
     'van_name',
     // Date tied to start of the active shift at request time
     'request_date',
@@ -272,7 +273,14 @@ export async function GET(req: Request){
     ]);
     const tcSignupUser = pickTcFromShift(tcShift) || pickTcFromShift(shift);
     const auditUser = walkonActorMap.get(r.id);
-    const tcUser = (r.driver as any) || (r.coordinator as any) || (tcSignupUser as any) || (r.van?.activeTc as any) || (auditUser as any) || (walkOnTc as any) || null;
+    let tcUser: any = null;
+    let tcSource = 'none';
+    if (r.driver){ tcUser = r.driver; tcSource = 'driver'; }
+    else if (r.coordinator){ tcUser = r.coordinator; tcSource = 'coordinator'; }
+    else if (tcSignupUser){ tcUser = tcSignupUser; tcSource = 'shift'; }
+    else if (r.van?.activeTc){ tcUser = r.van.activeTc; tcSource = 'van_active_tc'; }
+    else if (auditUser){ tcUser = auditUser; tcSource = 'audit'; }
+    else if (walkOnTc){ tcUser = walkOnTc; tcSource = 'notes'; }
     const tcName = tcUser ? [tcUser.firstName, tcUser.lastName].filter(Boolean).join(' ') : '';
     const tcEmail = tcUser?.email || '';
     const tcPhone = tcUser?.phone || '';
@@ -296,6 +304,7 @@ export async function GET(req: Request){
       tcName,
       tcEmail,
       tcPhone,
+      tcSource,
       r.van?.name || '',
       reqDateStr,
       reqTimeStr,
@@ -347,7 +356,14 @@ export async function GET(req: Request){
       ]);
       const tcSignupUser = pickTcFromShift(tcShift) || pickTcFromShift(shift);
       const auditUser = walkonActorMap.get(r.id);
-      const tcUser = (r.driver as any) || (r.coordinator as any) || (tcSignupUser as any) || (r.van?.activeTc as any) || (auditUser as any) || (walkOnTc as any) || null;
+      let tcUser: any = null;
+      let tcSource = 'none';
+      if (r.driver){ tcUser = r.driver; tcSource = 'driver'; }
+      else if (r.coordinator){ tcUser = r.coordinator; tcSource = 'coordinator'; }
+      else if (tcSignupUser){ tcUser = tcSignupUser; tcSource = 'shift'; }
+      else if (r.van?.activeTc){ tcUser = r.van.activeTc; tcSource = 'van_active_tc'; }
+      else if (auditUser){ tcUser = auditUser; tcSource = 'audit'; }
+      else if (walkOnTc){ tcUser = walkOnTc; tcSource = 'notes'; }
       const tcName = tcUser ? [tcUser.firstName, tcUser.lastName].filter(Boolean).join(' ') : '';
       const tcEmail = tcUser?.email || '';
       const tcPhone = tcUser?.phone || '';
@@ -369,6 +385,7 @@ export async function GET(req: Request){
         tcName,
         tcEmail,
         tcPhone,
+        tcSource,
         r.van?.name || '',
         // request_date (as Excel date serial)
         reqDateSerial,
