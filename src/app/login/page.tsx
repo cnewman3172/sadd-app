@@ -1,6 +1,7 @@
 "use client";
 import { useEffect, useState } from 'react';
 import { showToast } from '@/components/Toast';
+import PageShell from '@/components/PageShell';
 
 export default function Login() {
   const [mode, setMode] = useState<'login'|'register'>('login');
@@ -48,8 +49,8 @@ export default function Login() {
   }
 
   return (
-    <div className="min-h-[70vh] grid place-items-center p-6">
-      <div className="w-full max-w-md rounded-2xl p-6 bg-white/60 dark:bg-white/10 backdrop-blur border border-white/20">
+    <PageShell innerClassName="grid place-items-center" widthClassName="max-w-6xl" pad>
+      <div className="w-full max-w-md glass rounded-[32px] border border-white/20 p-6 shadow-xl dark:border-white/10 sm:p-8">
         {error && <div className="mb-3 text-sm text-red-600">{error}</div>}
         {mode === 'login' ? (
           <form onSubmit={submitLogin} className="space-y-3">

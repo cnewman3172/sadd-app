@@ -1,5 +1,4 @@
 "use client";
-import clsx from 'clsx';
 import { useEffect, useRef } from 'react';
 
 type PageShellProps = {
@@ -52,6 +51,10 @@ function AmbientBackdrop({ animate = true }:{ animate?: boolean }){
   );
 }
 
+function cx(...classes: Array<string | false | null | undefined>) {
+  return classes.filter(Boolean).join(' ');
+}
+
 export default function PageShell({
   children,
   className,
@@ -61,9 +64,9 @@ export default function PageShell({
   showOrbs = true,
 }: PageShellProps){
   return (
-    <div className={clsx('relative min-h-screen ambient-bg', className)}>
+    <div className={cx('relative min-h-screen ambient-bg', className)}>
       {showOrbs ? <AmbientBackdrop /> : null}
-      <div className={clsx('relative z-10 mx-auto w-full', widthClassName, pad && 'px-4 py-12', innerClassName)}>
+      <div className={cx('relative z-10 mx-auto w-full', widthClassName, pad && 'px-4 py-12', innerClassName)}>
         {children}
       </div>
     </div>
