@@ -33,7 +33,7 @@ export default async function Home() {
           <Link href="/" className="font-extrabold tracking-tight">SADD</Link>
           <nav className="flex items-center gap-3 text-sm">
             <Link href="/volunteer" className="opacity-90 hover:opacity-100">Volunteer</Link>
-            <Link href="/login" className="rounded-full px-4 py-2 ring-gradient glass-strong">Login</Link>
+            <Link href="/login" className="rounded-full px-4 py-2 ring-gradient glass-strong text-zinc-900 dark:text-white font-medium">Login</Link>
           </nav>
         </div>
       </header>
@@ -57,7 +57,7 @@ export default async function Home() {
               <h1 className="text-4xl font-semibold leading-tight text-zinc-900 sm:text-5xl lg:text-6xl dark:text-white">
                 SADD volunteers on weekend duty nights <span className="bg-gradient-to-r from-emerald-500 via-cyan-500 to-blue-500 bg-clip-text text-transparent">get you home safe</span> when it counts.
               </h1>
-              <p className="text-base text-zinc-600 sm:text-lg dark:text-zinc-200/80">
+              <p className="text-base text-zinc-700 sm:text-lg dark:text-zinc-200/80">
                 Soldiers Against Drunk Driving pairs duty-night volunteers with real-time dispatching so every Soldier has a confidential, judgment-free ride back to safety.
               </p>
               <div className="flex flex-col gap-3 sm:flex-row">
