@@ -35,3 +35,20 @@ export interface Ride {
   vanId?: string | null;
   rating?: number | null;
 }
+
+export type TransferStatus = 'PENDING'|'ACCEPTED'|'DECLINED'|'CANCELLED';
+
+export interface TransferRequest {
+  id: string;
+  status: TransferStatus;
+  note?: string | null;
+  vanId: string;
+  vanName: string;
+  vanStatus: VanStatus;
+  fromTcId: string;
+  fromTcName?: string;
+  toTcId: string;
+  toTcName?: string;
+  createdAt: string;
+  respondedAt?: string | null;
+}
