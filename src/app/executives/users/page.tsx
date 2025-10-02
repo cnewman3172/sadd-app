@@ -24,7 +24,7 @@ export default function UsersPage(){
   useEffect(()=>{ load(); },[]);
 
   return (
-    <section className="rounded-xl p-4 bg-white/70 dark:bg-white/10 border border-white/20">
+    <section className="glass rounded-[32px] border border-white/20 p-5 shadow-lg dark:border-white/10">
       <div className="flex items-center justify-between mb-2">
         <h2 className="font-semibold">Users</h2>
         <div className="flex items-center gap-2">

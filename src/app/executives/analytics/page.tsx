@@ -66,7 +66,7 @@ export default function AnalyticsPage(){
 
   return (
     <div className="grid gap-6">
-      <section className="rounded-xl p-4 bg-white/70 dark:bg-white/10 border border-white/20">
+      <section className="glass rounded-[32px] border border-white/20 p-5 shadow-lg dark:border-white/10">
         <h2 className="font-semibold mb-3">Key Metrics</h2>
         <div className="grid grid-cols-2 md:grid-cols-6 gap-3">
           <Metric title="Users" value={summary?.totalUsers?.toString() ?? '—'} />
@@ -156,7 +156,7 @@ export default function AnalyticsPage(){
 
 function Metric({title, value}:{title:string; value:string}){
   return (
-    <div className="rounded-lg p-3 bg-white/60 dark:bg-white/5 border border-white/20">
+    <div className="glass rounded-[24px] border border-white/20 p-4 shadow-md dark:border-white/10">
       <div className="text-xs opacity-70">{title}</div>
       <div className="text-xl font-semibold">{value}</div>
     </div>
@@ -168,7 +168,7 @@ function SmallExplainer({ label, value, delta, suffix='' }:{ label:string; value
   const d = delta==null ? '' : `${delta>0?'+':''}${fmtNumber(delta)}%`;
   const color = delta==null? 'opacity-60' : (delta>0? 'text-emerald-600 dark:text-emerald-400' : delta<0 ? 'text-red-600 dark:text-red-400' : 'opacity-60');
   return (
-    <div className="rounded-lg p-3 bg-white/60 dark:bg-white/5 border border-white/20">
+    <div className="glass rounded-[24px] border border-white/20 p-4 shadow-md dark:border-white/10">
       <div className="text-xs opacity-70">{label}</div>
       <div className="flex items-baseline gap-2">
         <div className="text-lg font-semibold tabular-nums">{val}</div>
@@ -182,7 +182,7 @@ function ChartCard({ title, subtitle, stat, delta, suffix='', children }:{ title
   const color = delta==null? 'opacity-60' : (delta>0? 'text-emerald-600 dark:text-emerald-400' : delta<0 ? 'text-red-600 dark:text-red-400' : 'opacity-60');
   const d = delta==null ? '' : `${delta>0?'+':''}${fmtNumber(delta)}%`;
   return (
-    <section className="rounded-xl p-4 bg-white/70 dark:bg-white/10 border border-white/20">
+    <section className="glass rounded-[28px] border border-white/20 p-5 shadow-lg dark:border-white/10">
       <div className="flex items-baseline justify-between">
         <div>
           <h3 className="font-semibold">{title}</h3>

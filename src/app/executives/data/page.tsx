@@ -26,7 +26,7 @@ function ExportRides(){
     + (to?`&to=${encodeURIComponent(to)}`:'')
     + (tz?`&tz=${encodeURIComponent(tz)}`:'');
   return (
-    <section className="rounded-xl p-4 bg-white/70 dark:bg-white/10 border border-white/20">
+    <section className="glass rounded-[32px] border border-white/20 p-5 shadow-lg dark:border-white/10">
       <h2 className="font-semibold mb-3">Rides Export</h2>
       <div className="flex flex-wrap items-end gap-3">
         <div>
@@ -76,7 +76,7 @@ function ResetRidesCard(){
   }
 
   return (
-    <section className="rounded-xl p-4 bg-white/70 dark:bg-white/10 border border-white/20">
+    <section className="glass rounded-[32px] border border-white/20 p-5 shadow-lg dark:border-white/10">
       <h2 className="font-semibold mb-3">Danger Zone</h2>
       <button onClick={prepare} className="rounded border px-3 py-2 text-sm border-red-400 text-red-700 dark:text-red-300">Reset Ride Data…</button>
       {open && (
