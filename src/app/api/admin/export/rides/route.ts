@@ -321,16 +321,24 @@ async function handleGet(req: Request){
   for (const r of rides){
     const riderName = [r.rider?.firstName, r.rider?.lastName].filter(Boolean).join(' ');
     let walkOnTc: any = null;
+    let manualContactName = '';
+    let manualContactPhone = '';
     try{
       if (typeof r.notes === 'string' && r.notes.trim().startsWith('{')){
         const meta = JSON.parse(r.notes);
+        if (meta?.manualContact){
+          manualContactName = meta.manualContact.name || '';
+          manualContactPhone = meta.manualContact.phone || '';
+        }
         walkOnTc = normalizeTcMeta(meta?.walkOnTc)
           || normalizeTcMeta(meta?.walkOn?.tc)
           || normalizeTcMeta(meta?.walkOn?.truckCommander)
           || walkOnTc;
       }
     }catch{}
-    const riderPhone = formatPhone(r.rider?.phone || '');
+    const effectiveName = manualContactName || riderName;
+    const rawPhone = manualContactPhone || r.rider?.phone || '';
+    const riderPhone = formatPhone(rawPhone);
 
     // Compute shift-based request date (falls back to request local date if no shift found)
     const [shift, tcShift] = await Promise.all([
@@ -340,12 +348,12 @@ async function handleGet(req: Request){
     const tcSignupUser = pickTcFromShift(tcShift) || pickTcFromShift(shift);
     const auditUser = walkonActorMap.get(r.id);
     let tcUser: any = null;
-    if (r.driver){ tcUser = r.driver; }
-    else if (r.coordinator){ tcUser = r.coordinator; }
+    if (r.coordinator){ tcUser = r.coordinator; }
     else if (tcSignupUser){ tcUser = tcSignupUser; }
     else if (r.van?.activeTc){ tcUser = r.van.activeTc; }
     else if (auditUser){ tcUser = auditUser; }
     else if (walkOnTc){ tcUser = walkOnTc; }
+    else if (r.driver){ tcUser = r.driver; }
     const tcName = tcUser ? [tcUser.firstName, tcUser.lastName].filter(Boolean).join(' ') : '';
     const tcEmail = tcUser?.email || '';
 
@@ -363,7 +371,7 @@ async function handleGet(req: Request){
     rows.push([
       String(r.rideCode),
       r.id,
-      riderName,
+      effectiveName,
       r.rider?.rank || '',
       r.rider?.email || '',
       riderPhone,
@@ -398,16 +406,24 @@ async function handleGet(req: Request){
     for (const r of rides){
       const riderName = [r.rider?.firstName, r.rider?.lastName].filter(Boolean).join(' ');
       let walkOnTc: any = null;
+      let manualContactName = '';
+      let manualContactPhone = '';
       try{
         if (typeof r.notes === 'string' && r.notes.trim().startsWith('{')){
           const meta = JSON.parse(r.notes);
+          if (meta?.manualContact){
+            manualContactName = meta.manualContact.name || '';
+            manualContactPhone = meta.manualContact.phone || '';
+          }
           walkOnTc = normalizeTcMeta(meta?.walkOnTc)
             || normalizeTcMeta(meta?.walkOn?.tc)
             || normalizeTcMeta(meta?.walkOn?.truckCommander)
             || walkOnTc;
         }
       }catch{}
-      const riderPhone = formatPhone(r.rider?.phone || '');
+      const effectiveName = manualContactName || riderName;
+      const rawPhone = manualContactPhone || r.rider?.phone || '';
+      const riderPhone = formatPhone(rawPhone);
 
       const [shift, tcShift] = await Promise.all([
         findShiftForInstant(r.requestedAt),
@@ -416,12 +432,12 @@ async function handleGet(req: Request){
       const tcSignupUser = pickTcFromShift(tcShift) || pickTcFromShift(shift);
       const auditUser = walkonActorMap.get(r.id);
       let tcUser: any = null;
-      if (r.driver){ tcUser = r.driver; }
-      else if (r.coordinator){ tcUser = r.coordinator; }
+      if (r.coordinator){ tcUser = r.coordinator; }
       else if (tcSignupUser){ tcUser = tcSignupUser; }
       else if (r.van?.activeTc){ tcUser = r.van.activeTc; }
       else if (auditUser){ tcUser = auditUser; }
       else if (walkOnTc){ tcUser = walkOnTc; }
+      else if (r.driver){ tcUser = r.driver; }
       const tcName = tcUser ? [tcUser.firstName, tcUser.lastName].filter(Boolean).join(' ') : '';
       const tcEmail = tcUser?.email || '';
 
@@ -434,7 +450,7 @@ async function handleGet(req: Request){
       const rowValues: any[] = [
         String(r.rideCode),
         r.id,
-        riderName,
+        effectiveName,
         r.rider?.rank || '',
         r.rider?.email || '',
         riderPhone,
