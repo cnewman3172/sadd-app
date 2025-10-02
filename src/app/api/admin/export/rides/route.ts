@@ -277,8 +277,8 @@ export async function GET(req: Request){
         findShiftForInstant(r.requestedAt),
         r.driver ? Promise.resolve(null) : findShiftForInstant(r.requestedAt, 'TC'),
       ]);
-      const tcSignupUser = tcShift?.signups?.[0]?.user as any;
-      const tcUser = (r.driver as any) || tcSignupUser || null;
+      const tcSignupUser = pickTcFromShift(tcShift) || pickTcFromShift(shift);
+      const tcUser = (r.driver as any) || (tcSignupUser as any) || null;
       const tcName = tcUser ? [tcUser.firstName, tcUser.lastName].filter(Boolean).join(' ') : '';
       const tcEmail = tcUser?.email || '';
       const shiftDate = localParts(shift?.startsAt as any, tz) || localParts(r.requestedAt as any, tz);
