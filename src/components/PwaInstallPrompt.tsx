@@ -1,5 +1,5 @@
 "use client";
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 
 type BeforeInstallPromptEvent = Event & {
   prompt: () => Promise<void>;
@@ -7,6 +7,7 @@ type BeforeInstallPromptEvent = Event & {
 };
 
 const DISMISS_KEY = 'pwa-install-dismissed-at';
+const DISMISS_WINDOW_HOURS = 24;
 
 function isStandaloneDisplay(): boolean {
   if (typeof window === 'undefined') return false;
@@ -32,25 +33,37 @@ export default function PwaInstallPrompt(){
   const [deferred, setDeferred] = useState<BeforeInstallPromptEvent | null>(null);
   const [showIosHint, setShowIosHint] = useState(false);
   const [visible, setVisible] = useState(false);
+  const [dismissedAt, setDismissedAt] = useState<number | null>(null);
 
-  // Only surface once per day when dismissed.
-  const dismissedRecently = useMemo(()=>{
-    if (typeof window === 'undefined') return false;
-    const raw = window.localStorage.getItem(DISMISS_KEY);
-    if (!raw) return false;
-    const timestamp = Number(raw);
-    if (!Number.isFinite(timestamp)) return false;
-    const elapsedHours = (Date.now() - timestamp) / (1000 * 60 * 60);
-    return elapsedHours < 24;
-  }, []);
+  const dismissedRecently = dismissedAt != null && (Date.now() - dismissedAt) < DISMISS_WINDOW_HOURS * 60 * 60 * 1000;
 
   const hidePrompt = useCallback(()=>{
     setVisible(false);
     setDeferred(null);
     setShowIosHint(false);
     if (typeof window !== 'undefined'){
-      window.localStorage.setItem(DISMISS_KEY, String(Date.now()));
+      const now = Date.now();
+      window.localStorage.setItem(DISMISS_KEY, String(now));
+      setDismissedAt(now);
     }
+  }, []);
+
+  useEffect(()=>{
+    if (typeof window === 'undefined') return;
+    const raw = window.localStorage.getItem(DISMISS_KEY);
+    const timestamp = raw ? Number(raw) : NaN;
+    if (Number.isFinite(timestamp)){
+      setDismissedAt(timestamp);
+    }
+
+    const onStorage = (event: StorageEvent)=>{
+      if (event.key === DISMISS_KEY && event.newValue){
+        const ts = Number(event.newValue);
+        if (Number.isFinite(ts)) setDismissedAt(ts);
+      }
+    };
+    window.addEventListener('storage', onStorage);
+    return ()=> window.removeEventListener('storage', onStorage);
   }, []);
 
   useEffect(()=>{
