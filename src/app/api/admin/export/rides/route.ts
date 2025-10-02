@@ -82,6 +82,44 @@ function excelSerialTime(h: number, m: number, s: number){
   return secs / 86400;
 }
 
+type LocalPartsResult = NonNullable<ReturnType<typeof localParts>>;
+
+function shiftLocalParts(parts: LocalPartsResult, tz: string, days: number){
+  const base = new Date(Date.UTC(parts.y, parts.m - 1, parts.da, parts.h, parts.mi, parts.s));
+  base.setUTCDate(base.getUTCDate() + days);
+  return localParts(base, tz);
+}
+
+type LocalDateParts = { y: number; m: number; da: number };
+
+function formatDateParts(parts: LocalDateParts){
+  return `${parts.y}-${pad2(parts.m)}-${pad2(parts.da)}`;
+}
+
+function formatPhone(phone?: string | null){
+  if (!phone) return '';
+  const digits = phone.replace(/\D/g, '');
+  if (digits.length === 10){
+    return `(${digits.slice(0,3)})${digits.slice(3,6)}-${digits.slice(6)}`;
+  }
+  return phone;
+}
+
+function computeRequestDateParts(shift: any, requestLocal: ReturnType<typeof localParts>, tz: string): LocalDateParts | null {
+  const shiftLocal = shift ? localParts((shift as any).startsAt as any, tz) : null;
+  let dateParts: LocalDateParts | null = shiftLocal ? { y: shiftLocal.y, m: shiftLocal.m, da: shiftLocal.da } : null;
+  if (!dateParts && requestLocal){
+    dateParts = { y: requestLocal.y, m: requestLocal.m, da: requestLocal.da };
+  }
+  if (requestLocal && requestLocal.h < 6){
+    const previous = shiftLocalParts(requestLocal as LocalPartsResult, tz, -1);
+    if (previous){
+      dateParts = { y: previous.y, m: previous.m, da: previous.da };
+    }
+  }
+  return dateParts;
+}
+
 async function findShiftForInstant(instant: Date, role?: 'DISPATCHER'|'TC'|'DRIVER'|'SAFETY'){
   return prisma.shift.findFirst({
     where: { startsAt: { lte: instant }, endsAt: { gt: instant } },
