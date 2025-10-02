@@ -158,7 +158,15 @@ export async function GET(req: Request){
     include: {
       rider: { select: { firstName: true, lastName: true, email: true, phone: true, rank: true, unit: true } },
       driver: { select: { firstName: true, lastName: true, email: true } },
-      van: { select: { name: true, status: true, passengers: true } },
+      van: {
+        select: {
+          name: true,
+          status: true,
+          passengers: true,
+          activeTcId: true,
+          activeTc: { select: { firstName: true, lastName: true, email: true, role: true } },
+        },
+      },
     }
   });
 
@@ -211,7 +219,7 @@ export async function GET(req: Request){
       r.driver ? Promise.resolve(null) : findShiftForInstant(r.requestedAt, 'TC'),
     ]);
     const tcSignupUser = pickTcFromShift(tcShift) || pickTcFromShift(shift);
-    const tcUser = (r.driver as any) || (tcSignupUser as any) || null;
+    const tcUser = (r.driver as any) || (tcSignupUser as any) || (r.van?.activeTc as any) || null;
     const tcName = tcUser ? [tcUser.firstName, tcUser.lastName].filter(Boolean).join(' ') : '';
     const tcEmail = tcUser?.email || '';
 
@@ -278,7 +286,7 @@ export async function GET(req: Request){
         r.driver ? Promise.resolve(null) : findShiftForInstant(r.requestedAt, 'TC'),
       ]);
       const tcSignupUser = pickTcFromShift(tcShift) || pickTcFromShift(shift);
-      const tcUser = (r.driver as any) || (tcSignupUser as any) || null;
+      const tcUser = (r.driver as any) || (tcSignupUser as any) || (r.van?.activeTc as any) || null;
       const tcName = tcUser ? [tcUser.firstName, tcUser.lastName].filter(Boolean).join(' ') : '';
       const tcEmail = tcUser?.email || '';
       const shiftDate = localParts(shift?.startsAt as any, tz) || localParts(r.requestedAt as any, tz);
