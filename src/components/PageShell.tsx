@@ -1,8 +1,9 @@
 "use client";
 import { useEffect, useRef } from 'react';
+import type { ReactNode } from 'react';
 
 type PageShellProps = {
-  children: React.ReactNode;
+  children: ReactNode;
   className?: string;
   innerClassName?: string;
   widthClassName?: string;
