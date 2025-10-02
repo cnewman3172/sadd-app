@@ -1,5 +1,6 @@
 "use client";
 import { useEffect, useMemo, useState } from 'react';
+import { useRouter } from 'next/navigation';
 import dynamic from 'next/dynamic';
 const Map = dynamic(() => import('../../components/Map'), { ssr: false });
 import AddressInput from '@/components/AddressInput';
@@ -26,14 +27,19 @@ export default function DashboardClient(){
   const [notifOk, setNotifOk] = useState<boolean>(true);
   const [fallbackByVan, setFallbackByVan] = useState<Record<string, boolean>>({});
   const [autoModal, setAutoModal] = useState<{ open:boolean; ride: Ride|null; best: { vanId:string; name:string; seconds:number }|null }>({ open:false, ride:null, best:null });
+  const [saddActive, setSaddActive] = useState<boolean|null>(null);
+  const [toggleBusy, setToggleBusy] = useState(false);
+  const router = useRouter();
 
   async function refresh(){
-    const [r, v] = await Promise.all([
+    const [r, v, health] = await Promise.all([
       fetch('/api/rides?take=100').then(r=>r.json()),
       fetch('/api/vans').then(r=>r.json()),
+      fetch('/api/health', { cache: 'no-store' }).then(r=>r.json()).catch(()=>null),
     ]);
     setRides(r);
     setVans(v);
+    setSaddActive(health ? Boolean(health.active) : null);
     // Compute ETAs right after data loads
     try{ await computeActiveEtas(r as any, v as any); }catch{}
   }
@@ -90,6 +96,27 @@ export default function DashboardClient(){
   const pending = useMemo(()=> rides.filter((r:Ride)=>r.status==='PENDING'),[rides]);
   const active = useMemo(()=> rides.filter((r:Ride)=>['ASSIGNED','EN_ROUTE','PICKED_UP'].includes(r.status)),[rides]);
   const activeVans = useMemo(()=> vans.filter((v:any)=> v.status==='ACTIVE'), [vans]);
+
+  async function toggleActive(){
+    if (toggleBusy) return;
+    setToggleBusy(true);
+    try{
+      const res = await fetch('/api/admin/toggle-active', { method: 'POST' });
+      if (!res.ok){
+        const data = await res.json().catch(()=>({ error: 'Toggle failed' }));
+        throw new Error(data.error || 'Toggle failed');
+      }
+      const data = await res.json();
+      const nextState = Boolean(data.active);
+      setSaddActive(nextState);
+      showToast(nextState ? 'SADD marked Active' : 'SADD marked Inactive');
+      try{ router.refresh(); }catch{}
+    }catch(e:any){
+      showToast(e?.message || 'Toggle failed');
+    }finally{
+      setToggleBusy(false);
+    }
+  }
 
   async function computeActiveEtas(rArr: Ride[], vArr: any[]){
     const byVan: Record<string, any[]> = {};
@@ -187,6 +214,20 @@ export default function DashboardClient(){
       )}
       <div className="md:col-span-1 space-y-4">
         <Card title="Live Ops">
+          <div className="rounded-[24px] border border-white/20 bg-white/40 px-3 py-3 text-sm shadow-sm dark:border-white/10 dark:bg-white/10">
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <div className={`font-semibold ${saddActive==null ? 'opacity-70' : saddActive ? 'text-emerald-600 dark:text-emerald-400' : 'text-red-600 dark:text-red-400'}`}>
+                Status: {saddActive==null ? '—' : saddActive ? 'Active' : 'Inactive'}
+              </div>
+              <button
+                onClick={toggleActive}
+                disabled={toggleBusy}
+                className="rounded-full border border-black/20 px-3 py-1 text-xs font-semibold shadow-sm transition hover:bg-black/5 disabled:cursor-not-allowed disabled:opacity-60 dark:border-white/20 dark:hover:bg-white/10"
+              >
+                {toggleBusy ? 'Updating…' : saddActive ? 'Set Inactive' : 'Set Active'}
+              </button>
+            </div>
+          </div>
           <div className="text-sm space-y-1">
             <div>Active Vans: {activeVans.length}</div>
             <div>Pickups In Progress: {active.length}</div>
