@@ -39,10 +39,14 @@ export async function PUT(req: NextRequest, context: { params: Promise<{ id: str
       const updated = await tx.van.update({ where: { id }, data });
       if (payloadBody.status === 'OFFLINE'){
         await tx.vanTask.deleteMany({ where: { vanId: id } });
+        await tx.tcTransfer.updateMany({ where: { vanId: id, status: 'PENDING' }, data: { status: 'CANCELLED', respondedAt: new Date() } });
       }
       return updated;
     });
     publish('vans:update', { id: van.id });
+    if (payloadBody.status === 'OFFLINE'){
+      publish('transfer:update', { vanId: id, type: 'bulk-cancelled' });
+    }
     logAudit('van_update', payload.uid, van.id, payloadBody);
     return NextResponse.json(van);
   }catch(e:any){
