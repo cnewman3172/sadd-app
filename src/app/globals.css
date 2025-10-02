@@ -57,10 +57,6 @@
   --btn-border: rgba(255,255,255,.35);
 }
 
-/* Improve contrast when toggling themes even if legacy utility classes are used */
-:root[data-theme='dark'] .text-black { color: var(--foreground) !important; }
-:root[data-theme='light'] .text-white { color: var(--foreground) !important; }
-
 /* Light theme: soften legacy glass cards that use bg-white/xx + backdrop-blur */
 :root[data-theme='light'] .backdrop-blur[class*="bg-white/"] {
   background-color: color-mix(in oklab, var(--background) 82%, #f1f5f9) !important; /* subtle blue-gray tint for separation */
