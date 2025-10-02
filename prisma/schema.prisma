@@ -29,6 +29,10 @@ model User {
   pushSubs       PushSubscription[]
   // Back-relation for Van.activeTc
   activeTcOf     Van[]
+  // Transfer requests where the user is the current controller approving/declining
+  transferRequestsFrom TcTransfer[] @relation("TcTransferFrom")
+  // Transfer requests the user has initiated to take over a van
+  transferRequestsTo   TcTransfer[] @relation("TcTransferTo")
   // Back-relation for PasswordReset.user
   passwordResets PasswordReset[]
   // Back-relation for ShiftSignup.user
@@ -62,6 +66,8 @@ model Van {
   rides      Ride[]
   // Back-relation for VanTask.van
   planTasks  VanTask[]
+  // Back-relation for TcTransfer.van
+  transferRequests TcTransfer[]
 }
 
 model Ride {
@@ -114,6 +120,29 @@ model VanTask {
   createdAt DateTime  @default(now())
 
   @@index([vanId, order])
+}
+
+enum TransferStatus {
+  PENDING
+  ACCEPTED
+  DECLINED
+  CANCELLED
+}
+
+model TcTransfer {
+  id          String          @id @default(uuid())
+  van         Van             @relation(fields: [vanId], references: [id])
+  vanId       String
+  fromTc      User            @relation("TcTransferFrom", fields: [fromTcId], references: [id])
+  fromTcId    String
+  toTc        User            @relation("TcTransferTo", fields: [toTcId], references: [id])
+  toTcId      String
+  status      TransferStatus  @default(PENDING)
+  note        String?
+  createdAt   DateTime        @default(now())
+  respondedAt DateTime?
+
+  @@index([vanId, status])
 }
 
 model Setting {
