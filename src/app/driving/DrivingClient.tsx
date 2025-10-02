@@ -263,6 +263,38 @@ export default function DrivingClient(){
           ))}
         </div>
       </section>
+      <section className="glass rounded-[32px] border border-white/20 p-5 shadow-lg dark:border-white/10">
+        <h2 className="mb-3 font-semibold">Fleet</h2>
+        <div className="space-y-2">
+          {vans.length===0 && <div className="text-sm opacity-70">No vans configured.</div>}
+          {vans.map((v:any)=>{
+            const youAreOn = currentVan?.id === v.id;
+            const ownedByYou = v.activeTcId === userId;
+            const available = !v.activeTcId;
+            const statusLabel = youAreOn ? 'You are online' : ownedByYou ? 'Assigned to you' : v.activeTcId ? 'In use' : 'Available';
+            return (
+              <div key={v.id} className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-white/20 px-3 py-2 dark:border-white/10">
+                <div>
+                  <div className="font-medium">{v.name}</div>
+                  <div className="text-xs opacity-70">Capacity {v.capacity || 8} · {statusLabel}</div>
+                </div>
+                <div className="flex items-center gap-2">
+                  {(available || ownedByYou) ? (
+                    <button
+                      onClick={()=> goOnline(v.id)}
+                      className="rounded border px-3 py-1 text-xs font-semibold hover:bg-black/5 dark:hover:bg-white/10"
+                    >
+                      {youAreOn ? 'Online' : ownedByYou ? 'Resume Van' : 'Take Over'}
+                    </button>
+                  ) : (
+                    <span className="text-xs opacity-60">In use</span>
+                  )}
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      </section>
       {walkOpen && (
         <div className="fixed inset-0 grid place-items-center bg-black/50 p-4 backdrop-blur" role="dialog" aria-modal="true">
           <div className="glass w-full max-w-md rounded-[32px] border border-white/20 p-5 shadow-xl dark:border-white/10">
