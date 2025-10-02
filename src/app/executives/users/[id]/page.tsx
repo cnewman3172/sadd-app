@@ -21,9 +21,9 @@ export default async function UserViewPage({ params }: { params: Promise<{ id: s
   if (!u) return notFound();
   const date = (iso: string|null)=> iso ? new Date(iso).toLocaleString() : '—';
   return (
-    <section className="p-4">
-      <div className="mb-3"><a href="/executives" className="text-sm opacity-80 hover:opacity-100">← Back to Executives</a></div>
-      <div className="rounded-xl glass border p-4 max-w-3xl">
+    <section className="space-y-4">
+      <div><a href="/executives" className="text-sm opacity-80 hover:opacity-100">← Back to Executives</a></div>
+      <div className="glass w-full max-w-3xl rounded-[32px] border border-white/20 p-6 shadow-lg dark:border-white/10">
         <h2 className="text-xl font-semibold mb-3">{u.firstName} {u.lastName}</h2>
         <div className="grid sm:grid-cols-2 gap-3 text-sm">
           <Field label="Email" value={u.email} />
@@ -51,4 +51,3 @@ function Field({ label, value }: { label:string; value: string }){
     </div>
   );
 }
-
