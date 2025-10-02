@@ -573,3 +573,62 @@ async function handleGet(req: Request){
     }
   });
 }
+
+type ExportErrorReason = 'missing_database_url' | 'database_query_failed';
+
+async function respondWithExportError(format: string, tz: string, reason: ExportErrorReason){
+  const { code, message, status } = getErrorDetails(reason);
+  const safeTz = tz.replace(/[^A-Za-z0-9_\-\/]/g,'_').replace(/[\/]/g,'-');
+  if (format === 'json'){
+    return NextResponse.json({ error: code, message }, { status });
+  }
+  if (format === 'xlsx'){
+    const ExcelJS = (await import('exceljs')).default;
+    const wb = new ExcelJS.Workbook();
+    const ws = wb.addWorksheet('Error');
+    ws.addRow(['error', 'message']);
+    ws.addRow([code, message]);
+    ws.columns = [{ width: 24 }, { width: 80 }];
+    const buf: ArrayBuffer = await wb.xlsx.writeBuffer();
+    const filename = `rides_export_error_${new Date().toISOString().slice(0,10)}_${safeTz}.xlsx`;
+    return new NextResponse(buf as any, {
+      status,
+      headers: {
+        'Content-Type': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+        'Content-Disposition': `attachment; filename="${filename}"`,
+        'Cache-Control': 'no-store',
+      },
+    });
+  }
+  const csv = toCsv([
+    ['error', 'message'],
+    [code, message],
+  ]);
+  const filename = `rides_export_error_${new Date().toISOString().slice(0,10)}_${safeTz}.csv`;
+  return new NextResponse(csv, {
+    status,
+    headers: {
+      'Content-Type': 'text/csv; charset=utf-8',
+      'Content-Disposition': `attachment; filename="${filename}"`,
+      'Cache-Control': 'no-store',
+    },
+  });
+}
+
+function getErrorDetails(reason: ExportErrorReason){
+  switch(reason){
+    case 'missing_database_url':
+      return {
+        code: 'database_not_configured',
+        message: 'DATABASE_URL is not configured. Set the connection string so the export can query rides.',
+        status: 503,
+      } as const;
+    case 'database_query_failed':
+    default:
+      return {
+        code: 'database_unavailable',
+        message: 'Unable to reach the database to read rides. Check the connection and try again.',
+        status: 503,
+      } as const;
+  }
+}
