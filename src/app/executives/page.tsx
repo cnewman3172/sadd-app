@@ -63,7 +63,7 @@ export default function ExecutivesDashboard(){
 
   return (
     <div className="grid gap-6">
-      <section className="rounded-xl p-4 bg-white/70 dark:bg-white/10 border border-white/20">
+      <section className="glass rounded-[32px] border border-white/20 p-5 shadow-lg dark:border-white/10">
         <h2 className="font-semibold mb-3">Dashboard</h2>
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
           <Metric title="Total Rides" value={summary?.totalRides?.toString() ?? '—'} />
@@ -85,7 +85,7 @@ export default function ExecutivesDashboard(){
       {/* Recent Rides section removed per request */}
 
 
-      <section className="rounded-xl p-4 bg-white/70 dark:bg-white/10 border border-white/20">
+      <section className="glass rounded-[32px] border border-white/20 p-5 shadow-lg dark:border-white/10">
         <h3 className="font-semibold mb-2">Auto Disable Schedule</h3>
         <div className="flex flex-wrap items-center gap-3">
           <label className="flex items-center gap-2 text-sm">
@@ -122,7 +122,7 @@ export default function ExecutivesDashboard(){
 
 function Metric({title, value}:{title:string; value:string}){
   return (
-    <div className="rounded-lg p-3 bg-white/60 dark:bg-white/5 border border-white/20">
+    <div className="glass rounded-[24px] border border-white/20 p-4 shadow-md dark:border-white/10">
       <div className="text-xs opacity-70">{title}</div>
       <div className="text-xl font-semibold">{value}</div>
     </div>
