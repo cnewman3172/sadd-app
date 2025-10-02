@@ -1,5 +1,5 @@
 "use client";
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import type { ReactNode } from 'react';
 
 type PageShellProps = {
@@ -64,8 +64,25 @@ export default function PageShell({
   pad = true,
   showOrbs = true,
 }: PageShellProps){
+  const [ambientClass, setAmbientClass] = useState(()=>{
+    if (typeof document === 'undefined') return '';
+    if (document.body.classList.contains('ambient-active')) return 'ambient-active';
+    if (document.body.classList.contains('ambient-inactive')) return 'ambient-inactive';
+    return '';
+  });
+
+  useEffect(()=>{
+    if (typeof document === 'undefined') return;
+    const next = document.body.classList.contains('ambient-active')
+      ? 'ambient-active'
+      : document.body.classList.contains('ambient-inactive')
+        ? 'ambient-inactive'
+        : '';
+    setAmbientClass(next);
+  }, []);
+
   return (
-    <div className={cx('relative min-h-screen ambient-bg', className)}>
+    <div className={cx('relative min-h-screen ambient-bg', ambientClass, className)}>
       {showOrbs ? <AmbientBackdrop /> : null}
       <div className={cx('relative z-10 mx-auto w-full', widthClassName, pad && 'px-4 py-12', innerClassName)}>
         {children}
