@@ -402,7 +402,7 @@ async function handleGet(req: Request){
     const COL_REQUEST_DATE = header.indexOf('Request Date') + 1;
     const COL_REQUEST_TIME = header.indexOf('Request Time') + 1;
     const COL_PICKUP_TIME = header.indexOf('Pickup Time') + 1;
-    const COL_DROPOFF_TIME = header.indexOf('Dropoff Time') + 1;
+    const COL_DROPOFF_TIME = header.indexOf('Drop Off Time') + 1;
     for (const r of rides){
       const riderName = [r.rider?.firstName, r.rider?.lastName].filter(Boolean).join(' ');
       let walkOnTc: any = null;
