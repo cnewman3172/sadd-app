@@ -116,14 +116,15 @@ function normalizeTcMeta(tc: any){
     const lastName = tc.lastName ?? '';
     const name = tc.name ?? tc.fullName ?? '';
     const email = tc.email ?? '';
-    if (firstName || lastName || email){
-      return { firstName, lastName, email };
+    const phone = tc.phone ?? '';
+    if (firstName || lastName || email || phone){
+      return { firstName, lastName, email, phone };
     }
     if (typeof name === 'string' && name.trim()){
       const parts = name.trim().split(/\s+/);
       const first = parts.shift() || '';
       const last = parts.join(' ');
-      return { firstName: first, lastName: last, email };
+      return { firstName: first, lastName: last, email, phone };
     }
   }catch{}
   return null;
@@ -229,6 +230,7 @@ export async function GET(req: Request){
     'rider_unit',
     'truck_commander_name',
     'truck_commander_email',
+    'truck_commander_phone',
     'van_name',
     // Date tied to start of the active shift at request time
     'request_date',
@@ -273,6 +275,7 @@ export async function GET(req: Request){
     const tcUser = (r.driver as any) || (r.coordinator as any) || (tcSignupUser as any) || (r.van?.activeTc as any) || (auditUser as any) || (walkOnTc as any) || null;
     const tcName = tcUser ? [tcUser.firstName, tcUser.lastName].filter(Boolean).join(' ') : '';
     const tcEmail = tcUser?.email || '';
+    const tcPhone = tcUser?.phone || '';
 
     const shiftDateParts = localParts(shift?.startsAt as any, tz) || localParts(r.requestedAt as any, tz);
     const reqDateStr = shiftDateParts ? `${shiftDateParts.y}-${pad2(shiftDateParts.m)}-${pad2(shiftDateParts.da)}` : '';
@@ -292,6 +295,7 @@ export async function GET(req: Request){
       r.rider?.unit || '',
       tcName,
       tcEmail,
+      tcPhone,
       r.van?.name || '',
       reqDateStr,
       reqTimeStr,
