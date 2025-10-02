@@ -4,8 +4,9 @@ import { useEffect, useRef } from 'react';
 type Marker = { lat:number; lng:number; color?:string };
 type VanMarker = { id:string; lat:number; lng:number; color:string };
 
-export default function Map({ height=300, markers=[], vanMarkers=[], pickups=[], drops=[], polylines=[], onVanClick }: {
-  height?: number,
+export default function Map({ height=300, className='', markers=[], vanMarkers=[], pickups=[], drops=[], polylines=[], onVanClick }: {
+  height?: number | string,
+  className?: string,
   markers?: Marker[],
   vanMarkers?: VanMarker[],
   pickups?: Array<{lat:number,lng:number}>,
@@ -84,5 +85,6 @@ export default function Map({ height=300, markers=[], vanMarkers=[], pickups=[],
     return ()=> observer?.disconnect();
   }, []);
 
-  return <div ref={ref} style={{ height, width: '100%' }} className="w-full overflow-hidden rounded-xl" />
+  const heightStyle = typeof height === 'number' ? `${height}px` : height;
+  return <div ref={ref} style={{ height: heightStyle, width: '100%' }} className={`w-full overflow-hidden rounded-xl ${className}`} />
 }

@@ -281,7 +281,7 @@ export default function RequestClient(){
       <aside className="space-y-4 md:sticky md:top-6">
         <div className="rounded-xl overflow-hidden border border-white/20">
           <Map
-            height={400}
+            height="clamp(260px, 45vh, 420px)"
             vanMarkers={activeVansMarkers()}
             pickups={status ? getPickupMarkers(status) : []}
             drops={status ? getDropMarkers(status) : []}
