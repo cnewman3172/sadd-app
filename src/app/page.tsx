@@ -55,7 +55,7 @@ export default async function Home() {
                 <span>{active ? 'SADD is Active • Vans on shift' : 'SADD Currently Inactive • Check schedule'}</span>
               </div>
               <h1 className="text-4xl font-semibold leading-tight text-zinc-900 sm:text-5xl lg:text-6xl dark:text-white">
-                A glass-smooth safety net to <span className="bg-gradient-to-r from-emerald-500 via-cyan-500 to-blue-500 bg-clip-text text-transparent">get you home</span>, every night.
+                A glass-smooth safety net to <span className="bg-gradient-to-r from-emerald-500 via-cyan-500 to-blue-500 bg-clip-text text-transparent">get you home</span> on weekend duty nights.
               </h1>
               <p className="text-base text-zinc-600 sm:text-lg dark:text-zinc-200/80">
                 Soldiers Against Drunk Driving pairs duty-night volunteers with real-time dispatching so every Soldier has a confidential, judgment-free ride back to safety.
