@@ -3,7 +3,7 @@ import path from 'path';
 
 async function main(){
   const root = path.resolve('.');
-  const sourcePng = path.join(root, 'sadd-icon.png');
+  const sourcePng = path.join(root, 'public', 'favicon.png');
   const png = await fs.readFile(sourcePng);
   if (png.length < 24 || png.toString('ascii', 12, 16) !== 'IHDR'){
     throw new Error('Unexpected PNG structure for sadd-icon.png');
