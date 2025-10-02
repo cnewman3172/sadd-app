@@ -22,6 +22,7 @@ export default function RequestClient(){
   const [route, setRoute] = useState<Array<Array<[number,number]>>>([]);
   const [preEtaSec, setPreEtaSec] = useState<number|null>(null);
   const [preEtaVan, setPreEtaVan] = useState<string>('');
+  const [locating, setLocating] = useState(false);
   function formatEta(sec:number){
     const m = Math.floor(sec/60); const s = sec%60;
     if (m>=60){ const h=Math.floor(m/60); const rm=m%60; return `${h}h ${rm}m`; }
@@ -93,10 +94,24 @@ export default function RequestClient(){
     })();
   }, [form.pickupLat, form.pickupLng]);
 
-  function useMyLocation(){ navigator.geolocation.getCurrentPosition(async (pos)=>{
-    const { latitude, longitude } = pos.coords;
-    setForm((f:any)=>({ ...f, pickupLat: latitude, pickupLng: longitude }));
-  }); }
+  function useMyLocation(){
+    if (!navigator?.geolocation){ return; }
+    setLocating(true);
+    navigator.geolocation.getCurrentPosition(async (pos)=>{
+      const { latitude, longitude } = pos.coords;
+      setForm((f:any)=>({ ...f, pickupLat: latitude, pickupLng: longitude }));
+      try{
+        const res = await fetch(`/api/geocode/reverse?lat=${latitude}&lon=${longitude}`, { cache: 'no-store' });
+        if (res.ok){
+          const data = await res.json();
+          if (data?.label){
+            setForm((f:any)=>({ ...f, pickupAddr: data.label, pickupLat: latitude, pickupLng: longitude }));
+          }
+        }
+      }catch(error){ console.error('Reverse geocode failed', error); }
+      finally { setLocating(false); }
+    }, (err)=>{ console.error('Geolocation error', err); setLocating(false); }, { enableHighAccuracy: true, timeout: 10000 });
+  }
 
   async function submit(e: React.FormEvent){
     e.preventDefault();
@@ -205,7 +220,14 @@ export default function RequestClient(){
               <div className="text-xs opacity-70">Estimated pickup ETA: ~ {Math.max(1, Math.round(preEtaSec/60))} min {preEtaVan?`via ${preEtaVan}`:''}</div>
             )}
             <div>
-              <button type="button" onClick={useMyLocation} className="mt-1 rounded px-3 py-1 border text-sm">Use my location</button>
+              <button
+                type="button"
+                onClick={useMyLocation}
+                disabled={locating}
+                className="mt-1 inline-flex items-center justify-center rounded-md border border-black/30 bg-white/90 px-3 py-2 text-sm font-medium text-black shadow-sm transition hover:bg-black/5 disabled:cursor-not-allowed disabled:opacity-70 dark:border-white/20 dark:bg-white/10 dark:text-white/90 dark:hover:bg-white/20"
+              >
+                {locating ? 'Locating…' : 'Use my location'}
+              </button>
             </div>
             <AddressInput
               label="Drop Off"
