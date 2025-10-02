@@ -122,18 +122,23 @@ function humanizeRole(role?: string | null){
 }
 
 function computeRequestDateParts(shift: any, requestLocal: ReturnType<typeof localParts>, tz: string): LocalDateParts | null {
-  const shiftLocal = shift ? localParts((shift as any).startsAt as any, tz) : null;
-  let dateParts: LocalDateParts | null = shiftLocal ? { y: shiftLocal.y, m: shiftLocal.m, da: shiftLocal.da } : null;
-  if (!dateParts && requestLocal){
-    dateParts = { y: requestLocal.y, m: requestLocal.m, da: requestLocal.da };
+  const base = requestLocal ? { y: requestLocal.y, m: requestLocal.m, da: requestLocal.da } : null;
+  if (!requestLocal){
+    const shiftLocal = shift ? localParts((shift as any).startsAt as any, tz) : null;
+    return shiftLocal ? { y: shiftLocal.y, m: shiftLocal.m, da: shiftLocal.da } : base;
   }
-  if (requestLocal && requestLocal.h < 6){
+
+  if (requestLocal.h < 6){
+    const shiftLocal = shift ? localParts((shift as any).startsAt as any, tz) : null;
+    if (shiftLocal){
+      return { y: shiftLocal.y, m: shiftLocal.m, da: shiftLocal.da };
+    }
     const previous = shiftLocalParts(requestLocal as LocalPartsResult, tz, -1);
     if (previous){
-      dateParts = { y: previous.y, m: previous.m, da: previous.da };
+      return { y: previous.y, m: previous.m, da: previous.da };
     }
   }
-  return dateParts;
+  return base;
 }
 
 async function findShiftForInstant(instant: Date, role?: 'DISPATCHER'|'TC'|'DRIVER'|'SAFETY'){
