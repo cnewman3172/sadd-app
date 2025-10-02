@@ -21,6 +21,9 @@ export default function Training(){
   const [watched, setWatched] = useState(false);
   const [busy, setBusy] = useState(false);
 
+  const driverTrainingComplete = Boolean(user?.trainingDriverAt);
+  const driverCheckRideComplete = Boolean(user?.checkRide);
+
   useEffect(()=>{ fetch('/api/me', { cache:'no-store' }).then(r=>r.json()).then(setUser).catch(()=>{}); },[]);
   useEffect(()=>{ setPhase('video'); setWatched(false); },[tab]);
 
@@ -39,10 +42,12 @@ export default function Training(){
   };
   const isDone = (c: Cat)=> !!user && (
     c==='SAFETY' ? Boolean(user.trainingSafetyAt) :
-    c==='DRIVER' ? Boolean(user.trainingDriverAt) && Boolean(user.checkRide) :
+    c==='DRIVER' ? driverTrainingComplete :
     c==='TC' ? Boolean(user.trainingTcAt) :
     Boolean(user.trainingDispatcherAt)
   );
+
+  const pendingDriverCheckRide = tab==='DRIVER' && driverTrainingComplete && !driverCheckRideComplete;
 
   async function complete(){
     setBusy(true);
@@ -113,7 +118,16 @@ export default function Training(){
 
               {phase==='done' && (
                 <section className="glass rounded-[28px] border border-white/20 bg-green-400/10 p-5 text-green-700 shadow-lg dark:border-white/10 dark:bg-green-900/20 dark:text-green-300">
-                  Training complete for {LABEL[tab]}. You may now access Shifts.
+                  <div>
+                    {pendingDriverCheckRide ? (
+                      <>
+                        <div>Driver training complete.</div>
+                        <div className="text-sm opacity-80">A Check Ride is still required before you can access shifts.</div>
+                      </>
+                    ) : (
+                      <>Training complete for {LABEL[tab]}. You may now access Shifts.</>
+                    )}
+                  </div>
                 </section>
               )}
             </div>
