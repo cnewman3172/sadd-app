@@ -95,6 +95,7 @@ export async function POST(req: Request){
       source: 'REQUEST',
       status: 'ASSIGNED',
       vanId: van.id,
+      driverId: van.activeTcId ?? payload.uid,
       acceptedAt: new Date(),
     }});
   publish('ride:update', { id: ride.id, status: ride.status, code: ride.rideCode, vanId: ride.vanId, riderId: ride.riderId });
