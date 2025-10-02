@@ -4,18 +4,21 @@ import { showToast } from '@/components/Toast';
 import type { Van, Ride, TransferRequest } from '@/types';
 import AddressInput from '@/components/AddressInput';
 
-const utcDateTimeFormatter = new Intl.DateTimeFormat('en-US', {
-  timeZone: 'UTC',
+const alaskaDateTimeFormatter = new Intl.DateTimeFormat('en-US', {
+  timeZone: 'America/Anchorage',
   year: 'numeric',
   month: '2-digit',
   day: '2-digit',
   hour: '2-digit',
   minute: '2-digit',
+  timeZoneName: 'short',
 });
 
-function formatUtcDateTime(value: string){
+function formatAlaskaDateTime(value: string){
   try{
-    return `${utcDateTimeFormatter.format(new Date(value))} UTC`;
+    const date = new Date(value);
+    if (Number.isNaN(date.getTime())) return value;
+    return alaskaDateTimeFormatter.format(date);
   }catch{
     return value;
   }
@@ -260,7 +263,7 @@ export default function DrivingClient(){
               <div className="space-y-2">
                 <div className="text-sm opacity-70">Pending handoff requests for your van</div>
                 {incoming.map(t=>{
-                  const created = formatUtcDateTime(t.createdAt);
+                  const created = formatAlaskaDateTime(t.createdAt);
                   return (
                     <div key={t.id} className="flex flex-wrap items-start justify-between gap-3 rounded-xl border border-white/20 px-3 py-2 text-sm dark:border-white/10">
                       <div>
@@ -293,7 +296,7 @@ export default function DrivingClient(){
               <div className="space-y-2">
                 <div className="text-sm opacity-70">Requests you have sent</div>
                 {outgoing.map(t=>{
-                  const created = formatUtcDateTime(t.createdAt);
+                  const created = formatAlaskaDateTime(t.createdAt);
                   return (
                     <div key={t.id} className="flex flex-wrap items-start justify-between gap-3 rounded-xl border border-white/20 px-3 py-2 text-sm dark:border-white/10">
                       <div>
