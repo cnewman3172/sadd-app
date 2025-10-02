@@ -104,9 +104,10 @@ export default function RequestClient(){
         const res = await fetch(`/api/geocode/reverse?lat=${latitude}&lon=${longitude}`, { cache: 'no-store' });
         if (res.ok){
           const data = await res.json();
-          if (data?.label){
-            setForm((f:any)=>({ ...f, pickupAddr: data.label, pickupLat: latitude, pickupLng: longitude }));
-          }
+          const label = (data?.label && typeof data.label === 'string' && data.label.trim().length>0)
+            ? data.label
+            : `${latitude.toFixed(5)}, ${longitude.toFixed(5)}`;
+          setForm((f:any)=>({ ...f, pickupAddr: label, pickupLat: latitude, pickupLng: longitude }));
         }
       }catch(error){ console.error('Reverse geocode failed', error); }
       finally { setLocating(false); }
