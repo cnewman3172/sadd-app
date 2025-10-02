@@ -19,7 +19,7 @@ export default async function UserViewPage({ params }: { params: Promise<{ id: s
   const { id } = await params;
   const u = await getUser(id);
   if (!u) return notFound();
-  const date = (iso: string|null)=> iso ? new Date(iso).toLocaleString() : '—';
+  const date = (iso: string|null)=> iso ? new Date(iso).toLocaleString('en-US', { timeZone: 'UTC', year:'numeric', month:'2-digit', day:'2-digit', hour:'2-digit', minute:'2-digit' }) : '—';
   return (
     <section className="space-y-4">
       <div><a href="/executives" className="text-sm opacity-80 hover:opacity-100">← Back to Executives</a></div>

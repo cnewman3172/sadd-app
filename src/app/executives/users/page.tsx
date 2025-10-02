@@ -63,7 +63,7 @@ export default function UsersPage(){
                     <option value="RIDER">RIDER</option>
                   </select>
                 </td>
-                <td className="px-2 whitespace-nowrap">{new Date(u.createdAt).toLocaleDateString()}</td>
+                <td className="px-2 whitespace-nowrap">{new Date(u.createdAt).toLocaleString('en-US', { timeZone: 'UTC', year:'numeric', month:'2-digit', day:'2-digit', hour:'2-digit', minute:'2-digit' })}</td>
                 <td className="px-2 text-right">
                   <button className="rounded border px-2 py-1 text-xs" onClick={()=>{ setEditUser(u); setEditForm({ firstName: u.firstName||'', lastName: u.lastName||'', rank: (u as any).rank||'', unit: (u as any).unit||'', phone: (u as any).phone||'' }); setEditOpen(true); }}>Edit</button>
                 </td>

@@ -19,7 +19,7 @@ export default function AuditLog(){
         <tbody>
           {items.map((i:any)=> (
             <tr key={i.id} className="border-t border-black/10 dark:border-white/20 align-top">
-              <td className="py-2 whitespace-nowrap">{new Date(i.createdAt).toLocaleString()}</td>
+              <td className="py-2 whitespace-nowrap">{new Date(i.createdAt).toLocaleString('en-US', { timeZone: 'UTC', year:'numeric', month:'2-digit', day:'2-digit', hour:'2-digit', minute:'2-digit' })} UTC</td>
               <td className="whitespace-nowrap">{i.action}</td>
               <td className="whitespace-nowrap">{i.actorId||'—'}</td>
               <td className="whitespace-nowrap">{i.subject||'—'}</td>
@@ -31,4 +31,3 @@ export default function AuditLog(){
     </div>
   );
 }
-
