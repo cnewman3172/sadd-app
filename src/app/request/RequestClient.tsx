@@ -224,7 +224,7 @@ export default function RequestClient(){
                 type="button"
                 onClick={useMyLocation}
                 disabled={locating}
-                className="mt-1 inline-flex items-center justify-center rounded-md border border-black/30 bg-white/90 px-3 py-2 text-sm font-medium text-black shadow-sm transition hover:bg-black/5 disabled:cursor-not-allowed disabled:opacity-70 dark:border-white/20 dark:bg-white/10 dark:text-white/90 dark:hover:bg-white/20"
+                className="mt-1 inline-flex items-center justify-center rounded-md border border-black/30 bg-white/90 px-3 py-2 text-sm font-medium text-neutral-900 shadow-sm transition hover:bg-black/5 disabled:cursor-not-allowed disabled:opacity-70 dark:border-white/20 dark:bg-white/10 dark:text-white dark:hover:bg-white/20"
               >
                 {locating ? 'Locating…' : 'Use my location'}
               </button>
