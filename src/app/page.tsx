@@ -212,28 +212,25 @@ export default async function Home() {
 
 function Stat({ label, value, valueNumber, suffix }: { label: string; value?: string; valueNumber?: number|null; suffix?: string }){
   return (
-    <div className="glass rounded-xl py-3 border border-white/20 sheen" data-sheen>
-      <div className="text-xl font-semibold">
+    <div className="flex flex-col items-center justify-center gap-1 rounded-2xl border border-white/40 bg-white/70 py-4 text-zinc-900 shadow-sm backdrop-blur dark:border-white/10 dark:bg-white/10 dark:text-white" data-sheen>
+      <div className="text-2xl font-semibold">
         {valueNumber!=null ? <CountUp value={valueNumber} suffix={suffix} /> : (value ?? '—')}
       </div>
-      <div className="text-xs opacity-80">{label}</div>
+      <div className="text-[0.7rem] uppercase tracking-[0.2em] text-zinc-500 dark:text-zinc-400">{label}</div>
     </div>
   );
 }
 
-function Tile({ title, desc, icon }: { title: string; desc: string; icon: string }){
+function Tile({ title, desc, icon, accent }: { title: string; desc: string; icon: string; accent?: string }){
+  const gradient = accent ? `bg-gradient-to-br ${accent}` : 'bg-gradient-to-br from-white/40 via-white/20 to-white/10';
   return (
-    <div className="group glass rounded-2xl p-5 border border-white/20 transition-transform will-change-transform hover:-translate-y-0.5">
-      <div className="text-2xl mb-2">{icon}</div>
-      <div className="font-semibold mb-1">{title}</div>
-      <div className="opacity-80 text-sm">{desc}</div>
+    <div className="relative overflow-hidden rounded-[26px] border border-white/30 bg-white/60 p-6 shadow-lg backdrop-blur-xl transition-transform hover:-translate-y-1 dark:border-white/10 dark:bg-white/10">
+      <div className={`absolute inset-0 -z-10 ${gradient} opacity-70 blur-3xl`} />
+      <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-white/70 text-2xl backdrop-blur dark:bg-white/10">
+        <span>{icon}</span>
+      </div>
+      <div className="mt-5 text-lg font-semibold text-zinc-900 dark:text-white">{title}</div>
+      <div className="mt-2 text-sm text-zinc-600 dark:text-zinc-300">{desc}</div>
     </div>
   );
-}
-
-function formatAvg(seconds: number | null): string {
-  if (!seconds || seconds <= 0 || !isFinite(seconds)) return '—';
-  const mins = Math.round(seconds / 60);
-  if (mins < 1) return '<1 min';
-  return `${mins} min`;
 }
