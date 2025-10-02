@@ -2,6 +2,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import YouTubeRequired from '@/components/YouTubeRequired';
 import { showToast } from '@/components/Toast';
+import PageShell from '@/components/PageShell';
 
 type Cat = 'SAFETY'|'DRIVER'|'TC'|'DISPATCHER';
 const ORDER: Cat[] = ['SAFETY','DRIVER','TC','DISPATCHER'];
@@ -69,18 +70,19 @@ export default function Training(){
   // Single tab UI across all breakpoints; dropdown removed per request
 
   return (
-    <div className="mx-auto max-w-6xl p-4 grid gap-4">
-      {/* Unified tab bar (mobile style) for all viewports */}
-      <div>
-        <div className="text-sm opacity-70 mb-2">Training</div>
-        <nav className="border-b border-black/10 dark:border-white/20 overflow-x-auto">
-          <ul className="flex gap-2 pb-2">
-            {ORDER.map(c=>{
-              const active = tab===c; const locked = !canAccess(c);
-              return (
-                <li key={c}>
-                  <button
-                    disabled={locked}
+    <PageShell pad={false}>
+      <div className="mx-auto grid w-full max-w-6xl gap-6 px-4 py-10">
+        {/* Unified tab bar (mobile style) for all viewports */}
+        <div className="glass rounded-[32px] border border-white/20 p-5 shadow-lg dark:border-white/10">
+          <div className="text-sm opacity-70 mb-2">Training</div>
+          <nav className="overflow-x-auto">
+            <ul className="flex gap-2 pb-2">
+              {ORDER.map(c=>{
+                const active = tab===c; const locked = !canAccess(c);
+                return (
+                  <li key={c}>
+                    <button
+                      disabled={locked}
                     onClick={()=> setTab(c)}
                     className={`px-3 py-1.5 text-sm rounded-full border ${active ? 'bg-black text-white dark:bg-white dark:text-black border-transparent' : 'bg-transparent hover:bg-black/5 dark:hover:bg-white/10 border-black/10 dark:border-white/20'} ${locked? 'opacity-40 cursor-not-allowed':''}`}
                   >
@@ -89,35 +91,36 @@ export default function Training(){
                 </li>
               );
             })}
-          </ul>
-        </nav>
-      </div>
+            </ul>
+          </nav>
+        </div>
 
-      <div>
-        {!canAccess(tab) ? (
-          <div className="rounded border p-4 text-sm opacity-80">Your role does not permit this training. Select your role’s tab.</div>
-        ) : (
-          <div className="grid gap-4">
-            {phase==='video' && (
-              <section className="grid gap-3">
-                <YouTubeRequired videoId={VIDEOS[tab]} onFinished={()=> setWatched(true)} />
-                <div className="flex items-center gap-2">
-                  <button disabled={!watched || busy} onClick={async()=>{ await complete(); showToast('Temporary training completed'); }} className="rounded px-4 py-2 border disabled:opacity-50">{busy ? 'Saving…' : 'Mark Training Complete'}</button>
-                  {!watched && <span className="text-xs opacity-70">Watch the full video to enable.</span>}
-                  {tab==='DRIVER' && <span className="text-xs opacity-70">Driver also requires Check Ride.</span>}
-                </div>
-              </section>
-            )}
+        <div>
+          {!canAccess(tab) ? (
+            <div className="glass rounded-[28px] border border-white/20 p-5 text-sm opacity-80 shadow-lg dark:border-white/10">Your role does not permit this training. Select your role’s tab.</div>
+          ) : (
+            <div className="grid gap-4">
+              {phase==='video' && (
+                <section className="glass grid gap-3 rounded-[32px] border border-white/20 p-5 shadow-lg dark:border-white/10">
+                  <YouTubeRequired videoId={VIDEOS[tab]} onFinished={()=> setWatched(true)} />
+                  <div className="flex flex-wrap items-center gap-2">
+                    <button disabled={!watched || busy} onClick={async()=>{ await complete(); showToast('Temporary training completed'); }} className="rounded px-4 py-2 border disabled:opacity-50">{busy ? 'Saving…' : 'Mark Training Complete'}</button>
+                    {!watched && <span className="text-xs opacity-70">Watch the full video to enable.</span>}
+                    {tab==='DRIVER' && <span className="text-xs opacity-70">Driver also requires Check Ride.</span>}
+                  </div>
+                </section>
+              )}
 
-            {phase==='done' && (
-              <section className="rounded border p-4 bg-green-50 text-green-700 dark:bg-green-900/20 dark:text-green-300">
-                Training complete for {LABEL[tab]}. You may now access Shifts.
-              </section>
-            )}
-          </div>
-        )}
+              {phase==='done' && (
+                <section className="glass rounded-[28px] border border-white/20 bg-green-400/10 p-5 text-green-700 shadow-lg dark:border-white/10 dark:bg-green-900/20 dark:text-green-300">
+                  Training complete for {LABEL[tab]}. You may now access Shifts.
+                </section>
+              )}
+            </div>
+          )}
+        </div>
+        {/* Dropdown removed per request */}
       </div>
-      {/* Dropdown removed per request */}
-    </div>
+    </PageShell>
   );
 }
