@@ -5,7 +5,6 @@ export default function DataPage(){
   return (
     <div className="grid gap-6">
       <ExportRides />
-      <ExportSaddTracker />
       <ResetRidesCard />
     </div>
   );
@@ -46,78 +45,6 @@ function ExportRides(){
       </div>
     </section>
   );
-}
-
-function ExportSaddTracker(){
-  const [from, setFrom] = useState('');
-  const [to, setTo] = useState('');
-  const [tz, setTz] = useState('');
-  const [fy, setFy] = useState('');
-  const [hasData, setHasData] = useState(true);
-
-  useEffect(()=>{ try{ const z = Intl.DateTimeFormat().resolvedOptions().timeZone; if (z) setTz(z); }catch{} },[]);
-
-  function fyBounds(label:string){
-    const n = Number(String(label).replace(/[^0-9]/g,''));
-    if (!n) return null; const y2 = n>=100? n : 2000+n; const y1 = y2-1; return { from: `${y1}-10-01`, to: `${y2}-09-30` };
-  }
-
-  useEffect(()=>{
-    let ignore=false;
-    (async()=>{
-      const qp = fy ? `fy=${encodeURIComponent(fy)}` : [from && `from=${encodeURIComponent(from)}`, to && `to=${encodeURIComponent(to)}`].filter(Boolean).join('&');
-      const url = `/api/admin/export/sadd-track?preview=1${qp?`&${qp}`:''}&tz=${encodeURIComponent(tz||'UTC')}`;
-      try{ const r = await fetch(url,{cache:'no-store'}); if(!r.ok){ if(!ignore) setHasData(false); return;} const d = await r.json(); if(!ignore) setHasData((d?.rides||0)>0);}catch{ if(!ignore) setHasData(false); }
-    })();
-    return ()=>{ ignore=true };
-  },[fy,from,to,tz]);
-
-  const href = '/api/admin/export/sadd-track'
-    + (fy?`?fy=${encodeURIComponent(fy)}`:(from?`?from=${encodeURIComponent(from)}`:''))
-    + (from||to ? `${fy?'&':''}${from&&to?'&':''}${to?`to=${encodeURIComponent(to)}`:''}`:'')
-    + `${(fy||from||to)?'&':'?'}tz=${encodeURIComponent(tz||'UTC')}`;
-  function fileName(){
-    try{
-      const d = new Date();
-      const z = tz || 'UTC';
-      const fmt = new Intl.DateTimeFormat('en-US', { timeZone: z, year:'2-digit', month:'short', day:'numeric' });
-      // We want like 1OCT25
-      const mm = new Intl.DateTimeFormat('en-US', { timeZone: z, month:'short' }).format(d).toUpperCase();
-      const day = new Intl.DateTimeFormat('en-US', { timeZone: z, day:'numeric' }).format(d);
-      const yy = new Intl.DateTimeFormat('en-US', { timeZone: z, year:'2-digit' }).format(d);
-      return `SADD Tracker - ${day}${mm}${yy}.xlsx`;
-    }catch{ return 'SADD Tracker.xlsx'; }
-  }
-
-  return (
-    <section className="rounded-xl p-4 bg-white/70 dark:bg-white/10 border border-white/20">
-      <h2 className="font-semibold mb-3">SADD Tracker Export</h2>
-      <div className="flex flex-wrap items-end gap-3">
-        <div>
-          <label className="text-xs opacity-70">Fiscal Year</label>
-          <select value={fy} onChange={(e)=>{ const v=e.target.value; setFy(v); if(v){ const b=fyBounds(v); if(b){ setFrom(b.from); setTo(b.to); } } }} className="block p-2 rounded border bg-white/80 dark:bg-neutral-800 text-sm">
-            <option value="">Custom</option>
-            {['FY24','FY25','FY26','FY27'].map(x=> <option key={x} value={x}>{x}</option>)}
-          </select>
-        </div>
-        <div>
-          <label className="text-xs opacity-70">From</label>
-          <input type="date" value={from} onChange={e=>setFrom(e.target.value)} className="block p-2 rounded border bg-white/80 dark:bg-neutral-800 text-sm" />
-        </div>
-        <div>
-          <label className="text-xs opacity-70">To</label>
-          <input type="date" value={to} onChange={e=>setTo(e.target.value)} className="block p-2 rounded border bg-white/80 dark:bg-neutral-800 text-sm" />
-        </div>
-        <div className="text-xs opacity-60">Times in {tz||'UTC'}</div>
-      </div>
-      <div className="mt-3">
-        <a className={`rounded border px-3 py-2 text-sm ${hasData?'':'pointer-events-none opacity-50'}`} aria-disabled={!hasData} href={hasData? href : undefined} download={fileName()}>Export SADD Tracker</a>
-        {!hasData && <div className="mt-2 text-xs opacity-70">No data in selected range.</div>}
-      </div>
-    </section>
-  );
-}
-
 function ResetRidesCard(){
   const [open, setOpen] = useState(false);
   const [token, setToken] = useState('');
