@@ -109,6 +109,26 @@ function pickTcFromShift(shift: any){
   }
 }
 
+function normalizeTcMeta(tc: any){
+  if (!tc) return null;
+  try{
+    const firstName = tc.firstName ?? '';
+    const lastName = tc.lastName ?? '';
+    const name = tc.name ?? tc.fullName ?? '';
+    const email = tc.email ?? '';
+    if (firstName || lastName || email){
+      return { firstName, lastName, email };
+    }
+    if (typeof name === 'string' && name.trim()){
+      const parts = name.trim().split(/\s+/);
+      const first = parts.shift() || '';
+      const last = parts.join(' ');
+      return { firstName: first, lastName: last, email };
+    }
+  }catch{}
+  return null;
+}
+
 function humanizeStatus(s?: string){
   switch(String(s||'').toUpperCase()){
     case 'PENDING': return 'Pending';
@@ -233,7 +253,10 @@ export async function GET(req: Request){
       if (typeof r.notes === 'string' && r.notes.trim().startsWith('{')){
         const meta = JSON.parse(r.notes);
         if (meta?.manualContact){ contactName = meta.manualContact.name || ''; contactPhone = meta.manualContact.phone || ''; }
-        if (meta?.walkOnTc){ walkOnTc = meta.walkOnTc; }
+        walkOnTc = normalizeTcMeta(meta?.walkOnTc)
+          || normalizeTcMeta(meta?.walkOn?.tc)
+          || normalizeTcMeta(meta?.walkOn?.truckCommander)
+          || walkOnTc;
       }
     }catch{}
     // Prefer manual contact details when present
@@ -305,7 +328,10 @@ export async function GET(req: Request){
         if (typeof r.notes === 'string' && r.notes.trim().startsWith('{')){
           const meta = JSON.parse(r.notes);
           if (meta?.manualContact){ contactName = meta.manualContact.name || ''; contactPhone = meta.manualContact.phone || ''; }
-          if (meta?.walkOnTc){ walkOnTc = meta.walkOnTc; }
+          walkOnTc = normalizeTcMeta(meta?.walkOnTc)
+            || normalizeTcMeta(meta?.walkOn?.tc)
+            || normalizeTcMeta(meta?.walkOn?.truckCommander)
+            || walkOnTc;
         }
       }catch{}
       const effectiveName = contactName || riderName;
