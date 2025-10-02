@@ -1,6 +1,7 @@
 "use client";
 import { useEffect, useState } from 'react';
 import { showToast } from '@/components/Toast';
+import PageShell from '@/components/PageShell';
 
 export default function ProfileClient() {
   const [form, setForm] = useState<any>({});
@@ -24,9 +25,16 @@ export default function ProfileClient() {
     showToast(res.ok ? 'Password changed' : 'Failed to change password');
   }
 
-  if (!loaded) return <div className="p-6">Loading…</div>;
+  if (!loaded) return (
+    <PageShell>
+      <div className="glass mx-auto max-w-3xl rounded-[32px] border border-white/20 p-6 shadow-lg dark:border-white/10 sm:p-8">
+        Loading…
+      </div>
+    </PageShell>
+  );
   return (
-    <div className="mx-auto max-w-3xl p-6 space-y-4">
+    <PageShell>
+      <div className="glass mx-auto max-w-3xl space-y-4 rounded-[32px] border border-white/20 p-6 shadow-lg dark:border-white/10 sm:p-8">
       <h1 className="text-2xl font-semibold">Profile</h1>
       <form onSubmit={save} className="grid gap-3">
         <div className="grid grid-cols-2 gap-2">
@@ -42,6 +50,7 @@ export default function ProfileClient() {
       <button onClick={changePassword} className="rounded border py-2 px-4">Change Password</button>
 
       {/* Training access moved to Account dropdown in the header */}
-    </div>
+      </div>
+    </PageShell>
   );
 }
