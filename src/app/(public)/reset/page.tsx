@@ -34,8 +34,8 @@ export default function ResetPage(){
   }
 
   return (
-    <div className="min-h-[70vh] grid place-items-center p-6">
-      <div className="w-full max-w-md rounded-2xl p-6 bg-white/60 dark:bg-white/10 backdrop-blur border border-white/20">
+    <div className="grid place-items-center">
+      <div className="glass w-full max-w-md rounded-[32px] border border-white/20 p-6 shadow-lg dark:border-white/10">
         <h1 className="text-xl font-semibold mb-2">Reset Password</h1>
         {valid===null && <div>Checking link…</div>}
         {valid===false && <div className="text-sm text-red-600">This reset link is invalid or expired.</div>}
@@ -51,4 +51,3 @@ export default function ResetPage(){
     </div>
   );
 }
-
