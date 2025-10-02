@@ -375,10 +375,10 @@ async function handleGet(req: Request){
     const wsRides = wb.addWorksheet('Rides');
     wsRides.addRow(header);
     // Column indices for typed formatting (1-based)
-    const COL_REQUEST_DATE = header.indexOf('request_date') + 1;
-    const COL_REQUEST_TIME = header.indexOf('request_time') + 1;
-    const COL_PICKUP_TIME = header.indexOf('pickup_time') + 1;
-    const COL_DROPOFF_TIME = header.indexOf('dropoff_time') + 1;
+    const COL_REQUEST_DATE = header.indexOf('Request Date') + 1;
+    const COL_REQUEST_TIME = header.indexOf('Request Time') + 1;
+    const COL_PICKUP_TIME = header.indexOf('Pickup Time') + 1;
+    const COL_DROPOFF_TIME = header.indexOf('Dropoff Time') + 1;
     for (const r of rides){
       const riderName = [r.rider?.firstName, r.rider?.lastName].filter(Boolean).join(' ');
       let contactName = '';
