@@ -381,21 +381,17 @@ async function handleGet(req: Request){
     const COL_DROPOFF_TIME = header.indexOf('Dropoff Time') + 1;
     for (const r of rides){
       const riderName = [r.rider?.firstName, r.rider?.lastName].filter(Boolean).join(' ');
-      let contactName = '';
-      let contactPhone = '';
       let walkOnTc: any = null;
       try{
         if (typeof r.notes === 'string' && r.notes.trim().startsWith('{')){
           const meta = JSON.parse(r.notes);
-          if (meta?.manualContact){ contactName = meta.manualContact.name || ''; contactPhone = meta.manualContact.phone || ''; }
           walkOnTc = normalizeTcMeta(meta?.walkOnTc)
             || normalizeTcMeta(meta?.walkOn?.tc)
             || normalizeTcMeta(meta?.walkOn?.truckCommander)
             || walkOnTc;
         }
       }catch{}
-      const effectiveName = contactName || riderName;
-      const effectivePhone = contactPhone || (r.rider?.phone || '');
+      const riderPhone = formatPhone(r.rider?.phone || '');
 
       const [shift, tcShift] = await Promise.all([
         findShiftForInstant(r.requestedAt),
@@ -412,36 +408,32 @@ async function handleGet(req: Request){
       else if (walkOnTc){ tcUser = walkOnTc; }
       const tcName = tcUser ? [tcUser.firstName, tcUser.lastName].filter(Boolean).join(' ') : '';
       const tcEmail = tcUser?.email || '';
-      const shiftDate = localParts(shift?.startsAt as any, tz) || localParts(r.requestedAt as any, tz);
-      const reqDateSerial = shiftDate ? excelSerialDate(shiftDate.y, shiftDate.m, shiftDate.da) : null;
 
-      const reqTime = localParts(r.requestedAt as any, tz);
-      const pickupTime = localParts(r.pickupAt as any, tz);
-      const dropTime = localParts(r.dropAt as any, tz);
+      const requestLocal = localParts(r.requestedAt as any, tz);
+      const pickupLocal = localParts(r.pickupAt as any, tz);
+      const dropLocal = localParts(r.dropAt as any, tz);
+      const requestDateParts = computeRequestDateParts(shift, requestLocal, tz);
+      const reqDateSerial = requestDateParts ? excelSerialDate(requestDateParts.y, requestDateParts.m, requestDateParts.da) : null;
 
       const rowValues: any[] = [
         String(r.rideCode),
         r.id,
-        effectiveName,
+        riderName,
         r.rider?.rank || '',
         r.rider?.email || '',
-        effectivePhone,
-        r.rider?.unit || '',
+        riderPhone,
         tcName,
         tcEmail,
         r.van?.name || '',
-        // request_date (as Excel date serial)
         reqDateSerial,
-        // request_time, pickup_time, dropoff_time as Excel time serials
-        reqTime ? excelSerialTime(reqTime.h, reqTime.mi, reqTime.s) : null,
-        pickupTime ? excelSerialTime(pickupTime.h, pickupTime.mi, pickupTime.s) : null,
-        dropTime ? excelSerialTime(dropTime.h, dropTime.mi, dropTime.s) : null,
+        requestLocal ? excelSerialTime(requestLocal.h, requestLocal.mi, requestLocal.s) : null,
+        pickupLocal ? excelSerialTime(pickupLocal.h, pickupLocal.mi, pickupLocal.s) : null,
+        dropLocal ? excelSerialTime(dropLocal.h, dropLocal.mi, dropLocal.s) : null,
         r.pickupAddr,
         r.dropAddr,
         humanizeStatus((r as any).status),
         r.rating!=null ? r.rating : null,
         r.reviewComment || '',
-        tz,
       ];
       wsRides.addRow(rowValues);
     }
