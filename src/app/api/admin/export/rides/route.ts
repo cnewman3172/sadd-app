@@ -101,13 +101,14 @@ function formatDateParts(parts: LocalDateParts){
   return `${parts.y}-${pad2(parts.m)}-${pad2(parts.da)}`;
 }
 
-function formatPhone(phone?: string | null){
-  if (!phone) return '';
-  const digits = phone.replace(/\D/g, '');
+function formatPhone(phone?: string | number | null){
+  if (phone === null || phone === undefined || phone === '') return '';
+  const raw = String(phone);
+  const digits = raw.replace(/\D/g, '');
   if (digits.length === 10){
     return `(${digits.slice(0,3)})${digits.slice(3,6)}-${digits.slice(6)}`;
   }
-  return phone;
+  return raw;
 }
 
 function humanizeRole(role?: string | null){
