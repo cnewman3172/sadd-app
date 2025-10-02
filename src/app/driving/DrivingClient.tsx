@@ -1,7 +1,7 @@
 "use client";
 import { useEffect, useRef, useState } from 'react';
 import { showToast } from '@/components/Toast';
-import type { Van, Ride } from '@/types';
+import type { Van, Ride, TransferRequest } from '@/types';
 import AddressInput from '@/components/AddressInput';
 
 export default function DrivingClient(){
@@ -9,6 +9,7 @@ export default function DrivingClient(){
   const [currentVan, setCurrentVan] = useState<Van|null>(null);
   const [tasks, setTasks] = useState<Ride[]>([]);
   const [selected, setSelected] = useState('');
+  const [transfers, setTransfers] = useState<TransferRequest[]>([]);
   const [sseStatus, setSseStatus] = useState<'connecting'|'online'|'offline'>('connecting');
   const [userId, setUserId] = useState<string>('');
   const [wakeSupported, setWakeSupported] = useState(false);
@@ -19,6 +20,7 @@ export default function DrivingClient(){
   const [walkSelRider, setWalkSelRider] = useState<any|null>(null);
   const [walkNameOpts, setWalkNameOpts] = useState<any[]>([]);
   const [walkNameOpen, setWalkNameOpen] = useState(false);
+  const [transferBusy, setTransferBusy] = useState<string|null>(null);
 
   async function refreshVans(){
     const v = await fetch('/api/vans').then(r=>r.json());
@@ -39,17 +41,27 @@ export default function DrivingClient(){
     setCurrentVan(r.van);
     setTasks(r.tasks||[]);
   }
+  async function refreshTransfers(){
+    try{
+      const r = await fetch('/api/driver/transfers', { cache:'no-store' });
+      if (!r.ok) return;
+      const d = await r.json();
+      setTransfers(Array.isArray(d?.requests) ? d.requests : []);
+    }catch{}
+  }
   useEffect(()=>{
     fetch('/api/me')
       .then(r=> r.ok ? r.json() : null)
       .then((d: any)=> setUserId(d?.id || d?.uid || ''));
     refreshVans();
     refreshTasks();
+    refreshTransfers();
     const es = new EventSource('/api/stream');
     setSseStatus('connecting');
     es.addEventListener('hello', ()=> setSseStatus('online'));
     es.addEventListener('ride:update', ()=> refreshTasks());
-    es.addEventListener('vans:update', ()=> { refreshVans(); refreshTasks(); });
+    es.addEventListener('vans:update', ()=> { refreshVans(); refreshTasks(); refreshTransfers(); });
+    es.addEventListener('transfer:update', ()=> { refreshTransfers(); refreshTasks(); });
     es.onerror = ()=> setSseStatus('offline');
     return ()=>{ es.close(); };
   },[]);
@@ -66,7 +78,7 @@ export default function DrivingClient(){
     navigator.geolocation.getCurrentPosition(async(pos)=>{
       const { latitude, longitude } = pos.coords;
       const res = await fetch('/api/driver/go-online', { method:'POST', body: JSON.stringify({ vanId: targetVanId, lat: latitude, lng: longitude }) });
-      if (res.ok) { setSelected(''); refreshTasks(); startPings(); }
+      if (res.ok) { setSelected(''); refreshTasks(); refreshTransfers(); startPings(); }
       else {
         const d = await res.json().catch(()=>({error:'Failed to go online'}));
         showToast(d.error || 'Failed to go online');
@@ -77,10 +89,44 @@ export default function DrivingClient(){
   }
   async function goOffline(){
     const res = await fetch('/api/driver/go-offline', { method:'POST' });
-    if (res.ok) { stopPings(); refreshTasks(); }
+    if (res.ok) { stopPings(); refreshTasks(); refreshTransfers(); }
     else {
       const d = await res.json().catch(()=>({ error:'Unable to go offline' }));
       showToast(d.error || 'Unable to go offline');
+    }
+  }
+  async function requestTransfer(vanId: string){
+    setTransferBusy(`req:${vanId}`);
+    try{
+      const res = await fetch('/api/driver/transfers', { method:'POST', headers:{ 'Content-Type':'application/json' }, body: JSON.stringify({ vanId }) });
+      if (!res.ok){
+        const d = await res.json().catch(()=>({ error:'Unable to request transfer' }));
+        showToast(d.error || 'Unable to request transfer');
+        return;
+      }
+      showToast('Transfer request sent');
+      await refreshTransfers();
+    }finally{
+      setTransferBusy(null);
+    }
+  }
+  async function respondTransfer(id: string, action: 'ACCEPT'|'DECLINE'|'CANCEL'){
+    setTransferBusy(`${id}:${action}`);
+    try{
+      const res = await fetch(`/api/driver/transfers/${id}`, { method:'POST', headers:{ 'Content-Type':'application/json' }, body: JSON.stringify({ action }) });
+      if (!res.ok){
+        const d = await res.json().catch(()=>({ error:'Unable to update transfer' }));
+        showToast(d.error || 'Unable to update transfer');
+        return;
+      }
+      if (action === 'ACCEPT') showToast('Transfer accepted');
+      if (action === 'DECLINE') showToast('Transfer declined');
+      if (action === 'CANCEL') showToast('Transfer cancelled');
+      await refreshTransfers();
+      await refreshTasks();
+      await refreshVans();
+    }finally{
+      setTransferBusy(null);
     }
   }
   async function setStatus(id:string, status:string){
@@ -186,6 +232,73 @@ export default function DrivingClient(){
   return (
     <div className="mx-auto w-full max-w-3xl space-y-6 px-4 py-12">
       <h1 className="text-2xl font-semibold">Truck Commander <span className="text-sm opacity-70">{sseStatus==='online'?'• Live':sseStatus==='connecting'?'• Connecting':'• Offline'}</span></h1>
+      {(() => {
+        const incoming = transfers.filter(t=> t.status==='PENDING' && t.fromTcId === userId);
+        const outgoing = transfers.filter(t=> t.status==='PENDING' && t.toTcId === userId);
+        if (incoming.length===0 && outgoing.length===0) return null;
+        return (
+          <section className="glass space-y-3 rounded-[32px] border border-white/20 p-5 shadow-lg dark:border-white/10">
+            <div className="font-semibold">Transfer Requests</div>
+            {incoming.length>0 && (
+              <div className="space-y-2">
+                <div className="text-sm opacity-70">Pending handoff requests for your van</div>
+                {incoming.map(t=>{
+                  const created = new Date(t.createdAt).toLocaleString();
+                  return (
+                    <div key={t.id} className="flex flex-wrap items-start justify-between gap-3 rounded-xl border border-white/20 px-3 py-2 text-sm dark:border-white/10">
+                      <div>
+                        <div className="font-medium">{t.toTcName || 'Truck Commander'}</div>
+                        <div className="text-xs opacity-60">Requested {created}</div>
+                        {t.note && <div className="mt-1 text-xs opacity-80">Note: {t.note}</div>}
+                      </div>
+                      <div className="flex gap-2">
+                        <button
+                          onClick={()=> respondTransfer(t.id, 'DECLINE')}
+                          disabled={transferBusy === `${t.id}:DECLINE`}
+                          className="rounded border px-3 py-1 text-xs"
+                        >
+                          Decline
+                        </button>
+                        <button
+                          onClick={()=> respondTransfer(t.id, 'ACCEPT')}
+                          disabled={transferBusy === `${t.id}:ACCEPT`}
+                          className="rounded bg-black px-3 py-1 text-xs font-semibold text-white dark:bg-white dark:text-black"
+                        >
+                          Accept
+                        </button>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+            {outgoing.length>0 && (
+              <div className="space-y-2">
+                <div className="text-sm opacity-70">Requests you have sent</div>
+                {outgoing.map(t=>{
+                  const created = new Date(t.createdAt).toLocaleString();
+                  return (
+                    <div key={t.id} className="flex flex-wrap items-start justify-between gap-3 rounded-xl border border-white/20 px-3 py-2 text-sm dark:border-white/10">
+                      <div>
+                        <div className="font-medium">{t.vanName}</div>
+                        <div className="text-xs opacity-60">Waiting on {t.fromTcName || 'current TC'} · Sent {created}</div>
+                        {t.note && <div className="mt-1 text-xs opacity-80">Note: {t.note}</div>}
+                      </div>
+                      <button
+                        onClick={()=> respondTransfer(t.id, 'CANCEL')}
+                        disabled={transferBusy === `${t.id}:CANCEL`}
+                        className="rounded border px-3 py-1 text-xs"
+                      >
+                        Cancel Request
+                      </button>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </section>
+        );
+      })()}
       <section className="glass rounded-[32px] border border-white/20 p-5 shadow-lg dark:border-white/10 space-y-2">
         <div className="text-sm">{currentVan ? `Online as ${currentVan.name}` : 'Offline'}</div>
         {!currentVan && (
@@ -271,7 +384,8 @@ export default function DrivingClient(){
             const youAreOn = currentVan?.id === v.id;
             const ownedByYou = v.activeTcId === userId;
             const available = !v.activeTcId;
-            const statusLabel = youAreOn ? 'You are online' : ownedByYou ? 'Assigned to you' : v.activeTcId ? 'In use' : 'Available';
+            const outgoing = transfers.find(t=> t.status==='PENDING' && t.toTcId === userId && t.vanId === v.id);
+            const statusLabel = youAreOn ? 'You are online' : ownedByYou ? 'Assigned to you' : v.activeTcId ? (outgoing ? 'Transfer requested' : 'In use') : 'Available';
             return (
               <div key={v.id} className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-white/20 px-3 py-2 dark:border-white/10">
                 <div>
@@ -286,8 +400,22 @@ export default function DrivingClient(){
                     >
                       {youAreOn ? 'Online' : ownedByYou ? 'Resume Van' : 'Take Over'}
                     </button>
+                  ) : outgoing ? (
+                    <button
+                      onClick={()=> respondTransfer(outgoing.id, 'CANCEL')}
+                      disabled={transferBusy === `${outgoing.id}:CANCEL`}
+                      className="rounded border px-3 py-1 text-xs"
+                    >
+                      Cancel Request
+                    </button>
                   ) : (
-                    <span className="text-xs opacity-60">In use</span>
+                    <button
+                      onClick={()=> requestTransfer(v.id)}
+                      disabled={transferBusy === `req:${v.id}`}
+                      className="rounded border px-3 py-1 text-xs"
+                    >
+                      Request Transfer
+                    </button>
                   )}
                 </div>
               </div>
