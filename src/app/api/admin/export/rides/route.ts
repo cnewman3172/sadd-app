@@ -471,28 +471,33 @@ async function handleGet(req: Request){
     const dateStatus = (d?: Date|null) => d ? 'Completed' : 'Not Completed';
 
     const trainingHeader = [
-      'full_name',
-      'email',
-      'phone',
-      'unit',
-      'role',
-      'vmis_registered',
-      'volunteer_agreement',
-      'sadd_sop_read',
-      'training_safety',
-      'training_driver',
-      'training_tc',
-      'training_dispatcher',
-      'check_ride',
+      'Name',
+      'Email',
+      'Phone',
+      'Unit',
+      'Role',
+      'VMIS Registered',
+      'Volunteer Agreement',
+      'SADD SOP Read',
+      'Safety Training',
+      'Drivers Training',
+      'TC Training',
+      'Dispatcher Training',
+      'Checked Ride',
     ];
     const wsTraining = wb.addWorksheet('Training');
     wsTraining.addRow(trainingHeader);
-    for (const u of users){
+    const sortedUsers = [...users].sort((a, b) => {
+      const nameA = [a.firstName, a.lastName].filter(Boolean).join(' ').trim();
+      const nameB = [b.firstName, b.lastName].filter(Boolean).join(' ').trim();
+      return nameA.localeCompare(nameB || '', undefined, { sensitivity: 'base' });
+    });
+    for (const u of sortedUsers){
       const fullName = [u.firstName, u.lastName].filter(Boolean).join(' ');
       wsTraining.addRow([
         fullName,
         u.email ?? '',
-        u.phone ?? '',
+        formatPhone(u.phone),
         u.unit ?? '',
         u.role,
         status(u.vmisRegistered),
@@ -506,13 +511,17 @@ async function handleGet(req: Request){
       ]);
     }
     wsTraining.columns = trainingHeader.map(()=>({ width: 22 }));
+    const TRAINING_PHONE_COL = trainingHeader.indexOf('Phone') + 1;
+    if (TRAINING_PHONE_COL > 0){
+      wsTraining.getColumn(TRAINING_PHONE_COL).alignment = { horizontal: 'center' };
+    }
 
     // Sheet 3: Shift Log (one row per signup)
     const shiftHeader = [
-      'shift_id', 'role', 'title',
+      'Shift ID', 'Role Required', 'Shift Title',
       // Date column, then start/end time-only
-      'date', 'start_time', 'end_time', 'needed',
-      'user_id', 'full_name', 'email', 'phone', 'user_role', 'signed_up_at', 'time_zone'
+      'Shift Date', 'Start Time', 'End Time', 'Required People',
+      'User ID', 'Signup Name', 'Signup Email', 'Signup Phone', 'Signup Role', 'Signup Time'
     ];
     const wsShift = wb.addWorksheet('Shift Log');
     wsShift.addRow(shiftHeader);
@@ -544,10 +553,9 @@ async function handleGet(req: Request){
           u?.id || '',
           full,
           u?.email || '',
-          u?.phone || '',
+          formatPhone(u?.phone),
           u?.role || '',
           fmtInTz((su as any).createdAt as any, tz),
-          tz,
         ]);
       }
       if (s.signups.length===0){
@@ -563,18 +571,22 @@ async function handleGet(req: Request){
           startP ? excelSerialTime(startP.h, startP.mi, startP.s) : null,
           endP ? excelSerialTime(endP.h, endP.mi, endP.s) : null,
           String(s.needed),
-          '', '', '', '', '', '', tz,
+          '', '', '', '', '', '',
         ]);
       }
     }
     wsShift.columns = shiftHeader.map(()=>({ width: 20 }));
     // Apply date/time formats to Shift Log
-    const COL_S_DATE = shiftHeader.indexOf('date') + 1;
-    const COL_S_START = shiftHeader.indexOf('start_time') + 1;
-    const COL_S_END = shiftHeader.indexOf('end_time') + 1;
+    const COL_S_DATE = shiftHeader.indexOf('Shift Date') + 1;
+    const COL_S_START = shiftHeader.indexOf('Start Time') + 1;
+    const COL_S_END = shiftHeader.indexOf('End Time') + 1;
     wsShift.getColumn(COL_S_DATE).numFmt = 'yyyy-mm-dd';
     wsShift.getColumn(COL_S_START).numFmt = 'hh:mm';
     wsShift.getColumn(COL_S_END).numFmt = 'hh:mm';
+    const SHIFT_PHONE_COL = shiftHeader.indexOf('Signup Phone') + 1;
+    if (SHIFT_PHONE_COL > 0){
+      wsShift.getColumn(SHIFT_PHONE_COL).alignment = { horizontal: 'center' };
+    }
 
     const xbuf: ArrayBuffer = await wb.xlsx.writeBuffer();
     const safeTz = tz.replace(/[^A-Za-z0-9_\-\/]/g,'_').replace(/[\/]/g,'-');
