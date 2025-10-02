@@ -86,6 +86,13 @@ async function findShiftForInstant(instant: Date){
   return prisma.shift.findFirst({
     where: { startsAt: { lte: instant }, endsAt: { gt: instant } },
     orderBy: { startsAt: 'desc' },
+    include: {
+      signups: {
+        include: {
+          user: { select: { id: true, firstName: true, lastName: true, email: true, phone: true, role: true } },
+        },
+      },
+    },
   });
 }
 
@@ -173,7 +180,6 @@ export async function GET(req: Request){
   const rows: string[][] = [header];
   for (const r of rides){
     const riderName = [r.rider?.firstName, r.rider?.lastName].filter(Boolean).join(' ');
-    const tcName = [r.driver?.firstName, r.driver?.lastName].filter(Boolean).join(' ');
     let contactName = '';
     let contactPhone = '';
     try{
@@ -188,6 +194,11 @@ export async function GET(req: Request){
 
     // Compute shift-based request date (falls back to request local date if no shift found)
     const shift = await findShiftForInstant(r.requestedAt);
+    const tcSignup = shift?.signups?.find((su: any) => String(su.role||'').toUpperCase() === 'TC');
+    const tcUser = (r.driver as any) || (tcSignup?.user as any) || null;
+    const tcName = tcUser ? [tcUser.firstName, tcUser.lastName].filter(Boolean).join(' ') : '';
+    const tcEmail = tcUser?.email || '';
+
     const shiftDateParts = localParts(shift?.startsAt as any, tz) || localParts(r.requestedAt as any, tz);
     const reqDateStr = shiftDateParts ? `${shiftDateParts.y}-${pad2(shiftDateParts.m)}-${pad2(shiftDateParts.da)}` : '';
 
@@ -205,7 +216,7 @@ export async function GET(req: Request){
       effectivePhone,
       r.rider?.unit || '',
       tcName,
-      r.driver?.email || '',
+      tcEmail,
       r.van?.name || '',
       reqDateStr,
       reqTimeStr,
