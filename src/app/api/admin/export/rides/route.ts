@@ -205,7 +205,16 @@ function humanizeStatus(s?: string){
 // Van status no longer exported
 
 export async function GET(req: Request){
-  return handleGet(req);
+  try{
+    return await handleGet(req);
+  }catch(err){
+    console.error('rides export unexpected failure', err);
+    const url = new URL(req.url);
+    const format = (url.searchParams.get('format') || 'csv').toLowerCase();
+    const tz = url.searchParams.get('tz') || 'UTC';
+    const detail = err instanceof Error ? err.message : undefined;
+    return respondWithExportError(format, tz, 'unexpected_failure', detail);
+  }
 }
 
 async function handleGet(req: Request){
@@ -650,20 +659,21 @@ async function handleGet(req: Request){
   });
 }
 
-type ExportErrorReason = 'missing_database_url' | 'database_query_failed';
+type ExportErrorReason = 'missing_database_url' | 'database_query_failed' | 'unexpected_failure';
 
-async function respondWithExportError(format: string, tz: string, reason: ExportErrorReason){
+async function respondWithExportError(format: string, tz: string, reason: ExportErrorReason, detail?: string){
   const { code, message, status } = getErrorDetails(reason);
+  const display = detail ? `${message} (${detail})` : message;
   const safeTz = tz.replace(/[^A-Za-z0-9_\-\/]/g,'_').replace(/[\/]/g,'-');
   if (format === 'json'){
-    return NextResponse.json({ error: code, message }, { status });
+    return NextResponse.json({ error: code, message: display }, { status });
   }
   if (format === 'xlsx'){
     const ExcelJS = (await import('exceljs')).default;
     const wb = new ExcelJS.Workbook();
     const ws = wb.addWorksheet('Error');
     ws.addRow(['error', 'message']);
-    ws.addRow([code, message]);
+    ws.addRow([code, display]);
     ws.columns = [{ width: 24 }, { width: 80 }];
     const buf: ArrayBuffer = await wb.xlsx.writeBuffer();
     const filename = `rides_export_error_${new Date().toISOString().slice(0,10)}_${safeTz}.xlsx`;
@@ -678,7 +688,7 @@ async function respondWithExportError(format: string, tz: string, reason: Export
   }
   const csv = toCsv([
     ['error', 'message'],
-    [code, message],
+    [code, display],
   ]);
   const filename = `rides_export_error_${new Date().toISOString().slice(0,10)}_${safeTz}.csv`;
   return new NextResponse(csv, {
@@ -700,11 +710,22 @@ function getErrorDetails(reason: ExportErrorReason){
         status: 503,
       } as const;
     case 'database_query_failed':
-    default:
       return {
         code: 'database_unavailable',
         message: 'Unable to reach the database to read rides. Check the connection and try again.',
         status: 503,
+      } as const;
+    case 'unexpected_failure':
+      return {
+        code: 'export_failed',
+        message: 'Export failed due to an unexpected error.',
+        status: 500,
+      } as const;
+    default:
+      return {
+        code: 'export_failed',
+        message: 'Export failed due to an unexpected error.',
+        status: 500,
       } as const;
   }
 }
