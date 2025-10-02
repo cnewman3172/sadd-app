@@ -350,6 +350,7 @@ export async function GET(req: Request){
       const tcUser = (r.driver as any) || (r.coordinator as any) || (tcSignupUser as any) || (r.van?.activeTc as any) || (auditUser as any) || (walkOnTc as any) || null;
       const tcName = tcUser ? [tcUser.firstName, tcUser.lastName].filter(Boolean).join(' ') : '';
       const tcEmail = tcUser?.email || '';
+      const tcPhone = tcUser?.phone || '';
       const shiftDate = localParts(shift?.startsAt as any, tz) || localParts(r.requestedAt as any, tz);
       const reqDateSerial = shiftDate ? excelSerialDate(shiftDate.y, shiftDate.m, shiftDate.da) : null;
 
@@ -367,6 +368,7 @@ export async function GET(req: Request){
         r.rider?.unit || '',
         tcName,
         tcEmail,
+        tcPhone,
         r.van?.name || '',
         // request_date (as Excel date serial)
         reqDateSerial,
