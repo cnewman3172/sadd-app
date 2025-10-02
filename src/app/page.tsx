@@ -35,68 +35,172 @@ export default async function Home() {
       </header>
 
       {/* Hero */}
-      <main className="relative mx-auto max-w-7xl px-4">
+      <main className="relative mx-auto max-w-6xl px-4 pb-20">
         <ScrollEffects />
-        <section className="pt-14 pb-10 sm:pt-20 sm:pb-14 grid md:grid-cols-2 gap-8 items-center">
-          <div className="space-y-5" data-reveal>
-            <div className="inline-flex items-center gap-2 rounded-full px-3 py-1 text-xs glass border border-white/20">
-              <span className={`inline-block h-2 w-2 rounded-full ${active? 'bg-emerald-500':'bg-zinc-400'}`} />
-              <span>{active ? 'SADD is Active' : 'SADD Currently Inactive'}</span>
-            </div>
-            <h1 className="text-4xl sm:text-5xl md:text-6xl font-extrabold leading-tight">
-              Get <span className="gradient-text">Home Safe</span>.<br />Free. Confidential.
-            </h1>
-            <p className="text-base sm:text-lg opacity-80 max-w-prose">
-              Soldiers Against Drunk Driving provides no-questions-asked rides so you and your unit stay safe. On-base and nearby.
-            </p>
-            <div className="flex flex-col sm:flex-row gap-3">
-              <a href="/request" className="btn-primary will-change-transform">
-                <span className="font-semibold">Request a Ride</span>
-              </a>
-              <a href="/volunteer" className="rounded-full px-6 py-3 glass border border-white/30 text-sm">
-                Become a Volunteer
-              </a>
-            </div>
-            <ul className="flex flex-wrap gap-2 text-xs opacity-80">
-              <li className="glass rounded-full px-2.5 py-1 border border-white/20">Free</li>
-              <li className="glass rounded-full px-2.5 py-1 border border-white/20">Confidential</li>
-              <li className="glass rounded-full px-2.5 py-1 border border-white/20">On-Base & Nearby</li>
-              <li className="glass rounded-full px-2.5 py-1 border border-white/20">Volunteer-Run</li>
-            </ul>
+        <section className="relative mt-14 overflow-hidden rounded-[36px] border border-white/20 bg-white/60 px-6 py-14 shadow-lg backdrop-blur-2xl dark:border-white/10 dark:bg-white/5" data-reveal>
+          <div className="pointer-events-none absolute inset-0 -z-10">
+            <div className="absolute -right-16 top-10 h-64 w-64 rounded-full bg-emerald-400/30 blur-3xl dark:bg-emerald-500/20" />
+            <div className="absolute -bottom-20 left-0 h-72 w-72 rounded-full bg-blue-400/20 blur-3xl dark:bg-sky-500/20" />
+            <div className="absolute inset-0 bg-gradient-to-tr from-white/40 via-transparent to-white/10 dark:from-white/10" />
           </div>
 
-          {/* Showcase Card */}
-          <div className="relative card-border rounded-3xl p-1" data-reveal>
-            <div className="rounded-[22px] glass-strong p-5">
-              <div className="rounded-2xl bg-gradient-to-br from-white/70 to-white/30 dark:from-white/10 dark:to-white/5 border border-white/30 p-5">
-                <h3 className="text-lg font-semibold mb-2">How It Works</h3>
-                <ol className="space-y-3 text-sm opacity-90">
-                  <li>1) Request: share pickup and destination.</li>
-                  <li>2) Dispatch: a dispatcher assigns the nearest van.</li>
-                  <li>3) Ride: get home safe — no questions asked.</li>
-                </ol>
-                <div className="mt-5 grid grid-cols-3 gap-3 text-center text-sm">
-                  <Stat label="Active Vans" valueNumber={activeVansCount} />
-                  <Stat label="Average Pickup Time" valueNumber={avgPickupSeconds!=null? Math.round(avgPickupSeconds/60): null} suffix=" min" />
-                  <Stat label="Rides (FY)" valueNumber={ridesFyCount} />
+          <div className="grid gap-12 lg:grid-cols-[minmax(0,1.08fr)_minmax(0,0.92fr)]">
+            <div className="space-y-6 lg:pr-6">
+              <div className="inline-flex items-center gap-2 rounded-full border border-white/40 bg-white/50 px-4 py-1.5 text-xs uppercase tracking-wide text-emerald-700 shadow-sm backdrop-blur dark:border-white/10 dark:bg-white/10 dark:text-emerald-300">
+                <span className={`inline-block h-2.5 w-2.5 rounded-full shadow-inner ${active ? 'bg-emerald-500' : 'bg-zinc-400'}`} />
+                <span>{active ? 'SADD is Active • Vans on shift' : 'SADD Currently Inactive • Check schedule'}</span>
+              </div>
+              <h1 className="text-4xl font-semibold leading-tight text-zinc-900 sm:text-5xl lg:text-6xl dark:text-white">
+                A glass-smooth safety net to <span className="bg-gradient-to-r from-emerald-500 via-cyan-500 to-blue-500 bg-clip-text text-transparent">get you home</span>, every night.
+              </h1>
+              <p className="text-base text-zinc-600 sm:text-lg dark:text-zinc-200/80">
+                Soldiers Against Drunk Driving pairs duty-night volunteers with real-time dispatching so every Soldier has a confidential, judgment-free ride back to safety.
+              </p>
+              <div className="flex flex-col gap-3 sm:flex-row">
+                <a href="/request" className="btn-primary flex items-center justify-center gap-2 rounded-full px-6 py-3 text-sm font-semibold shadow-lg shadow-emerald-500/20">
+                  <span>Request a Ride</span>
+                  <span aria-hidden className="text-lg">→</span>
+                </a>
+                <a href="/volunteer" className="flex items-center justify-center rounded-full border border-white/40 bg-white/60 px-6 py-3 text-sm font-semibold text-zinc-900 shadow-sm backdrop-blur-lg transition hover:border-emerald-400/60 dark:border-white/10 dark:bg-white/5 dark:text-white">
+                  Join the Volunteer Roster
+                </a>
+              </div>
+              <ul className="flex flex-wrap gap-2 text-xs text-zinc-600 dark:text-zinc-200/70">
+                {['Free rides', 'Confidential', 'On-base & nearby', 'Volunteer-run'].map(item => (
+                  <li key={item} className="rounded-full border border-white/40 bg-white/60 px-3 py-1 backdrop-blur dark:border-white/10 dark:bg-white/5">
+                    {item}
+                  </li>
+                ))}
+              </ul>
+              <div className="flex flex-wrap items-center gap-3 text-xs text-zinc-500 dark:text-zinc-400">
+                <span className="uppercase tracking-[0.2em] text-zinc-700 dark:text-zinc-300">Trusted by</span>
+                <span className="rounded-full border border-white/40 bg-white/60 px-3 py-1 backdrop-blur dark:border-white/10 dark:bg-white/5">Brigade Staff Duty</span>
+                <span className="rounded-full border border-white/40 bg-white/60 px-3 py-1 backdrop-blur dark:border-white/10 dark:bg-white/5">Command Teams</span>
+                <span className="rounded-full border border-white/40 bg-white/60 px-3 py-1 backdrop-blur dark:border-white/10 dark:bg-white/5">Unit Volunteers</span>
+              </div>
+            </div>
+
+            <div className="relative flex flex-col gap-5" data-reveal>
+              <div className="relative overflow-hidden rounded-[28px] border border-white/40 bg-white/70 p-6 shadow-xl backdrop-blur-xl dark:border-white/10 dark:bg-white/10">
+                <div className="absolute -right-16 top-0 h-36 w-36 rounded-full bg-emerald-400/20 blur-2xl dark:bg-emerald-500/30" />
+                <div className="space-y-5">
+                  <div>
+                    <h3 className="text-sm font-semibold uppercase tracking-[0.3em] text-zinc-500 dark:text-zinc-400">Operations snapshot</h3>
+                    <p className="text-2xl font-semibold text-zinc-900 dark:text-white">Tonight at a glance</p>
+                  </div>
+                  <div className="grid grid-cols-3 gap-3 text-center text-sm">
+                    <Stat label="Active Vans" valueNumber={activeVansCount} />
+                    <Stat label="Avg Pickup" valueNumber={avgPickupSeconds!=null? Math.round(avgPickupSeconds/60): null} suffix=" min" />
+                    <Stat label="Rides (FY)" valueNumber={ridesFyCount} />
+                  </div>
+                  <div className="grid gap-3 text-left text-sm text-zinc-600 dark:text-zinc-300">
+                    {[
+                      { title: 'Dispatch assigns nearest van', detail: 'Live map + staffing roster keeps response tight.' },
+                      { title: 'Walk-ons welcome', detail: 'Truck Commanders can add riders on the fly to keep groups together.' },
+                      { title: 'No judgment, ever', detail: 'Our volunteers log pickups — never personal stories.' },
+                    ].map(({ title, detail }) => (
+                      <div key={title} className="rounded-2xl border border-white/40 bg-white/50 p-3 backdrop-blur dark:border-white/10 dark:bg-white/5">
+                        <div className="text-xs font-semibold uppercase tracking-[0.2em] text-emerald-600 dark:text-emerald-300">{title}</div>
+                        <div className="text-sm mt-1 opacity-80">{detail}</div>
+                      </div>
+                    ))}
+                  </div>
                 </div>
+              </div>
+
+              <div className="rounded-[28px] border border-white/40 bg-white/50 p-5 shadow-lg backdrop-blur-xl dark:border-white/10 dark:bg-white/5">
+                <h3 className="text-sm font-semibold uppercase tracking-[0.3em] text-zinc-500 dark:text-zinc-400">How it works</h3>
+                <ol className="mt-4 space-y-3 text-sm text-zinc-600 dark:text-zinc-300">
+                  <li className="flex items-start gap-3">
+                    <span className="flex h-8 w-8 items-center justify-center rounded-full border border-white/40 bg-white/60 text-xs font-semibold backdrop-blur dark:border-white/10 dark:bg-white/10">1</span>
+                    <div>
+                      <p className="font-semibold text-zinc-900 dark:text-white">Request</p>
+                      <p className="opacity-80">Share pickup & drop-off — no explanations needed.</p>
+                    </div>
+                  </li>
+                  <li className="flex items-start gap-3">
+                    <span className="flex h-8 w-8 items-center justify-center rounded-full border border-white/40 bg-white/60 text-xs font-semibold backdrop-blur dark:border-white/10 dark:bg-white/10">2</span>
+                    <div>
+                      <p className="font-semibold text-zinc-900 dark:text-white">Dispatch</p>
+                      <p className="opacity-80">Our dispatcher pings the closest on-duty van.</p>
+                    </div>
+                  </li>
+                  <li className="flex items-start gap-3">
+                    <span className="flex h-8 w-8 items-center justify-center rounded-full border border-white/40 bg-white/60 text-xs font-semibold backdrop-blur dark:border-white/10 dark:bg-white/10">3</span>
+                    <div>
+                      <p className="font-semibold text-zinc-900 dark:text-white">Ride</p>
+                      <p className="opacity-80">Get home safe and check in when you arrive.</p>
+                    </div>
+                  </li>
+                </ol>
               </div>
             </div>
           </div>
         </section>
 
-        {/* Feature tiles */}
-        <section className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6 mb-12" data-reveal>
-          <Tile title="Always Free" desc="Zero cost rides provided by volunteers across the community." icon="💸" />
-          <Tile title="Confidential" desc="We don’t ask why — we just get you home." icon="🛡️" />
-          <Tile title="Coordinated Fleet" desc="Dispatch assigns the closest available van to reduce wait time." icon="🚐" />
+        <section className="mt-16 grid gap-6 lg:grid-cols-3" data-reveal>
+          <Tile title="Always Free" desc="Every ride is fully covered by SADD — no reimbursements, no IOUs." icon="💸" accent="from-emerald-300/50 to-emerald-500/20" />
+          <Tile title="Confidential" desc="Only dispatch sees the ride details. Your chain of command does not." icon="🛡️" accent="from-blue-300/50 to-blue-500/20" />
+          <Tile title="Coordinated Fleet" desc="Live van locations keep pickup times low even on high-demand nights." icon="🚐" accent="from-purple-300/50 to-indigo-500/20" />
         </section>
 
-        {/* Callout */}
-        <section className="mb-16 text-center" data-reveal>
-          <div className="inline-flex items-center gap-3 rounded-2xl glass-strong px-6 py-4 border border-white/30">
-            <span className="text-lg">Don’t risk it — request a ride now.</span>
-            <a href="/request" className="btn-primary">Request</a>
+        <section className="mt-16 grid gap-6 lg:grid-cols-[1fr_1fr]" data-reveal>
+          <div className="overflow-hidden rounded-[30px] border border-white/30 bg-white/60 p-6 backdrop-blur-xl dark:border-white/10 dark:bg-white/5">
+            <div className="flex items-center justify-between gap-4">
+              <h3 className="text-xl font-semibold text-zinc-900 dark:text-white">Why volunteers love it</h3>
+              <span className="rounded-full border border-white/40 bg-white/60 px-3 py-1 text-xs backdrop-blur dark:border-white/10 dark:bg-white/10">Give back safely</span>
+            </div>
+            <p className="mt-4 text-sm text-zinc-600 dark:text-zinc-300">
+              TCs, dispatchers, and drivers run SADD like a cohesive crew. Training is quick, shifts are flexible, and every ride logged keeps Soldiers — and careers — protected.
+            </p>
+            <div className="mt-6 grid gap-3 sm:grid-cols-2">
+              {[
+                { title: 'Flexible shifts', detail: 'Pick nights that work around duty and family life.' },
+                { title: 'Team comms', detail: 'Push alerts and live dashboards keep everyone synced.' },
+                { title: 'Impact metrics', detail: 'See how many Soldiers your team got home this month.' },
+                { title: 'Support ready', detail: 'Coordinators are on-call if you need backup mid-shift.' },
+              ].map(item => (
+                <div key={item.title} className="rounded-2xl border border-white/40 bg-white/60 p-3 text-sm backdrop-blur dark:border-white/10 dark:bg-white/10">
+                  <p className="font-semibold text-zinc-900 dark:text-white">{item.title}</p>
+                  <p className="mt-1 text-zinc-600 dark:text-zinc-300">{item.detail}</p>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          <div className="flex h-full flex-col justify-between gap-5 rounded-[30px] border border-white/30 bg-gradient-to-br from-emerald-400/15 via-cyan-400/10 to-blue-500/10 p-6 backdrop-blur-xl dark:border-white/10 dark:from-emerald-500/15 dark:via-cyan-500/10 dark:to-blue-600/10">
+            <div>
+              <h3 className="text-xl font-semibold text-zinc-900 dark:text-white">Ready when you are</h3>
+              <p className="mt-2 text-sm text-zinc-600 dark:text-zinc-300">
+                Save the request link, add it to your phone, and share it with your battle buddies. When the night runs long, SADD is already staged.
+              </p>
+            </div>
+            <div className="flex flex-wrap gap-3">
+              <a href="/request" className="flex-1 rounded-2xl border border-white/50 bg-white/70 px-4 py-3 text-center text-sm font-semibold text-emerald-700 shadow-sm backdrop-blur dark:border-white/10 dark:bg-white/10 dark:text-emerald-300">
+                Save Request Link
+              </a>
+              <a href="/login" className="flex-1 rounded-2xl border border-white/50 bg-white/70 px-4 py-3 text-center text-sm font-semibold text-cyan-700 shadow-sm backdrop-blur dark:border-white/10 dark:bg-white/10 dark:text-cyan-300">
+                Staff Login
+              </a>
+            </div>
+            <div className="rounded-2xl border border-white/40 bg-white/60 p-4 text-sm text-zinc-600 backdrop-blur dark:border-white/10 dark:bg-white/10 dark:text-zinc-300">
+              <p className="font-semibold text-zinc-900 dark:text-white">Share the QR at safety briefs</p>
+              <p className="mt-1 opacity-80">Print the homepage or add it to your unit slide deck so everyone knows a safe ride is one tap away.</p>
+            </div>
+          </div>
+        </section>
+
+        <section className="mt-16" data-reveal>
+          <div className="flex flex-col items-center gap-6 rounded-[32px] border border-white/30 bg-white/70 px-8 py-10 text-center shadow-lg backdrop-blur-xl dark:border-white/10 dark:bg-white/10">
+            <p className="text-lg font-medium text-zinc-900 sm:text-xl dark:text-white">If it’s a question between driving or dialing, choose the glass-safe option — SADD.</p>
+            <div className="flex flex-col gap-3 sm:flex-row">
+              <a href="/request" className="btn-primary flex items-center justify-center gap-2 rounded-full px-6 py-3 text-sm font-semibold">
+                Request a Ride Now
+              </a>
+              <a href="/volunteer" className="rounded-full border border-white/40 bg-white/60 px-6 py-3 text-sm font-semibold text-zinc-900 backdrop-blur dark:border-white/10 dark:bg-white/10 dark:text-white">
+                Become a Volunteer
+              </a>
+            </div>
           </div>
         </section>
       </main>
