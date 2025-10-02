@@ -7,6 +7,7 @@ import ScrollEffects from '@/components/ScrollEffects';
 import ToastHost from '@/components/Toast';
 import NotificationsClient from '@/components/NotificationsClient';
 import { getPublicActive } from '@/lib/status';
+import PwaInstallPrompt from '@/components/PwaInstallPrompt';
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -46,6 +47,7 @@ export default async function RootLayout({
       >
         <NavSwitcher />
         <ScrollEffects />
+        <PwaInstallPrompt />
         {isAuthed ? <NotificationsClient /> : null}
         <main className="pt-2">{children}</main>
         <footer className="mx-auto max-w-7xl px-4 py-10 text-sm opacity-80">
