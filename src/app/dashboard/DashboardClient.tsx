@@ -173,7 +173,7 @@ export default function DashboardClient(){
   }
 
   return (
-    <div className="p-6 max-w-6xl mx-auto grid md:grid-cols-3 gap-6">
+    <div className="mx-auto w-full max-w-6xl grid gap-6 px-4 py-10 md:grid-cols-3">
       {!notifOk && (
         <div className="fixed inset-0 z-[2000] bg-black/50 grid place-items-center p-4">
           <div className="max-w-md w-full rounded-xl bg-white dark:bg-neutral-900 border border-white/20 p-4 text-center">
