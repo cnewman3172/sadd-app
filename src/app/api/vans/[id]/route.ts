@@ -22,10 +22,28 @@ export async function PUT(req: NextRequest, context: { params: Promise<{ id: str
   if (!payload || (payload.role !== 'ADMIN' && payload.role !== 'DISPATCHER' && payload.role !== 'TC')) return NextResponse.json({ error:'forbidden' }, { status: 403 });
   const { id } = await context.params;
   try{
-    const { status, capacity, passengers, activeTcId, name } = putSchema.parse(await req.json());
-    const van = await prisma.van.update({ where: { id }, data: { status, capacity, passengers, activeTcId, name }});
+    const payloadBody = putSchema.parse(await req.json());
+    const van = await prisma.$transaction(async(tx)=>{
+      const data: any = {};
+      if (payloadBody.capacity !== undefined) data.capacity = payloadBody.capacity;
+      if (payloadBody.passengers !== undefined) data.passengers = payloadBody.passengers;
+      if (payloadBody.activeTcId !== undefined) data.activeTcId = payloadBody.activeTcId;
+      if (payloadBody.name !== undefined) data.name = payloadBody.name;
+      if (payloadBody.status !== undefined){
+        data.status = payloadBody.status;
+        if (payloadBody.status === 'OFFLINE'){
+          data.activeTcId = null;
+          data.passengers = 0;
+        }
+      }
+      const updated = await tx.van.update({ where: { id }, data });
+      if (payloadBody.status === 'OFFLINE'){
+        await tx.vanTask.deleteMany({ where: { vanId: id } });
+      }
+      return updated;
+    });
     publish('vans:update', { id: van.id });
-    logAudit('van_update', payload.uid, van.id, { status, capacity, passengers, activeTcId, name });
+    logAudit('van_update', payload.uid, van.id, payloadBody);
     return NextResponse.json(van);
   }catch(e:any){
     captureError(e, { route: 'vans/update', vanId: id, uid: payload.uid });
