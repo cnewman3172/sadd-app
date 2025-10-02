@@ -55,15 +55,17 @@ export default function DrivingClient(){
   },[]);
   useEffect(()=>{ try{ setWakeSupported('wakeLock' in navigator); }catch{ setWakeSupported(false); } },[]);
 
-  async function goOnline(){
-    if (!selected) return showToast('Select a van');
+  async function goOnline(vanIdOverride?: string){
+    const targetVanId = vanIdOverride ?? selected;
+    if (!targetVanId) return showToast('Select a van');
+    if (!vanIdOverride) setSelected(targetVanId);
     // Require notifications permission and push subscription
     const ok = await ensureNotifications();
     if (!ok){ showToast('Please allow notifications to go online.'); return; }
     if (!navigator.geolocation){ showToast('Location required to go online'); return; }
     navigator.geolocation.getCurrentPosition(async(pos)=>{
       const { latitude, longitude } = pos.coords;
-      const res = await fetch('/api/driver/go-online', { method:'POST', body: JSON.stringify({ vanId: selected, lat: latitude, lng: longitude }) });
+      const res = await fetch('/api/driver/go-online', { method:'POST', body: JSON.stringify({ vanId: targetVanId, lat: latitude, lng: longitude }) });
       if (res.ok) { setSelected(''); refreshTasks(); startPings(); }
       else {
         const d = await res.json().catch(()=>({error:'Failed to go online'}));
