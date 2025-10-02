@@ -182,7 +182,7 @@ export default function DrivingClient(){
   }, [currentVan?.id]);
 
   return (
-    <div className="p-6 max-w-3xl mx-auto space-y-4">
+    <div className="mx-auto w-full max-w-3xl space-y-6 px-4 py-12">
       <h1 className="text-2xl font-semibold">Truck Commander <span className="text-sm opacity-70">{sseStatus==='online'?'• Live':sseStatus==='connecting'?'• Connecting':'• Offline'}</span></h1>
       <section className="glass rounded-[32px] border border-white/20 p-5 shadow-lg dark:border-white/10 space-y-2">
         <div className="text-sm">{currentVan ? `Online as ${currentVan.name}` : 'Offline'}</div>
