@@ -1,12 +1,16 @@
+import Link from 'next/link';
 import ScrollEffects from '@/components/ScrollEffects';
 import CountUp from '@/components/CountUp';
 import { getPublicActive, getHomeSummary } from '@/lib/status';
 
 export const dynamic = 'force-dynamic';
 
+type HomeSummary = Awaited<ReturnType<typeof getHomeSummary>>;
+
 export default async function Home() {
   const active = await getPublicActive().catch(()=>false);
-  const { avgSeconds: avgPickupSeconds, activeVans: activeVansCount, ridesFY: ridesFyCount } = await getHomeSummary().catch(()=>({ avgSeconds:null, activeVans:null, ridesFY:null } as any));
+  const summaryFallback: HomeSummary = { avgSeconds: null, activeVans: null, ridesFY: null, sample: 0 };
+  const { avgSeconds: avgPickupSeconds, activeVans: activeVansCount, ridesFY: ridesFyCount } = await getHomeSummary().catch<HomeSummary>(()=> ({ ...summaryFallback }));
 
   return (
     <div className={`relative min-h-screen overflow-hidden text-foreground ambient-bg ${active ? 'ambient-active' : 'ambient-inactive'}`}>
@@ -26,10 +30,10 @@ export default async function Home() {
       {/* Header */}
       <header className="sticky top-0 z-20">
         <div className="mx-auto max-w-7xl px-4 py-3 flex items-center justify-between rounded-b-2xl glass">
-          <a href="/" className="font-extrabold tracking-tight">SADD</a>
+          <Link href="/" className="font-extrabold tracking-tight">SADD</Link>
           <nav className="flex items-center gap-3 text-sm">
-            <a href="/volunteer" className="opacity-90 hover:opacity-100">Volunteer</a>
-            <a href="/login" className="rounded-full px-4 py-2 ring-gradient glass-strong">Login</a>
+            <Link href="/volunteer" className="opacity-90 hover:opacity-100">Volunteer</Link>
+            <Link href="/login" className="rounded-full px-4 py-2 ring-gradient glass-strong">Login</Link>
           </nav>
         </div>
       </header>
@@ -57,13 +61,13 @@ export default async function Home() {
                 Soldiers Against Drunk Driving pairs duty-night volunteers with real-time dispatching so every Soldier has a confidential, judgment-free ride back to safety.
               </p>
               <div className="flex flex-col gap-3 sm:flex-row">
-                <a href="/request" className="btn-primary flex items-center justify-center gap-2 rounded-full px-6 py-3 text-sm font-semibold shadow-lg shadow-emerald-500/20">
+                <Link href="/request" className="btn-primary flex items-center justify-center gap-2 rounded-full px-6 py-3 text-sm font-semibold shadow-lg shadow-emerald-500/20">
                   <span>Request a Ride</span>
                   <span aria-hidden className="text-lg">→</span>
-                </a>
-                <a href="/volunteer" className="flex items-center justify-center rounded-full border border-white/40 bg-white/60 px-6 py-3 text-sm font-semibold text-zinc-900 shadow-sm backdrop-blur-lg transition hover:border-emerald-400/60 dark:border-white/10 dark:bg-white/5 dark:text-white">
+                </Link>
+                <Link href="/volunteer" className="flex items-center justify-center rounded-full border border-white/40 bg-white/60 px-6 py-3 text-sm font-semibold text-zinc-900 shadow-sm backdrop-blur-lg transition hover:border-emerald-400/60 dark:border-white/10 dark:bg-white/5 dark:text-white">
                   Join the Volunteer Roster
-                </a>
+                </Link>
               </div>
               <ul className="flex flex-wrap gap-2 text-xs text-zinc-600 dark:text-zinc-200/70">
                 {['Free rides', 'Confidential', 'On-base & nearby', 'Volunteer-run'].map(item => (
@@ -176,12 +180,12 @@ export default async function Home() {
               </p>
             </div>
             <div className="flex flex-wrap gap-3">
-              <a href="/request" className="flex-1 rounded-2xl border border-white/50 bg-white/70 px-4 py-3 text-center text-sm font-semibold text-emerald-700 shadow-sm backdrop-blur dark:border-white/10 dark:bg-white/10 dark:text-emerald-300">
+              <Link href="/request" className="flex-1 rounded-2xl border border-white/50 bg-white/70 px-4 py-3 text-center text-sm font-semibold text-emerald-700 shadow-sm backdrop-blur dark:border-white/10 dark:bg-white/10 dark:text-emerald-300">
                 Save Request Link
-              </a>
-              <a href="/login" className="flex-1 rounded-2xl border border-white/50 bg-white/70 px-4 py-3 text-center text-sm font-semibold text-cyan-700 shadow-sm backdrop-blur dark:border-white/10 dark:bg-white/10 dark:text-cyan-300">
+              </Link>
+              <Link href="/login" className="flex-1 rounded-2xl border border-white/50 bg-white/70 px-4 py-3 text-center text-sm font-semibold text-cyan-700 shadow-sm backdrop-blur dark:border-white/10 dark:bg-white/10 dark:text-cyan-300">
                 Staff Login
-              </a>
+              </Link>
             </div>
             <div className="rounded-2xl border border-white/40 bg-white/60 p-4 text-sm text-zinc-600 backdrop-blur dark:border-white/10 dark:bg-white/10 dark:text-zinc-300">
               <p className="font-semibold text-zinc-900 dark:text-white">Share the QR at safety briefs</p>
@@ -194,12 +198,12 @@ export default async function Home() {
           <div className="flex flex-col items-center gap-6 rounded-[32px] border border-white/30 bg-white/70 px-8 py-10 text-center shadow-lg backdrop-blur-xl dark:border-white/10 dark:bg-white/10">
             <p className="text-lg font-medium text-zinc-900 sm:text-xl dark:text-white">If it’s a question between driving or dialing, choose the glass-safe option — SADD.</p>
             <div className="flex flex-col gap-3 sm:flex-row">
-              <a href="/request" className="btn-primary flex items-center justify-center gap-2 rounded-full px-6 py-3 text-sm font-semibold">
+              <Link href="/request" className="btn-primary flex items-center justify-center gap-2 rounded-full px-6 py-3 text-sm font-semibold">
                 Request a Ride Now
-              </a>
-              <a href="/volunteer" className="rounded-full border border-white/40 bg-white/60 px-6 py-3 text-sm font-semibold text-zinc-900 backdrop-blur dark:border-white/10 dark:bg-white/10 dark:text-white">
+              </Link>
+              <Link href="/volunteer" className="rounded-full border border-white/40 bg-white/60 px-6 py-3 text-sm font-semibold text-zinc-900 backdrop-blur dark:border-white/10 dark:bg-white/10 dark:text-white">
                 Become a Volunteer
-              </a>
+              </Link>
             </div>
           </div>
         </section>
