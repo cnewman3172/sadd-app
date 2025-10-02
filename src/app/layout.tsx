@@ -24,8 +24,13 @@ export const metadata: Metadata = {
   description: "Free, confidential rides — built by Arctic Aura Designs.",
   manifest: "/manifest.webmanifest",
   icons: {
-    icon: "/icons/icon-192.png",
+    icon: [
+      { url: "/favicon.png", sizes: "64x64", type: "image/png" },
+      { url: "/icons/icon-192.png", sizes: "192x192", type: "image/png" },
+      { url: "/icons/icon-512.png", sizes: "512x512", type: "image/png" }
+    ],
     apple: "/icons/apple-touch-icon.png",
+    shortcut: "/favicon.png"
   },
 };
 
