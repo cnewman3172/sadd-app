@@ -82,9 +82,10 @@ function excelSerialTime(h: number, m: number, s: number){
   return secs / 86400;
 }
 
-async function findShiftForInstant(instant: Date){
+async function findShiftForInstant(instant: Date, role?: 'DISPATCHER'|'TC'|'DRIVER'|'SAFETY'){
   return prisma.shift.findFirst({
     where: { startsAt: { lte: instant }, endsAt: { gt: instant } },
+    ...(role ? { role } : {}),
     orderBy: { startsAt: 'desc' },
     include: {
       signups: {
@@ -193,9 +194,12 @@ export async function GET(req: Request){
     const effectivePhone = contactPhone || (r.rider?.phone || '');
 
     // Compute shift-based request date (falls back to request local date if no shift found)
-    const shift = await findShiftForInstant(r.requestedAt);
-    const tcSignup = shift?.signups?.find((su: any) => String(su.role||'').toUpperCase() === 'TC');
-    const tcUser = (r.driver as any) || (tcSignup?.user as any) || null;
+    const [shift, tcShift] = await Promise.all([
+      findShiftForInstant(r.requestedAt),
+      r.driver ? Promise.resolve(null) : findShiftForInstant(r.requestedAt, 'TC'),
+    ]);
+    const tcSignupUser = tcShift?.signups?.[0]?.user as any;
+    const tcUser = (r.driver as any) || tcSignupUser || null;
     const tcName = tcUser ? [tcUser.firstName, tcUser.lastName].filter(Boolean).join(' ') : '';
     const tcEmail = tcUser?.email || '';
 
