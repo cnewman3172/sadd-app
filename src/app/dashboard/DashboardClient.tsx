@@ -35,7 +35,7 @@ export default function DashboardClient(){
     const [r, v, health] = await Promise.all([
       fetch('/api/rides?take=100').then(r=>r.json()),
       fetch('/api/vans').then(r=>r.json()),
-      fetch('/api/health', { cache: 'no-store' }).then(r=>r.json()).catch(()=>null),
+      fetch('/api/health', { cache: 'no-store' }).then(async (r)=> r.ok ? r.json() : null).catch(()=>null),
     ]);
     setRides(r);
     setVans(v);
