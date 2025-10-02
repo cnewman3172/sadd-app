@@ -227,10 +227,12 @@ export async function GET(req: Request){
     const riderName = [r.rider?.firstName, r.rider?.lastName].filter(Boolean).join(' ');
     let contactName = '';
     let contactPhone = '';
+    let walkOnTc: any = null;
     try{
       if (typeof r.notes === 'string' && r.notes.trim().startsWith('{')){
         const meta = JSON.parse(r.notes);
         if (meta?.manualContact){ contactName = meta.manualContact.name || ''; contactPhone = meta.manualContact.phone || ''; }
+        if (meta?.walkOnTc){ walkOnTc = meta.walkOnTc; }
       }
     }catch{}
     // Prefer manual contact details when present
@@ -244,7 +246,7 @@ export async function GET(req: Request){
     ]);
     const tcSignupUser = pickTcFromShift(tcShift) || pickTcFromShift(shift);
     const auditUser = walkonActorMap.get(r.id);
-    const tcUser = (r.driver as any) || (tcSignupUser as any) || (r.van?.activeTc as any) || (auditUser as any) || null;
+    const tcUser = (r.driver as any) || (tcSignupUser as any) || (r.van?.activeTc as any) || (auditUser as any) || (walkOnTc as any) || null;
     const tcName = tcUser ? [tcUser.firstName, tcUser.lastName].filter(Boolean).join(' ') : '';
     const tcEmail = tcUser?.email || '';
 
@@ -297,10 +299,12 @@ export async function GET(req: Request){
       const riderName = [r.rider?.firstName, r.rider?.lastName].filter(Boolean).join(' ');
       let contactName = '';
       let contactPhone = '';
+      let walkOnTc: any = null;
       try{
         if (typeof r.notes === 'string' && r.notes.trim().startsWith('{')){
           const meta = JSON.parse(r.notes);
           if (meta?.manualContact){ contactName = meta.manualContact.name || ''; contactPhone = meta.manualContact.phone || ''; }
+          if (meta?.walkOnTc){ walkOnTc = meta.walkOnTc; }
         }
       }catch{}
       const effectiveName = contactName || riderName;
@@ -312,7 +316,7 @@ export async function GET(req: Request){
       ]);
       const tcSignupUser = pickTcFromShift(tcShift) || pickTcFromShift(shift);
       const auditUser = walkonActorMap.get(r.id);
-      const tcUser = (r.driver as any) || (tcSignupUser as any) || (r.van?.activeTc as any) || (auditUser as any) || null;
+      const tcUser = (r.driver as any) || (tcSignupUser as any) || (r.van?.activeTc as any) || (auditUser as any) || (walkOnTc as any) || null;
       const tcName = tcUser ? [tcUser.firstName, tcUser.lastName].filter(Boolean).join(' ') : '';
       const tcEmail = tcUser?.email || '';
       const shiftDate = localParts(shift?.startsAt as any, tz) || localParts(r.requestedAt as any, tz);

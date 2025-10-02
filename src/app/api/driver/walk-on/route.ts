@@ -47,6 +47,8 @@ export async function POST(req: Request){
     const van = await prisma.van.findFirst({ where:{ activeTcId: payload.uid } });
     if (!van) return NextResponse.json({ error:'not online with a van' }, { status: 400 });
 
+    const tcUser = await prisma.user.findUnique({ where: { id: payload.uid }, select: { id: true, firstName: true, lastName: true, email: true } });
+
     // Determine current task to source pickup location (optional)
     let task = null as any;
     if (body.taskId){
@@ -78,9 +80,21 @@ export async function POST(req: Request){
 
     // Create the ride, assign to this van immediately
     // Encode TC-supplied contact info into notes for coordinator visibility
-    let notes: string | undefined = undefined;
+    const meta: Record<string, any> = {};
     if (body.name || body.phone){
-      try{ notes = JSON.stringify({ manualContact: { name: body.name, phone: body.phone } }); }catch{}
+      meta.manualContact = { name: body.name, phone: body.phone };
+    }
+    if (tcUser){
+      meta.walkOnTc = {
+        id: tcUser.id,
+        firstName: tcUser.firstName,
+        lastName: tcUser.lastName,
+        email: tcUser.email,
+      };
+    }
+    let notes: string | undefined = undefined;
+    if (Object.keys(meta).length){
+      try{ notes = JSON.stringify(meta); }catch{}
     }
   let ride = await prisma.ride.create({ data: {
       riderId: rider.id,
