@@ -158,6 +158,7 @@ export async function GET(req: Request){
     include: {
       rider: { select: { firstName: true, lastName: true, email: true, phone: true, rank: true, unit: true } },
       driver: { select: { firstName: true, lastName: true, email: true } },
+      coordinator: { select: { firstName: true, lastName: true, email: true, role: true } },
       van: {
         select: {
           name: true,
@@ -246,7 +247,7 @@ export async function GET(req: Request){
     ]);
     const tcSignupUser = pickTcFromShift(tcShift) || pickTcFromShift(shift);
     const auditUser = walkonActorMap.get(r.id);
-    const tcUser = (r.driver as any) || (tcSignupUser as any) || (r.van?.activeTc as any) || (auditUser as any) || (walkOnTc as any) || null;
+    const tcUser = (r.driver as any) || (r.coordinator as any) || (tcSignupUser as any) || (r.van?.activeTc as any) || (auditUser as any) || (walkOnTc as any) || null;
     const tcName = tcUser ? [tcUser.firstName, tcUser.lastName].filter(Boolean).join(' ') : '';
     const tcEmail = tcUser?.email || '';
 
@@ -316,7 +317,7 @@ export async function GET(req: Request){
       ]);
       const tcSignupUser = pickTcFromShift(tcShift) || pickTcFromShift(shift);
       const auditUser = walkonActorMap.get(r.id);
-      const tcUser = (r.driver as any) || (tcSignupUser as any) || (r.van?.activeTc as any) || (auditUser as any) || (walkOnTc as any) || null;
+      const tcUser = (r.driver as any) || (r.coordinator as any) || (tcSignupUser as any) || (r.van?.activeTc as any) || (auditUser as any) || (walkOnTc as any) || null;
       const tcName = tcUser ? [tcUser.firstName, tcUser.lastName].filter(Boolean).join(' ') : '';
       const tcEmail = tcUser?.email || '';
       const shiftDate = localParts(shift?.startsAt as any, tz) || localParts(r.requestedAt as any, tz);
