@@ -145,6 +145,16 @@ function humanizeStatus(s?: string){
 // Van status no longer exported
 
 export async function GET(req: Request){
+  try{
+    return await handleGet(req);
+  }catch(err){
+    console.error('rides export failed', err);
+    const message = err instanceof Error ? err.message : String(err);
+    return NextResponse.json({ error: 'internal_error', message }, { status: 500 });
+  }
+}
+
+async function handleGet(req: Request){
   const token = (req.headers.get('cookie')||'').split('; ').find(c=>c.startsWith('sadd_token='))?.split('=')[1];
   const payload = await verifyJwt(token);
   if (!payload || payload.role !== 'ADMIN') return NextResponse.json({ error:'forbidden' }, { status: 403 });
