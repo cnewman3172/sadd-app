@@ -69,8 +69,20 @@ export default function Map({ height=300, markers=[], vanMarkers=[], pickups=[],
         const bounds = L.latLngBounds(allBounds);
         mapRef.current.fitBounds(bounds.pad(0.3));
       }
+      mapRef.current.invalidateSize();
     })();
   }, [markers, vanMarkers, pickups, drops, polylines]);
 
-  return <div ref={ref} style={{height}} className="w-full" />
+  useEffect(()=>{
+    if (!ref.current) return;
+    const observer = typeof ResizeObserver !== 'undefined' ? new ResizeObserver(()=>{
+      if (mapRef.current){
+        mapRef.current.invalidateSize();
+      }
+    }) : null;
+    observer?.observe(ref.current);
+    return ()=> observer?.disconnect();
+  }, []);
+
+  return <div ref={ref} style={{ height, width: '100%' }} className="w-full overflow-hidden rounded-xl" />
 }
