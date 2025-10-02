@@ -82,7 +82,7 @@ export async function POST(req: Request){
     if (body.name || body.phone){
       try{ notes = JSON.stringify({ manualContact: { name: body.name, phone: body.phone } }); }catch{}
     }
-  const ride = await prisma.ride.create({ data: {
+  let ride = await prisma.ride.create({ data: {
       riderId: rider.id,
       pickupAddr: task?.pickupAddr || body.pickupAddr!,
       dropAddr: body.dropAddr,
@@ -98,6 +98,12 @@ export async function POST(req: Request){
       driverId: van.activeTcId ?? payload.uid,
       acceptedAt: new Date(),
     }});
+    if (!ride.driverId){
+      const fallbackDriverId = van.activeTcId ?? payload.uid;
+      if (fallbackDriverId){
+        try{ ride = await prisma.ride.update({ where: { id: ride.id }, data: { driverId: fallbackDriverId } }); }catch{}
+      }
+    }
   publish('ride:update', { id: ride.id, status: ride.status, code: ride.rideCode, vanId: ride.vanId, riderId: ride.riderId });
   try{ const { rebuildPlanForVan } = await import('@/lib/plan'); await rebuildPlanForVan(van.id); }catch{}
   try{
