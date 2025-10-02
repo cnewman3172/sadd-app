@@ -214,7 +214,7 @@ export default function DrivingClient(){
           Keep this page open while you are Online so your location updates reliably every 5 seconds. Turning on “Keep screen awake” can help prevent the device from sleeping.
         </div>
       </section>
-      <section className="rounded-xl p-4 bg-white/70 dark:bg-white/10 border border-white/20">
+      <section className="glass rounded-[32px] border border-white/20 p-5 shadow-lg dark:border-white/10">
         <div className="flex items-center justify-between mb-2">
           <h2 className="font-semibold">Tasks</h2>
           <button onClick={()=>{ setWalkTaskId(''); setWalkSelRider(null); setWalkForm({ riderId:'', name:'', phone:'', pickupAddr:'', pickupLat: undefined, pickupLng: undefined, dropAddr:'', dropLat: undefined, dropLng: undefined }); setWalkOpen(true); }} className="rounded border px-3 py-1 text-sm">Walk On…</button>
