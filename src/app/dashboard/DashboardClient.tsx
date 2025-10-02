@@ -406,8 +406,8 @@ export default function DashboardClient(){
 
 function Card({title, children}:{title:string, children:any}){
   return (
-    <section className="rounded-2xl p-4 bg-white/70 dark:bg-white/10 backdrop-blur border border-white/20">
-      <h2 className="font-semibold mb-2">{title}</h2>
+    <section className="glass rounded-[32px] border border-white/20 p-5 shadow-lg dark:border-white/10">
+      <h2 className="mb-3 font-semibold">{title}</h2>
       {children}
     </section>
   );
