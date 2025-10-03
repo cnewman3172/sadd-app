@@ -2,6 +2,7 @@ import Link from 'next/link';
 import ScrollEffects from '@/components/ScrollEffects';
 import CountUp from '@/components/CountUp';
 import { getPublicActive, getHomeSummary } from '@/lib/status';
+import HomeNav from '@/components/HomeNav';
 
 export const dynamic = 'force-dynamic';
 
@@ -28,15 +29,7 @@ export default async function Home() {
       </div>
 
       {/* Header */}
-      <header className="sticky top-0 z-20">
-        <div className="mx-auto max-w-7xl px-4 py-3 flex items-center justify-between rounded-b-2xl glass">
-          <Link href="/" className="font-extrabold tracking-tight">SADD</Link>
-          <nav className="flex items-center gap-3 text-sm">
-            <Link href="/volunteer" className="opacity-90 hover:opacity-100">Volunteer</Link>
-            <Link href="/login" className="rounded-full px-4 py-2 ring-gradient glass-strong text-zinc-900 dark:text-white font-medium">Login</Link>
-          </nav>
-        </div>
-      </header>
+      <HomeNav />
 
       {/* Hero */}
       <main className="relative mx-auto max-w-6xl px-4 pb-20">
