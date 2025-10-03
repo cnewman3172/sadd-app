@@ -305,7 +305,7 @@ export default function DashboardClient(){
       <div className="md:col-span-2 space-y-4">
         <Card title={`Incoming Requests ${sseStatus==='online' ? '• Live' : sseStatus==='connecting' ? '• Connecting' : '• Offline'}`}>
           <div className="space-y-2">
-            {pending.length===0 && <div className="text-sm opacity-80">No pending requests.</div>}
+            {pending.length===0 && <div className="text-sm opacity-80 text-center">No Pending Requests</div>}
             {pending.map((r)=> (
               <div key={r.id} className="rounded border p-3 flex flex-col gap-2">
                 <div className="flex items-center justify-between">
@@ -340,7 +340,7 @@ export default function DashboardClient(){
         </Card>
         <Card title="Active Trips">
           <div className="space-y-2">
-            {active.length===0 && <div className="text-sm opacity-80">No active trips.</div>}
+            {active.length===0 && <div className="text-sm opacity-80 text-center">No Active Trips</div>}
             {active.map((r)=> (
               <div key={r.id} className="rounded border p-3 flex flex-col gap-2">
                 <div className="flex items-center justify-between">
