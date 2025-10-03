@@ -89,23 +89,20 @@ export async function PUT(req: NextRequest, context: { params: Promise<{ id: str
     }
   }
   try{
-  const prev = await prisma.ride.findUnique({ where: { id } });
-  const ride = await prisma.ride.update({ where: { id }, data });
-  publish('ride:update', { id: ride.id, status: ride.status, code: ride.rideCode, vanId: ride.vanId, riderId: ride.riderId });
-  try{
-    // Notify on assignment events
-    const assignedNow = (!prev?.vanId && !!ride.vanId) || (prev?.status!=='ASSIGNED' && ride.status==='ASSIGNED');
-    if (assignedNow){
-    const msg = `Assigned #${ride.rideCode}`;
-    await notifyRoles(['DISPATCHER','TC'], { title: msg, body: `${ride.pickupAddr} → ${ride.dropAddr}`, tag: 'ride-assigned', data:{ rideId: ride.id } });
-  }
-    const canceledNow = prev?.status !== 'CANCELED' && ride.status === 'CANCELED';
-    if (canceledNow){
-      try{
+    const ride = await prisma.ride.update({ where: { id }, data });
+    publish('ride:update', { id: ride.id, status: ride.status, code: ride.rideCode, vanId: ride.vanId, riderId: ride.riderId });
+    try{
+      // Notify on assignment events
+      const assignedNow = (!prev?.vanId && !!ride.vanId) || (prev?.status!=='ASSIGNED' && ride.status==='ASSIGNED');
+      if (assignedNow){
+        const msg = `Assigned #${ride.rideCode}`;
+        await notifyRoles(['DISPATCHER','TC'], { title: msg, body: `${ride.pickupAddr} → ${ride.dropAddr}`, tag: 'ride-assigned', data:{ rideId: ride.id } });
+      }
+      const canceledNow = prev?.status !== 'CANCELED' && ride.status === 'CANCELED';
+      if (canceledNow){
         await notifyOnShift('TC', { title: `Ride #${ride.rideCode} canceled`, body: `${ride.pickupAddr} → ${ride.dropAddr}`, tag: 'ride-canceled', data:{ rideId: ride.id } });
-      }catch{}
-    }
-  }catch{}
+      }
+    }catch{}
     logAudit('ride_update', payload.uid, ride.id, data);
     try{
       const { rebuildPlanForVan } = await import('@/lib/plan');
