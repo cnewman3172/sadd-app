@@ -257,17 +257,17 @@ export default function DashboardClient(){
           </div>
           <div className="mt-3 grid grid-cols-1 gap-2 text-sm sm:grid-cols-3">
             {[{
-              label: 'Active Fleet',
+              label: 'ACTIVE FLEET',
               value: activeVans.length,
             }, {
-              label: 'Rides In Progress',
+              label: 'TRIPS IN PROGRESS',
               value: active.length,
             }, {
-              label: 'Pending Requests',
+              label: 'PENDING REQUESTS',
               value: pending.length,
             }].map(stat => (
               <div key={stat.label} className="flex flex-col items-center justify-center rounded-2xl border border-white/20 bg-white/70 px-4 py-4 text-center shadow-sm backdrop-blur-sm dark:border-white/10 dark:bg-white/10">
-                <div className="text-[11px] font-semibold uppercase tracking-[0.24em] text-zinc-500 dark:text-zinc-400">{stat.label}</div>
+                <div className="text-[14px] font-semibold text-zinc-500 dark:text-zinc-400">{stat.label}</div>
                 <div className="mt-1 text-lg font-semibold text-zinc-900 dark:text-white">{stat.value}</div>
               </div>
             ))}
@@ -292,7 +292,7 @@ export default function DashboardClient(){
         </Card>
         <Card title="Active Fleet">
           <div className="text-sm space-y-2">
-            {activeVans.length===0 && <div className="opacity-80">No active vans.</div>}
+            {activeVans.length===0 && <div className="opacity-80">No Active Vans</div>}
             {activeVans.map((v:any)=> (
               <div key={v.id} className="flex items-center justify-between">
                 <div>{v.name} <span className="opacity-60">({v.capacity})</span></div>
