@@ -525,23 +525,20 @@ function Card({title, children}:{title:string, children:any}){
 }
 
 function ManualEta({ pickupLat, pickupLng, pax, onEta }:{ pickupLat?:number; pickupLng?:number; pax:number; onEta:(sec:number|null, van:string)=>void }){
-  const [text, setText] = useState<string>('');
   useEffect(()=>{
     (async()=>{
       onEta(null,'');
-      setText('');
       if (typeof pickupLat !== 'number' || typeof pickupLng !== 'number') return;
       try{
         const r = await fetch(`/api/assign/eta?pickup=${pickupLat},${pickupLng}&pax=${pax}`, { cache:'no-store' });
         const d = await r.json();
         const sec = d?.best?.secondsToPickup as number|undefined;
         const van = d?.best?.name as string||'';
-        if (sec!=null){ onEta(Math.round(sec), van); setText(`ETA ~ ${Math.max(1,Math.round(sec/60))} min ${van?`via ${van}`:''}`); }
+        if (sec!=null){ onEta(Math.round(sec), van); }
       }catch{}
     })();
   }, [pickupLat, pickupLng, pax]);
-  if (!text) return null;
-  return <div className="text-xs opacity-70">{text}</div>;
+  return null;
 }
 
 function displayName(r: any){
