@@ -199,7 +199,20 @@ export default function RequestClient(){
   return (
     <PageShell pad={false}>
       <div className="mx-auto grid w-full max-w-6xl gap-6 px-4 py-10 md:grid-cols-[minmax(0,2fr)_minmax(0,1fr)] md:items-start">
-      <div className="md:col-span-2 space-y-4">
+      <section className="order-first md:col-span-2">
+        <div className="rounded-xl overflow-hidden border border-white/20">
+          <Map
+            height="clamp(320px, 55vh, 520px)"
+            vanMarkers={activeVansMarkers()}
+            pickups={status ? getPickupMarkers(status) : []}
+            drops={status ? getDropMarkers(status) : []}
+            markers={[]}
+            polylines={selVan ? route : []}
+            onVanClick={handleVanClick}
+          />
+        </div>
+      </section>
+      <div className="space-y-4">
         {/* Gate: prompt review first if there is an unrated DROPPED ride */}
         {pendingReview && (
           <section className="p-4 rounded-xl bg-white/70 dark:bg-white/10 backdrop-blur border border-white/20">
@@ -279,17 +292,6 @@ export default function RequestClient(){
         )}
       </div>
       <aside className="space-y-4 md:sticky md:top-6">
-        <div className="rounded-xl overflow-hidden border border-white/20">
-          <Map
-            height="clamp(260px, 45vh, 420px)"
-            vanMarkers={activeVansMarkers()}
-            pickups={status ? getPickupMarkers(status) : []}
-            drops={status ? getDropMarkers(status) : []}
-            markers={[]}
-            polylines={selVan ? route : []}
-            onVanClick={handleVanClick}
-          />
-        </div>
         {status && (status.status==='EN_ROUTE' || status.status==='PICKED_UP') && (
           <div className="rounded-xl p-3 border border-white/20 bg-white/70 dark:bg-white/10">
             <div className="text-sm">Assigned Van: {status.vanId ? `#${status.vanId.slice(0,8)}` : '—'}</div>
