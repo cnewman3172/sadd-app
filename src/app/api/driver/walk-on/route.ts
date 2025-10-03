@@ -3,7 +3,7 @@ import { prisma } from '@/lib/prisma';
 import { verifyJwt } from '@/lib/jwt';
 import { z } from 'zod';
 import { publish } from '@/lib/events';
-import { notifyOnShift } from '@/lib/push';
+import { notifyRoles } from '@/lib/push';
 import { logAudit } from '@/lib/audit';
 import { captureError } from '@/lib/obs';
 import bcrypt from 'bcryptjs';
@@ -127,10 +127,7 @@ export async function POST(req: Request){
   try{ const { rebuildPlanForVan } = await import('@/lib/plan'); await rebuildPlanForVan(van.id); }catch{}
   try{
     const msg = `New walk-on #${ride.rideCode}`;
-    await Promise.all([
-      notifyOnShift('DISPATCHER', { title: msg, body: `${ride.pickupAddr} → ${ride.dropAddr}`, tag: 'ride-walkon', data:{ rideId: ride.id } }),
-      notifyOnShift('TC', { title: msg, body: `${ride.pickupAddr} → ${ride.dropAddr}`, tag: 'ride-walkon', data:{ rideId: ride.id } }),
-    ]);
+    await notifyRoles(['DISPATCHER','TC'], { title: msg, body: `${ride.pickupAddr} → ${ride.dropAddr}`, tag: 'ride-walkon', data:{ rideId: ride.id } });
   }catch{}
     await logAudit('ride_create_walkon', payload.uid, ride.id, { vanId: van.id });
     return NextResponse.json(ride);
