@@ -242,7 +242,7 @@ export default function DashboardClient(){
             <div>Pickups In Progress: {active.length}</div>
             <div>Pending Requests: {pending.length}</div>
           </div>
-          <div className="mt-3">
+          <div className="mt-4">
             <button
               onClick={()=>{
                 setManual({});
@@ -253,8 +253,11 @@ export default function DashboardClient(){
                 setNameOpen(false);
                 setManualOpen(true);
               }}
-              className="rounded border px-3 py-2 text-sm"
-            >New Phone Request…</button>
+              className="inline-flex items-center gap-2 rounded-full border border-black/10 bg-white/70 px-4 py-2 text-sm font-semibold shadow-sm transition hover:border-emerald-300 hover:bg-white dark:border-white/20 dark:bg-white/10 dark:hover:border-emerald-500/40"
+            >
+              <span>New Phone Request</span>
+              <span aria-hidden className="text-base">＋</span>
+            </button>
           </div>
         </Card>
         <Card title="Active Fleet">
@@ -392,123 +395,53 @@ export default function DashboardClient(){
 
       {manualOpen && (
         <div className="fixed inset-0 z-[2000] grid place-items-center bg-black/50 p-4 backdrop-blur" role="dialog" aria-modal="true">
-          <div className="glass w-full max-w-2xl rounded-[36px] border border-white/20 p-6 shadow-xl dark:border-white/10 sm:p-8">
-            <div className="flex flex-wrap items-start justify-between gap-3 mb-4">
-              <div>
-                <h3 className="text-lg font-semibold">Manual Ride Request</h3>
-                <p className="text-sm opacity-80">Capture caller details and route the ride without leaving the dashboard.</p>
-              </div>
-              <button onClick={resetManual} aria-label="Close" className="rounded-full border border-white/30 px-3 py-1 text-sm hover:bg-black/5 dark:hover:bg-white/10">✕</button>
+          <div className="glass w-full max-w-lg rounded-[32px] border border-white/20 p-5 shadow-xl dark:border-white/10">
+            <div className="flex items-center justify-between mb-2">
+              <h3 className="font-semibold">Manual Ride Request</h3>
+              <button onClick={resetManual} aria-label="Close">✕</button>
             </div>
-            <form
-              className="space-y-5"
-              onSubmit={async(e)=>{
-                e.preventDefault();
-                if (manualBusy) return;
-                setManualBusy(true);
-                try{
-                  const res = await fetch('/api/admin/rides', { method:'POST', headers:{ 'Content-Type':'application/json' }, body: JSON.stringify({ ...manual, passengers: 1 }) });
-                  if (!res.ok){ const d = await res.json().catch(()=>({error:'failed'})); throw new Error(d.error||'failed'); }
-                  resetManual();
-                  showToast('Manual ride created');
-                  refresh();
-                }catch(e:any){ showToast(e?.message||'Failed'); }
-                finally{ setManualBusy(false); }
-              }}
-            >
-              <section className="rounded-3xl border border-white/20 bg-white/50 p-4 shadow-sm backdrop-blur dark:border-white/10 dark:bg-white/10">
-                <div className="flex items-center justify-between gap-3 flex-wrap mb-3">
-                  <h4 className="text-sm font-semibold uppercase tracking-[0.2em] text-zinc-600 dark:text-zinc-300">Caller</h4>
-                  {selRider && (
-                    <span className="inline-flex items-center gap-2 rounded-full border border-emerald-300/60 bg-emerald-100/40 px-3 py-1 text-xs text-emerald-700 dark:border-emerald-400/30 dark:bg-emerald-500/10 dark:text-emerald-200">
-                      <span>{selRider.rank || '—'}</span>
-                      <span>{selRider.phone || 'no phone'}</span>
-                    </span>
+            <div className="grid gap-2">
+              <div className="grid grid-cols-2 gap-2">
+                <div className="relative">
+                  <input className="p-2 rounded border bg-white/80 dark:bg-neutral-800 text-sm text-black dark:text-white w-full" placeholder="Caller Name" value={manual.name||''} onChange={(e)=> { setManual({...manual, name:e.target.value}); }} onFocus={()=>{ if (nameOpts.length>0) setNameOpen(true); }} onBlur(()=> setTimeout(()=> setNameOpen(false), 120)} onKeyDown={(e)=>{ if (e.key==='Escape') setNameOpen(false); }} />
+                  {nameOpen && nameOpts.length>0 && (
+                    <div className="absolute z-10 mt-1 w-full max-h-56 overflow-auto rounded-xl popover text-black dark:text-white">
+                      {nameOpts.map((u:any)=> (
+                        <button key={u.id} type="button" className="block w-full text-left px-3 py-2 hover:bg-black/5 dark:hover:bg-white/10" onMouseDown={(e)=> e.preventDefault()} onClick={()=>{ setSelRider(u); setManual((m:any)=> ({ ...m, riderId: u.id, name: `${u.firstName} ${u.lastName}`, phone: (u as any).phone||m.phone })); setNameOpen(false); }}>
+                          <div className="text-sm">{u.firstName} {u.lastName} <span className="opacity-60">{u.email}</span></div>
+                          <div className="text-xs opacity-60">{u.rank||'—'} · {u.phone||'no phone'}</div>
+                        </button>
+                      ))}
+                    </div>
                   )}
                 </div>
-                <div className="grid gap-3 md:grid-cols-[minmax(0,2fr)_minmax(0,1fr)]">
-                  <div className="relative">
-                    <label className="text-xs font-semibold uppercase tracking-[0.2em] text-zinc-500 dark:text-zinc-400">Name</label>
-                    <input
-                      className="mt-1 w-full rounded-2xl border border-white/40 bg-white/80 px-4 py-3 text-sm text-black shadow-sm focus:outline-none focus:ring-2 focus:ring-emerald-400/60 dark:border-white/10 dark:bg-neutral-900/70 dark:text-white"
-                      placeholder="Search or type"
-                      value={manual.name||''}
-                      onChange={(e)=> { setManual({ ...manual, name: e.target.value }); }}
-                      onFocus={()=>{ if (nameOpts.length>0) setNameOpen(true); }}
-                      onBlur={()=> setTimeout(()=> setNameOpen(false), 120)}
-                      onKeyDown={(e)=>{ if (e.key==='Escape') setNameOpen(false); }}
-                    />
-                    {nameOpen && nameOpts.length>0 && (
-                      <div className="absolute left-0 right-0 z-20 mt-2 max-h-56 overflow-auto rounded-3xl border border-white/30 bg-white/95 py-2 text-black shadow-xl backdrop-blur dark:border-white/10 dark:bg-neutral-900/95 dark:text-white">
-                        {nameOpts.map((u:any)=> (
-                          <button
-                            key={u.id}
-                            type="button"
-                            className="block w-full px-4 py-2 text-left text-sm hover:bg-black/5 dark:hover:bg-white/10"
-                            onMouseDown={(evt)=> evt.preventDefault()}
-                            onClick={()=>{
-                              setSelRider(u);
-                              setManual((m:any)=> ({ ...m, riderId: u.id, name: `${u.firstName} ${u.lastName}`.trim(), phone: (u as any).phone || m.phone }));
-                              setNameOpen(false);
-                            }}
-                          >
-                            <div className="font-medium">{u.firstName} {u.lastName}</div>
-                            <div className="text-xs opacity-70">{u.email}</div>
-                          </button>
-                        ))}
-                      </div>
-                    )}
-                  </div>
-                  <div>
-                    <label className="text-xs font-semibold uppercase tracking-[0.2em] text-zinc-500 dark:text-zinc-400">Phone</label>
-                    <input
-                      className="mt-1 w-full rounded-2xl border border-white/40 bg-white/80 px-4 py-3 text-sm text-black shadow-sm focus:outline-none focus:ring-2 focus:ring-emerald-400/60 dark:border-white/10 dark:bg-neutral-900/70 dark:text-white"
-                      placeholder="(907) 555-0123"
-                      value={manual.phone||''}
-                      onChange={(e)=> setManual({ ...manual, phone: e.target.value })}
-                    />
-                  </div>
+                <input className="p-2 rounded border bg-white/80 dark:bg-neutral-800 text-sm text-black dark:text-white" placeholder="Phone" value={manual.phone||''} onChange={(e)=> setManual({...manual, phone:e.target.value})} />
+              </div>
+              {selRider && (
+                <div className="text-xs inline-flex items-center gap-2 rounded-full border px-2 py-1 w-fit">
+                  <span className="opacity-70">{selRider.rank || '—'}</span>
+                  <span className="opacity-60">{selRider.phone || 'no phone'}</span>
                 </div>
-              </section>
-
-              <section className="rounded-3xl border border-white/20 bg-white/50 p-4 shadow-sm backdrop-blur dark:border-white/10 dark:bg-white/10">
-                <h4 className="mb-3 text-sm font-semibold uppercase tracking-[0.2em] text-zinc-600 dark:text-zinc-300">Trip Details</h4>
-                <div className="space-y-3">
-                  <AddressInput label="Pickup" value={manual.pickupAddr||''} onChange={(t)=> setManual({ ...manual, pickupAddr: t })} onSelect={(o)=> setManual({ ...manual, pickupAddr: o.label, pickupLat: o.lat, pickupLng: o.lon })} />
-                  <AddressInput label="Drop Off" value={manual.dropAddr||''} onChange={(t)=> setManual({ ...manual, dropAddr: t })} onSelect={(o)=> setManual({ ...manual, dropAddr: o.label, dropLat: o.lat, dropLng: o.lon })} />
-                  <div>
-                    <label className="text-xs font-semibold uppercase tracking-[0.2em] text-zinc-500 dark:text-zinc-400">Notes</label>
-                    <textarea
-                      className="mt-1 w-full rounded-2xl border border-white/40 bg-white/80 px-4 py-3 text-sm text-black shadow-sm focus:outline-none focus:ring-2 focus:ring-emerald-400/60 dark:border-white/10 dark:bg-neutral-900/70 dark:text-white"
-                      rows={2}
-                      placeholder="Optional context for drivers"
-                      value={manual.notes||''}
-                      onChange={(e)=> setManual({ ...manual, notes: e.target.value })}
-                    />
-                  </div>
-                </div>
-              </section>
-
-              <section className="rounded-3xl border border-white/20 bg-white/50 p-4 shadow-sm backdrop-blur dark:border-white/10 dark:bg-white/10 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-                <div className="space-y-2 text-sm">
-                  <div className="text-xs font-semibold uppercase tracking-[0.2em] text-zinc-500 dark:text-zinc-400">Estimated ETA</div>
-                  <ManualEta pickupLat={manual.pickupLat} pickupLng={manual.pickupLng} pax={1} onEta={(sec,van)=>{ setManualEtaSec(sec); setManualEtaVan(van); }} />
-                  <div className="text-xs opacity-70">
-                    {manualEtaSec!=null ? `~${Math.max(1, Math.round(manualEtaSec / 60))} min` : 'Select pickup to preview ETA'}
-                    {manualEtaVan ? ` · ${manualEtaVan}` : ''}
-                  </div>
-                </div>
-                <div className="flex flex-col gap-2 sm:items-end">
-                  <div className="flex gap-2">
-                    <button type="button" onClick={resetManual} className="rounded-full border border-white/30 px-4 py-2 text-sm font-medium hover:bg-black/5 dark:hover:bg-white/10">Cancel</button>
-                    <button type="submit" disabled={manualBusy} className="rounded-full px-5 py-2 text-sm font-semibold ring-gradient glass-strong text-black transition disabled:cursor-not-allowed disabled:opacity-60 dark:text-white">
-                      {manualBusy ? 'Creating…' : 'Create Ride'}
-                    </button>
-                  </div>
-                  <div className="text-xs opacity-70">Linked riders auto-populate phone and rank.</div>
-                </div>
-              </section>
-            </form>
+              )}
+              <AddressInput label="Pickup" value={manual.pickupAddr||''} onChange={(t)=> setManual({...manual, pickupAddr: t})} onSelect={(o)=> setManual({...manual, pickupAddr:o.label, pickupLat:o.lat, pickupLng:o.lon})} />
+              <AddressInput label="Drop Off" value={manual.dropAddr||''} onChange={(t)=> setManual({...manual, dropAddr: t})} onSelect={(o)=> setManual({...manual, dropAddr:o.label, dropLat:o.lat, dropLng:o.lon})} />
+              <input className="p-2 rounded border bg-white/80 dark:bg-neutral-800 text-sm text-black dark:text-white" placeholder="Notes (optional)" value={manual.notes||''} onChange={(e)=> setManual({...manual, notes:e.target.value})} />
+              <ManualEta pickupLat={manual.pickupLat} pickupLng={manual.pickupLng} pax={1} onEta={(sec,van)=>{ setManualEtaSec(sec); setManualEtaVan(van); }} />
+              <div className="flex justify-end gap-2 mt-2">
+                <button onClick={resetManual} className="rounded border px-3 py-1 text-sm">Cancel</button>
+                <button disabled={manualBusy} onClick={async()=>{
+                  setManualBusy(true);
+                  try{
+                    const res = await fetch('/api/admin/rides', { method:'POST', headers:{ 'Content-Type':'application/json' }, body: JSON.stringify({ ...manual, passengers: 1 }) });
+                    if (!res.ok){ const d = await res.json().catch(()=>({error:'failed'})); throw new Error(d.error||'failed'); }
+                    resetManual();
+                    showToast('Manual ride created');
+                    refresh();
+                  }catch(e:any){ showToast(e?.message||'Failed'); }
+                  finally{ setManualBusy(false); }
+                }} className="rounded bg-black text-white px-3 py-1 text-sm">Create Ride</button>
+              </div>
+            </div>
           </div>
         </div>
       )}
