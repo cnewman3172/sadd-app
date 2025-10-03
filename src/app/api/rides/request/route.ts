@@ -3,7 +3,7 @@ import { verifyJwt } from '@/lib/jwt';
 import { z } from 'zod';
 import { captureError } from '@/lib/obs';
 import { publish } from '@/lib/events';
-import { notifyOnShift, notifyRoles } from '@/lib/push';
+import { notifyRoles } from '@/lib/push';
 import { logAudit } from '@/lib/audit';
 import { prisma } from '@/lib/prisma';
 
