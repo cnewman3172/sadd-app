@@ -62,14 +62,14 @@ export default function DrivingClient(){
   }
   async function refreshTransfers(){
     try{
-      const r = await fetch('/api/driver/transfers', { cache:'no-store' });
+      const r = await fetch('/api/driver/transfers', { cache:'no-store', credentials:'include' });
       if (!r.ok) return;
       const d = await r.json();
       setTransfers(Array.isArray(d?.requests) ? d.requests : []);
     }catch{}
   }
   useEffect(()=>{
-    fetch('/api/me')
+    fetch('/api/me', { credentials:'include' })
       .then(r=> r.ok ? r.json() : null)
       .then((d: any)=> setUserId(d?.id || d?.uid || ''));
     refreshVans();
@@ -94,7 +94,7 @@ export default function DrivingClient(){
     if (!navigator.geolocation){ showToast('Location required to go online'); return; }
     navigator.geolocation.getCurrentPosition(async(pos)=>{
       const { latitude, longitude } = pos.coords;
-      const res = await fetch('/api/driver/go-online', { method:'POST', body: JSON.stringify({ vanId: targetVanId, lat: latitude, lng: longitude }) });
+      const res = await fetch('/api/driver/go-online', { method:'POST', credentials:'include', body: JSON.stringify({ vanId: targetVanId, lat: latitude, lng: longitude }) });
       if (res.ok) { refreshTasks(); refreshTransfers(); startPings(); }
       else {
         const d = await res.json().catch(()=>({error:'Failed to go online'}));
@@ -105,7 +105,7 @@ export default function DrivingClient(){
     }, { enableHighAccuracy:true, maximumAge:10000, timeout:15000 });
   }
   async function goOffline(){
-    const res = await fetch('/api/driver/go-offline', { method:'POST' });
+    const res = await fetch('/api/driver/go-offline', { method:'POST', credentials:'include' });
     if (res.ok) { stopPings(); refreshTasks(); refreshTransfers(); }
     else {
       const d = await res.json().catch(()=>({ error:'Unable to go offline' }));
