@@ -283,7 +283,7 @@ export default function DashboardClient(){
                 setNameOpen(false);
                 setManualOpen(true);
               }}
-              className="inline-flex items-center gap-2 rounded-full border border-black/10 bg-white/80 px-4 py-2 text-sm font-semibold shadow-sm transition hover:border-emerald-300 hover:bg-white dark:border-white/20 dark:bg-white/10 dark:hover:border-emerald-500/40"
+              className="inline-flex items-center gap-2 rounded-full border border-black/10 bg-white/80 px-4 py-2 text-sm font-semibold text-black shadow-sm transition hover:border-emerald-300 hover:bg-white dark:border-white/20 dark:bg-white/10 dark:text-white dark:hover:border-emerald-500/40"
             >
               <span>New Phone Request</span>
               <span aria-hidden className="text-base">＋</span>
