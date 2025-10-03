@@ -58,7 +58,7 @@ export default function DashboardClient(){
     const t = setTimeout(async()=>{
       const q = String(manual.name||'').trim();
       if (q.length < 2){ setNameOpts([]); setNameOpen(false); return; }
-      try{ const r = await fetch(`/api/admin/users?q=${encodeURIComponent(q)}`, { cache:'no-store' }); const d = await r.json(); setNameOpts(d||[]); setNameOpen(true); }catch{}
+      try{ const r = await fetch(`/api/admin/users?q=${encodeURIComponent(q)}`, { cache:'no-store', credentials:'include' }); const d = await r.json(); setNameOpts(d||[]); setNameOpen(true); }catch{}
     }, 250);
     return ()=> clearTimeout(t);
   }, [manual.name]);
