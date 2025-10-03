@@ -5,6 +5,7 @@ type UserView = {
   vmisRegistered: boolean; volunteerAgreement: boolean; saddSopRead: boolean;
   trainingSafetyAt: string|null; trainingDriverAt: string|null; trainingTcAt: string|null; trainingDispatcherAt: string|null;
   checkRide: boolean; createdAt: string;
+  rank: string|null; unit: string|null; phone: string|null;
 };
 
 async function getUser(id: string): Promise<UserView|null>{
@@ -28,6 +29,9 @@ export default async function UserViewPage({ params }: { params: Promise<{ id: s
         <div className="grid sm:grid-cols-2 gap-3 text-sm">
           <Field label="Email" value={u.email} />
           <Field label="Role" value={u.role} />
+          <Field label="Rank" value={u.rank} />
+          <Field label="Unit" value={u.unit} />
+          <Field label="Phone" value={u.phone} />
           <Field label="VMIS Registered" value={u.vmisRegistered ? 'Yes' : 'No'} />
           <Field label="Volunteer Agreement" value={u.volunteerAgreement ? 'Yes' : 'No'} />
           <Field label="SADD SOP Read" value={u.saddSopRead ? 'Yes' : 'No'} />
@@ -43,11 +47,12 @@ export default async function UserViewPage({ params }: { params: Promise<{ id: s
   );
 }
 
-function Field({ label, value }: { label:string; value: string }){
+function Field({ label, value }: { label:string; value: string | null }){
+  const display = value && value.trim() ? value : '—';
   return (
     <div>
       <div className="text-xs opacity-70">{label}</div>
-      <div className="px-3 py-2 rounded border glass">{value}</div>
+      <div className="px-3 py-2 rounded border glass">{display}</div>
     </div>
   );
 }
