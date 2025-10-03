@@ -41,7 +41,15 @@ export async function getActiveUserIdsForRole(role: 'DISPATCHER'|'TC'){
 }
 
 export async function notifyOnShift(role: 'DISPATCHER'|'TC', notif: { title: string; body?: string; tag?: string; data?: any }){
-  const ids = await getActiveUserIdsForRole(role);
-  await sendToUsers(ids, notif);
+  await notifyRoles([role], notif);
 }
 
+export async function notifyRoles(roles: Array<'DISPATCHER'|'TC'>, notif: { title: string; body?: string; tag?: string; data?: any }){
+  const unique = new Set<string>();
+  await Promise.all(roles.map(async(role)=>{
+    const ids = await getActiveUserIdsForRole(role);
+    ids.forEach(id=> unique.add(id));
+  }));
+  if (unique.size === 0) return;
+  await sendToUsers(Array.from(unique), notif);
+}
