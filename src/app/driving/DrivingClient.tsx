@@ -268,7 +268,7 @@ export default function DrivingClient(){
         <h2 className="mb-3 font-semibold">Fleet</h2>
         <div className="space-y-2">
           {visibleVans.length===0 && <div className="text-sm opacity-70">No vans configured.</div>}
-          {visibleVans.map((v:any)=>{
+          {visibleVans.map((v)=>{
             const youAreOn = currentVanId === v.id;
             const ownedByYou = v.activeTcId === userId;
             const available = !v.activeTcId;
