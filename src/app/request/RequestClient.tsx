@@ -56,7 +56,7 @@ export default function RequestClient(){
   async function handleVanClick(id:string){
     setSelVan(id); setRoute([]);
     try{
-      const r = await fetch(`/api/vans/${id}/tasks`).then(r=>r.json());
+      const r = await fetch(`/api/vans/${id}/tasks`, { credentials:'include' }).then(r=>r.json());
       const tasks = r.tasks||[];
       const van = vans.find((v:any)=> v.id===id);
       if (van?.currentLat && van?.currentLng && tasks.length>0){
@@ -85,7 +85,7 @@ export default function RequestClient(){
     })();
   },[]);
   useEffect(()=>{ refreshVans(); const id = setInterval(refreshVans, 5000); return ()=> clearInterval(id); },[]);
-  async function refreshVans(){ try{ const v = await fetch('/api/vans', { cache:'no-store' }).then(r=>r.json()); setVans(v||[]); }catch{} }
+  async function refreshVans(){ try{ const v = await fetch('/api/vans', { cache:'no-store', credentials:'include' }).then(r=>r.json()); setVans(v||[]); }catch{} }
 
   // Pre-request ETA based on pickup location and best available van
   useEffect(()=>{
@@ -189,7 +189,7 @@ export default function RequestClient(){
     (async()=>{
       if (!status?.vanId) { setVanPos(null); setEtaSec(null); return; }
       try{
-        const vans = await fetch('/api/vans', { cache: 'no-store' }).then(r=>r.json());
+        const vans = await fetch('/api/vans', { cache: 'no-store', credentials:'include' }).then(r=>r.json());
         const v = (vans||[]).find((x:any)=> x.id===status.vanId);
         if (v?.currentLat && v?.currentLng){ setVanPos({ lat: v.currentLat, lng: v.currentLng }); }
       }catch{}
