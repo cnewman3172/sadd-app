@@ -397,31 +397,6 @@ export default function DrivingClient(){
           </section>
         );
       })()}
-      <section className="glass rounded-[32px] border border-white/20 p-5 shadow-lg dark:border-white/10 space-y-2">
-        <div className="text-sm">{currentVan ? `Online as ${currentVan.name}` : 'Offline'}</div>
-        {!currentVan && (
-          <div className="flex gap-2 items-center">
-            <select className="border rounded px-2 py-1" value={selected} onChange={(e)=>setSelected(e.target.value)}>
-              <option value="">Select van</option>
-              {vans
-                .filter(v=> (v.activeTcId==null || v.activeTcId===userId))
-                .map(v=> <option key={v.id} value={v.id}>{v.name}</option>)}
-            </select>
-            <button onClick={goOnline} className="rounded px-4 py-2 bg-black text-white">Go Online</button>
-          </div>
-        )}
-        {currentVan && (
-          <div className="flex items-center gap-3">
-            <button onClick={goOffline} className="rounded px-4 py-2 border">Go Offline</button>
-            {wakeSupported && (
-              <label className="flex items-center gap-2 text-sm">
-                <input type="checkbox" checked={wakeOn} onChange={(e)=>{ setWakeOn(e.target.checked); if (e.target.checked) requestWake(); else releaseWake(); }} />
-                Keep screen awake
-              </label>
-            )}
-          </div>
-        )}
-      </section>
       <section className="glass rounded-[28px] border border-amber-200/70 bg-amber-100/80 p-4 text-amber-900 shadow-lg dark:border-amber-700/70 dark:bg-amber-900/30 dark:text-amber-200">
         <div className="text-sm">
           Keep this page open while you are Online so your location updates reliably every 5 seconds. Turning on “Keep screen awake” can help prevent the device from sleeping.
@@ -472,53 +447,6 @@ export default function DrivingClient(){
               </div>
             </div>
           ))}
-        </div>
-      </section>
-      <section className="glass rounded-[32px] border border-white/20 p-5 shadow-lg dark:border-white/10">
-        <h2 className="mb-3 font-semibold">Fleet</h2>
-        <div className="space-y-2">
-          {vans.length===0 && <div className="text-sm opacity-70">No vans configured.</div>}
-          {vans.map((v:any)=>{
-            const youAreOn = currentVan?.id === v.id;
-            const ownedByYou = v.activeTcId === userId;
-            const available = !v.activeTcId;
-            const outgoing = transfers.find(t=> t.status==='PENDING' && t.toTcId === userId && t.vanId === v.id);
-            const statusLabel = youAreOn ? 'You are online' : ownedByYou ? 'Assigned to you' : v.activeTcId ? (outgoing ? 'Transfer requested' : 'In use') : 'Available';
-            return (
-              <div key={v.id} className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-white/20 px-3 py-2 dark:border-white/10">
-                <div>
-                  <div className="font-medium">{v.name}</div>
-                  <div className="text-xs opacity-70">Capacity {v.capacity || 8} · {statusLabel}</div>
-                </div>
-                <div className="flex items-center gap-2">
-                  {(available || ownedByYou) ? (
-                    <button
-                      onClick={()=> goOnline(v.id)}
-                      className="rounded border px-3 py-1 text-xs font-semibold hover:bg-black/5 dark:hover:bg-white/10"
-                    >
-                      {youAreOn ? 'Online' : ownedByYou ? 'Resume Van' : 'Take Over'}
-                    </button>
-                  ) : outgoing ? (
-                    <button
-                      onClick={()=> respondTransfer(outgoing.id, 'CANCEL')}
-                      disabled={transferBusy === `${outgoing.id}:CANCEL`}
-                      className="rounded border px-3 py-1 text-xs"
-                    >
-                      Cancel Request
-                    </button>
-                  ) : (
-                    <button
-                      onClick={()=> requestTransfer(v.id)}
-                      disabled={transferBusy === `req:${v.id}`}
-                      className="rounded border px-3 py-1 text-xs"
-                    >
-                      Request Transfer
-                    </button>
-                  )}
-                </div>
-              </div>
-            );
-          })}
         </div>
       </section>
       {walkOpen && (
