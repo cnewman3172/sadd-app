@@ -229,23 +229,23 @@ async function handleGet(req: Request){
 
   const fromStr = url.searchParams.get('from') || '';
   const toStr = url.searchParams.get('to') || '';
+  const parseDate = (input: string) => {
+    const d = new Date(input);
+    return isNaN(d.getTime()) ? undefined : d;
+  };
+  const fromDate = fromStr ? parseDate(fromStr) : undefined;
+  const toDateRaw = toStr ? parseDate(toStr) : undefined;
+  let toDate = toDateRaw ? new Date(toDateRaw) : undefined;
+  if (toDate && toDate.getHours()===0 && toDate.getMinutes()===0 && toDate.getSeconds()===0 && toDate.getMilliseconds()===0){
+    // include full day when only a date is supplied
+    toDate.setHours(23,59,59,999);
+  }
+
   const where: any = {};
-  if (fromStr || toStr){
-    const from = fromStr ? new Date(fromStr) : undefined;
-    // to = inclusive end-of-day if only date provided
-    const to = toStr ? new Date(toStr) : undefined;
-    if (from || to){
-      where.requestedAt = {} as any;
-      if (from) (where.requestedAt as any).gte = from;
-      if (to) {
-        const end = new Date(to);
-        // if midnight, bump to end of the day
-        if (end.getHours()===0 && end.getMinutes()===0 && end.getSeconds()===0) {
-          end.setHours(23,59,59,999);
-        }
-        (where.requestedAt as any).lte = end;
-      }
-    }
+  if (fromDate || toDate){
+    where.requestedAt = {} as any;
+    if (fromDate) (where.requestedAt as any).gte = fromDate;
+    if (toDate) (where.requestedAt as any).lte = toDate;
   }
 
   if (!process.env.DATABASE_URL){
@@ -573,8 +573,15 @@ async function handleGet(req: Request){
     const wsShift = wb.addWorksheet('Shift Log');
     wsShift.addRow(shiftHeader);
     const cutoff = new Date(Date.now() - 180*24*60*60*1000); // last 180 days default window
+    const shiftWhere: any = {};
+    if (fromDate) shiftWhere.startsAt = { ...(shiftWhere.startsAt ?? {}), gte: fromDate };
+    if (toDate) shiftWhere.startsAt = { ...(shiftWhere.startsAt ?? {}), lte: toDate };
+    if (!shiftWhere.startsAt){
+      shiftWhere.startsAt = { gte: cutoff };
+    }
+
     const shifts = await prisma.shift.findMany({
-      where: { startsAt: { gte: cutoff } },
+      where: shiftWhere,
       orderBy: { startsAt: 'desc' },
       include: {
         signups: { include: { user: { select: { id:true, firstName:true, lastName:true, email:true, phone:true, role:true } } } },
