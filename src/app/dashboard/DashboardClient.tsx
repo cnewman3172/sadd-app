@@ -30,6 +30,15 @@ export default function DashboardClient(){
   const [saddActive, setSaddActive] = useState<boolean|null>(null);
   const [toggleBusy, setToggleBusy] = useState(false);
   const router = useRouter();
+  const resetManual = ()=>{
+    setManualOpen(false);
+    setManual({});
+    setSelRider(null);
+    setManualEtaSec(null);
+    setManualEtaVan('');
+    setNameOpen(false);
+    setNameOpts([]);
+  };
 
   async function refresh(){
     const [r, v, health] = await Promise.all([
@@ -234,7 +243,18 @@ export default function DashboardClient(){
             <div>Pending Requests: {pending.length}</div>
           </div>
           <div className="mt-3">
-            <button onClick={()=> setManualOpen(true)} className="rounded border px-3 py-2 text-sm">New Phone Request…</button>
+            <button
+              onClick={()=>{
+                setManual({});
+                setSelRider(null);
+                setManualEtaSec(null);
+                setManualEtaVan('');
+                setNameOpts([]);
+                setNameOpen(false);
+                setManualOpen(true);
+              }}
+              className="rounded border px-3 py-2 text-sm"
+            >New Phone Request…</button>
           </div>
         </Card>
         <Card title="Active Fleet">
@@ -378,7 +398,7 @@ export default function DashboardClient(){
                 <h3 className="text-lg font-semibold">Manual Ride Request</h3>
                 <p className="text-sm opacity-80">Capture caller details and route the ride without leaving the dashboard.</p>
               </div>
-              <button onClick={()=> setManualOpen(false)} aria-label="Close" className="rounded-full border border-white/30 px-3 py-1 text-sm hover:bg-black/5 dark:hover:bg-white/10">✕</button>
+              <button onClick={resetManual} aria-label="Close" className="rounded-full border border-white/30 px-3 py-1 text-sm hover:bg-black/5 dark:hover:bg-white/10">✕</button>
             </div>
             <form
               className="space-y-5"
@@ -389,7 +409,7 @@ export default function DashboardClient(){
                 try{
                   const res = await fetch('/api/admin/rides', { method:'POST', headers:{ 'Content-Type':'application/json' }, body: JSON.stringify({ ...manual, passengers: 1 }) });
                   if (!res.ok){ const d = await res.json().catch(()=>({error:'failed'})); throw new Error(d.error||'failed'); }
-                  setManualOpen(false); setManual({});
+                  resetManual();
                   showToast('Manual ride created');
                   refresh();
                 }catch(e:any){ showToast(e?.message||'Failed'); }
@@ -480,7 +500,7 @@ export default function DashboardClient(){
                 </div>
                 <div className="flex flex-col gap-2 sm:items-end">
                   <div className="flex gap-2">
-                    <button type="button" onClick={()=> setManualOpen(false)} className="rounded-full border border-white/30 px-4 py-2 text-sm font-medium hover:bg-black/5 dark:hover:bg-white/10">Cancel</button>
+                    <button type="button" onClick={resetManual} className="rounded-full border border-white/30 px-4 py-2 text-sm font-medium hover:bg-black/5 dark:hover:bg-white/10">Cancel</button>
                     <button type="submit" disabled={manualBusy} className="rounded-full px-5 py-2 text-sm font-semibold ring-gradient glass-strong text-black transition disabled:cursor-not-allowed disabled:opacity-60 dark:text-white">
                       {manualBusy ? 'Creating…' : 'Create Ride'}
                     </button>
