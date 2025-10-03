@@ -200,17 +200,6 @@ export default function RequestClient(){
     <PageShell pad={false}>
       <div className="mx-auto grid w-full max-w-6xl gap-6 px-4 py-10 md:grid-cols-[minmax(0,2fr)_minmax(0,1fr)] md:items-start">
       <div className="space-y-4">
-        <div className="rounded-xl overflow-hidden border border-white/20">
-          <Map
-            height="clamp(280px, 48vh, 480px)"
-            vanMarkers={activeVansMarkers()}
-            pickups={status ? getPickupMarkers(status) : []}
-            drops={status ? getDropMarkers(status) : []}
-            markers={[]}
-            polylines={selVan ? route : []}
-            onVanClick={handleVanClick}
-          />
-        </div>
         {/* Gate: prompt review first if there is an unrated DROPPED ride */}
         {pendingReview && (
           <section className="p-4 rounded-xl bg-white/70 dark:bg-white/10 backdrop-blur border border-white/20">
@@ -297,6 +286,19 @@ export default function RequestClient(){
           </div>
         )}
       </aside>
+      <div className="md:col-span-2">
+        <div className="rounded-xl overflow-hidden border border-white/20">
+          <Map
+            height="clamp(280px, 48vh, 480px)"
+            vanMarkers={activeVansMarkers()}
+            pickups={status ? getPickupMarkers(status) : []}
+            drops={status ? getDropMarkers(status) : []}
+            markers={[]}
+            polylines={selVan ? route : []}
+            onVanClick={handleVanClick}
+          />
+        </div>
+      </div>
       </div>
     </PageShell>
   );
