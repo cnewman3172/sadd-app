@@ -4,7 +4,7 @@ import { verifyJwt } from '@/lib/jwt';
 import { z } from 'zod';
 import { captureError } from '@/lib/obs';
 import { publish } from '@/lib/events';
-import { notifyOnShift } from '@/lib/push';
+import { notifyOnShift, notifyRoles } from '@/lib/push';
 import { logAudit } from '@/lib/audit';
 
 export const runtime = 'nodejs';
@@ -96,11 +96,14 @@ export async function PUT(req: NextRequest, context: { params: Promise<{ id: str
     // Notify on assignment events
     const assignedNow = (!prev?.vanId && !!ride.vanId) || (prev?.status!=='ASSIGNED' && ride.status==='ASSIGNED');
     if (assignedNow){
-      const msg = `Assigned #${ride.rideCode}`;
-      await Promise.all([
-        notifyOnShift('DISPATCHER', { title: msg, body: `${ride.pickupAddr} → ${ride.dropAddr}`, tag: 'ride-assigned', data:{ rideId: ride.id } }),
-        notifyOnShift('TC', { title: msg, body: `${ride.pickupAddr} → ${ride.dropAddr}`, tag: 'ride-assigned', data:{ rideId: ride.id } }),
-      ]);
+    const msg = `Assigned #${ride.rideCode}`;
+    await notifyRoles(['DISPATCHER','TC'], { title: msg, body: `${ride.pickupAddr} → ${ride.dropAddr}`, tag: 'ride-assigned', data:{ rideId: ride.id } });
+  }
+    const canceledNow = prev?.status !== 'CANCELED' && ride.status === 'CANCELED';
+    if (canceledNow){
+      try{
+        await notifyOnShift('TC', { title: `Ride #${ride.rideCode} canceled`, body: `${ride.pickupAddr} → ${ride.dropAddr}`, tag: 'ride-canceled', data:{ rideId: ride.id } });
+      }catch{}
     }
   }catch{}
     logAudit('ride_update', payload.uid, ride.id, data);
