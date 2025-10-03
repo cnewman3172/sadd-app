@@ -14,7 +14,12 @@ export async function GET(req: Request){
   if (!payload) return NextResponse.json({ error:'unauthorized' }, { status: 401 });
   // Only ADMIN/DISPATCHER/TC see full van objects including coordinates and activeTcId
   if (['ADMIN','DISPATCHER','TC'].includes(payload.role)){
-    const vans = await prisma.van.findMany({ orderBy: { name: 'asc' } });
+    const vans = await prisma.van.findMany({
+      orderBy: { name: 'asc' },
+      include: {
+        activeTc: { select: { id: true, firstName: true, lastName: true, email: true, phone: true, role: true } }
+      }
+    });
     return NextResponse.json(vans);
   }
   // Other roles see a sanitized list without live coordinates or controller identity

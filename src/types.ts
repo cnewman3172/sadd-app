@@ -19,6 +19,14 @@ export interface Van {
   currentLat?: number | null;
   currentLng?: number | null;
   activeTcId?: string | null;
+  activeTc?: {
+    id: string;
+    firstName?: string | null;
+    lastName?: string | null;
+    email?: string | null;
+    phone?: string | null;
+    role?: Role | null;
+  } | null;
 }
 
 export type RideStatus = 'PENDING'|'ASSIGNED'|'EN_ROUTE'|'PICKED_UP'|'DROPPED'|'CANCELED';
