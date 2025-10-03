@@ -1,30 +1,34 @@
 import type { NextConfig } from "next";
 
+const cspDirectives = [
+  "default-src 'self'",
+  "base-uri 'self'",
+  "frame-ancestors 'self'",
+  "frame-src 'self' https://www.youtube.com https://www.youtube-nocookie.com",
+  "style-src 'self' 'unsafe-inline'",
+  "img-src 'self' data: https:",
+  "font-src 'self' data:",
+  "object-src 'none'",
+  "connect-src 'self' https: blob: data:",
+  "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://www.youtube.com",
+  "worker-src 'self' blob:",
+  "manifest-src 'self'",
+  "report-to csp-endpoint",
+  "report-uri /api/csp-report"
+].join('; ');
+
 const securityHeaders = [
-  // Adjust CSP for YouTube-nocookie iframe and same-origin assets
   {
-    // Temporarily use report-only to avoid blocking until CSP is fully tuned on prod
-    key: 'Content-Security-Policy-Report-Only',
-    value: [
-      "default-src 'self'",
-      "base-uri 'self'",
-      "frame-ancestors 'self'",
-      // Allow YouTube embeds (nocookie preferred) and API script
-      "frame-src 'self' https://www.youtube.com https://www.youtube-nocookie.com",
-      // Inline styles may be used by Next; consider tightening if possible
-      "style-src 'self' 'unsafe-inline'",
-      "img-src 'self' data: https:",
-      "font-src 'self' data:",
-      "object-src 'none'",
-      // RSC, Next navigation fetches, Sentry (if configured), EventSource, etc.
-      "connect-src 'self' https: blob: data:",
-      // Some browsers still require eval for certain optimizations; keep minimal
-      "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://www.youtube.com",
-      // Allow Next.js web workers if used
-      "worker-src 'self' blob:",
-      // App manifest
-      "manifest-src 'self'"
-    ].join('; '),
+    key: 'Content-Security-Policy',
+    value: cspDirectives,
+  },
+  {
+    key: 'Report-To',
+    value: JSON.stringify({
+      group: 'csp-endpoint',
+      max_age: 10886400,
+      endpoints: [{ url: '/api/csp-report' }],
+    }),
   },
   // YouTube embeds (and the IFrame API with enablejsapi/origin) require
   // a referrer so Google can validate the requesting origin. Using
