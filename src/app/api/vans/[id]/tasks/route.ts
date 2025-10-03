@@ -19,7 +19,7 @@ export async function GET(req: NextRequest, context: { params: { id: string } })
     }
     const id = parsed.data;
     // Return tasks in planned order (VanTask)
-    let plan;
+    let plan: Awaited<ReturnType<typeof prisma.vanTask.findMany>>;
     try{
       plan = await prisma.vanTask.findMany({ where:{ vanId: id }, orderBy:{ order:'asc' }, include:{ ride:true } });
     }catch(err){

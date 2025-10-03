@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { verifyJwt } from '@/lib/jwt';
+import { isMissingTableError } from '@/lib/prismaErrors';
 
 export const runtime = 'nodejs';
 
@@ -43,7 +44,17 @@ export async function GET(req: NextRequest){
   if (!lastPingTs || (Date.now() - lastPingTs) > maxAgeMs){
     return NextResponse.json({ error:'van location stale' }, { status: 400 });
   }
-  const plan = await prisma.vanTask.findMany({ where:{ vanId }, orderBy:{ order:'asc' }, include:{ ride:true } });
+  let plan: Awaited<ReturnType<typeof prisma.vanTask.findMany>>;
+  try{
+    plan = await prisma.vanTask.findMany({ where:{ vanId }, orderBy:{ order:'asc' }, include:{ ride:true } });
+  }catch(err){
+    if (isMissingTableError(err)){
+      const body = { tasks: [], etas: {} };
+      cache.set(vanId, { ts: Date.now(), body });
+      return NextResponse.json(body);
+    }
+    throw err;
+  }
   if (plan.length===0){
     const body = { tasks: [], etas: {} };
     cache.set(vanId, { ts: Date.now(), body });
