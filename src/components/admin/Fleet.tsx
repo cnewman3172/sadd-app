@@ -6,6 +6,7 @@ export default function Fleet(){
   const [vans, setVans] = useState<Van[]>([]);
   const [form, setForm] = useState<{ name:string; capacity:number }>({ name:'', capacity:8 });
   const [error, setError] = useState<string|null>(null);
+  const [actionError, setActionError] = useState<string|null>(null);
 
   async function refresh(){
     const r = await fetch('/api/vans');
@@ -22,14 +23,25 @@ export default function Fleet(){
   }
 
   async function updateVan(id:string, patch: Partial<Van>){
+    setActionError(null);
     const res = await fetch(`/api/vans/${id}`, { method:'PUT', headers:{ 'Content-Type':'application/json' }, body: JSON.stringify(patch) });
-    if (res.ok) refresh();
+    if (res.ok){
+      refresh();
+    }else{
+      const d = await res.json().catch(()=>({ error:'Update failed' }));
+      setActionError(d.error || 'Update failed');
+    }
   }
 
   async function delVan(id:string){
     if (!confirm('Delete this van?')) return;
     const res = await fetch(`/api/vans/${id}`, { method:'DELETE' });
     if (res.ok) refresh();
+  }
+
+  async function forceOffline(id: string){
+    if (!confirm('Force this van offline? This will clear its controller and active tasks.')) return;
+    await updateVan(id, { status: 'OFFLINE' });
   }
 
   return (
@@ -54,8 +66,9 @@ export default function Fleet(){
               <th className="py-2">Name</th>
               <th>Capacity</th>
               <th>Status</th>
+              <th>Operator</th>
               <th>Passengers</th>
-              <th></th>
+              <th className="text-right">Actions</th>
             </tr>
           </thead>
           <tbody>
@@ -74,14 +87,26 @@ export default function Fleet(){
                     <option value="OFFLINE">OFFLINE</option>
                   </select>
                 </td>
+                <td>
+                  {v.activeTcId ? (
+                    <div className="text-sm">
+                      <div>{[v.activeTc?.firstName, v.activeTc?.lastName].filter(Boolean).join(' ') || 'Assigned'}</div>
+                      <div className="text-xs opacity-70">{v.activeTc?.email || '—'}</div>
+                    </div>
+                  ) : (
+                    <span className="text-xs opacity-60">Unassigned</span>
+                  )}
+                </td>
                 <td>{v.passengers ?? 0}</td>
-                <td className="text-right">
-                  <button onClick={()=>delVan(v.id)} className="rounded border px-3 py-1">Delete</button>
+                <td className="text-right space-x-2 whitespace-nowrap">
+                  <button onClick={()=>forceOffline(v.id)} className="rounded border px-3 py-1 text-sm">Force Offline</button>
+                  <button onClick={()=>delVan(v.id)} className="rounded border px-3 py-1 text-sm">Delete</button>
                 </td>
               </tr>
             ))}
           </tbody>
         </table>
+        {actionError && <div className="mt-2 text-sm text-red-600">{actionError}</div>}
       </div>
     </div>
   );
