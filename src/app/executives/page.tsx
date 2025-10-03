@@ -26,7 +26,7 @@ export default function ExecutivesDashboard(){
           <Metric title="Total Rides" value={summary?.totalRides?.toString() ?? '—'} />
           <Metric title="Rides Today" value={summary?.ridesToday?.toString() ?? '—'} />
           <Metric title="Active Rides" value={summary?.activeRides?.toString() ?? '—'} />
-          <Metric title="Active Vans" value={summary?.activeVans?.toString() ?? '—'} />
+          <Metric title="Active Fleet" value={summary?.activeVans?.toString() ?? '—'} />
         </div>
         <div className={`mt-4 text-sm font-semibold ${active===null ? 'opacity-70' : active ? 'text-emerald-600 dark:text-emerald-400' : 'text-red-600 dark:text-red-400'}`}>
           Status: {active===null ? '—' : active ? 'Active' : 'Inactive'}

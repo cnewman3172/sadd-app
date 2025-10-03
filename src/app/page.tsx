@@ -86,7 +86,7 @@ export default async function Home() {
                     <p className="text-2xl font-semibold text-zinc-900 dark:text-white">Tonight at a glance</p>
                   </div>
                   <div className="grid grid-cols-3 gap-3 text-center text-sm">
-                    <Stat label="Active Vans" valueNumber={activeVansCount} />
+                    <Stat label="Active Fleet" valueNumber={activeVansCount} />
                     <Stat label="Avg Pickup" valueNumber={avgPickupSeconds!=null? Math.round(avgPickupSeconds/60): null} suffix=" min" />
                     <Stat label="Rides (FY)" valueNumber={ridesFyCount} />
                   </div>
