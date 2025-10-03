@@ -28,7 +28,6 @@ export default function DrivingClient(){
   const [vans, setVans] = useState<Van[]>([]);
   const [currentVan, setCurrentVan] = useState<Van|null>(null);
   const [tasks, setTasks] = useState<Ride[]>([]);
-  const [selected, setSelected] = useState('');
   const [transfers, setTransfers] = useState<TransferRequest[]>([]);
   const [sseStatus, setSseStatus] = useState<'connecting'|'online'|'offline'>('connecting');
   const [userId, setUserId] = useState<string>('');
@@ -87,10 +86,8 @@ export default function DrivingClient(){
   },[]);
   useEffect(()=>{ try{ setWakeSupported('wakeLock' in navigator); }catch{ setWakeSupported(false); } },[]);
 
-  async function goOnline(vanIdOverride?: string){
-    const targetVanId = vanIdOverride ?? selected;
+  async function goOnline(targetVanId: string){
     if (!targetVanId) return showToast('Select a van');
-    if (!vanIdOverride) setSelected(targetVanId);
     // Require notifications permission and push subscription
     const ok = await ensureNotifications();
     if (!ok){ showToast('Please allow notifications to go online.'); return; }
@@ -98,7 +95,7 @@ export default function DrivingClient(){
     navigator.geolocation.getCurrentPosition(async(pos)=>{
       const { latitude, longitude } = pos.coords;
       const res = await fetch('/api/driver/go-online', { method:'POST', body: JSON.stringify({ vanId: targetVanId, lat: latitude, lng: longitude }) });
-      if (res.ok) { setSelected(''); refreshTasks(); refreshTransfers(); startPings(); }
+      if (res.ok) { refreshTasks(); refreshTransfers(); startPings(); }
       else {
         const d = await res.json().catch(()=>({error:'Failed to go online'}));
         showToast(d.error || 'Failed to go online');
