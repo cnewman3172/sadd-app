@@ -22,6 +22,9 @@ export async function GET(req: Request, context: { params: Promise<{ id: string 
         firstName: true,
         lastName: true,
         role: true,
+        rank: true,
+        unit: true,
+        phone: true,
         // prerequisites
         vmisRegistered: true,
         volunteerAgreement: true,
