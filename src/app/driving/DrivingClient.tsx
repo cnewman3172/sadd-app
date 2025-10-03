@@ -115,7 +115,7 @@ export default function DrivingClient(){
   async function requestTransfer(vanId: string){
     setTransferBusy(`req:${vanId}`);
     try{
-      const res = await fetch('/api/driver/transfers', { method:'POST', headers:{ 'Content-Type':'application/json' }, body: JSON.stringify({ vanId }) });
+      const res = await fetch('/api/driver/transfers', { method:'POST', headers:{ 'Content-Type':'application/json' }, credentials:'include', body: JSON.stringify({ vanId }) });
       if (!res.ok){
         const d = await res.json().catch(()=>({ error:'Unable to request transfer' }));
         showToast(d.error || 'Unable to request transfer');
@@ -130,7 +130,7 @@ export default function DrivingClient(){
   async function respondTransfer(id: string, action: 'ACCEPT'|'DECLINE'|'CANCEL'){
     setTransferBusy(`${id}:${action}`);
     try{
-      const res = await fetch(`/api/driver/transfers/${id}`, { method:'POST', headers:{ 'Content-Type':'application/json' }, body: JSON.stringify({ action }) });
+      const res = await fetch(`/api/driver/transfers/${id}`, { method:'POST', headers:{ 'Content-Type':'application/json' }, credentials:'include', body: JSON.stringify({ action }) });
       if (!res.ok){
         const d = await res.json().catch(()=>({ error:'Unable to update transfer' }));
         showToast(d.error || 'Unable to update transfer');
@@ -148,7 +148,7 @@ export default function DrivingClient(){
   }
   async function setStatus(id:string, status:string){
     if (!confirm(`Mark #${id.slice(0,8)} as ${status}?`)) return;
-    await fetch(`/api/rides/${id}`, { method:'PUT', body: JSON.stringify({ status }) });
+    await fetch(`/api/rides/${id}`, { method:'PUT', credentials:'include', body: JSON.stringify({ status }) });
     refreshTasks();
   }
 
@@ -160,7 +160,7 @@ export default function DrivingClient(){
     try{
       navigator.geolocation.getCurrentPosition((pos)=>{
         const { latitude, longitude } = pos.coords;
-        fetch('/api/driver/ping', { method:'POST', body: JSON.stringify({ lat: latitude, lng: longitude }) });
+        fetch('/api/driver/ping', { method:'POST', credentials:'include', body: JSON.stringify({ lat: latitude, lng: longitude }) });
       });
     }catch{}
   }
@@ -186,7 +186,7 @@ export default function DrivingClient(){
       try{
         navigator.geolocation.getCurrentPosition((pos)=>{
           const { latitude, longitude } = pos.coords;
-          fetch('/api/driver/ping', { method:'POST', body: JSON.stringify({ lat: latitude, lng: longitude }) });
+          fetch('/api/driver/ping', { method:'POST', credentials:'include', body: JSON.stringify({ lat: latitude, lng: longitude }) });
         });
       }catch{}
     };
