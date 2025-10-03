@@ -246,9 +246,90 @@ export default function DrivingClient(){
     return ()=> document.removeEventListener('visibilitychange', onVis);
   }, [currentVan?.id]);
 
+  const currentVanId = currentVan?.id || null;
+  const youAreOnline = Boolean(currentVanId);
+  let visibleVans: Van[] = youAreOnline
+    ? vans.filter(v=> v.id === currentVanId || v.activeTcId === userId)
+    : vans;
+  if (youAreOnline && currentVan && !visibleVans.some(v=> v.id === currentVan.id)){
+    visibleVans = [...visibleVans, currentVan];
+  }
+
+  const formatTcName = (v: Van) => {
+    if (!v.activeTc) return '';
+    const name = [v.activeTc.firstName, v.activeTc.lastName].filter(Boolean).join(' ').trim();
+    return name || v.activeTc.email || '';
+  };
+
   return (
     <div className="mx-auto w-full max-w-3xl space-y-6 px-4 py-12">
       <h1 className="text-2xl font-semibold">Truck Commander <span className="text-sm opacity-70">{sseStatus==='online'?'• Live':sseStatus==='connecting'?'• Connecting':'• Offline'}</span></h1>
+      <section className="glass rounded-[32px] border border-white/20 p-5 shadow-lg dark:border-white/10">
+        <h2 className="mb-3 font-semibold">Fleet</h2>
+        <div className="space-y-2">
+          {visibleVans.length===0 && <div className="text-sm opacity-70">No vans configured.</div>}
+          {visibleVans.map((v:any)=>{
+            const youAreOn = currentVanId === v.id;
+            const ownedByYou = v.activeTcId === userId;
+            const available = !v.activeTcId;
+            const outgoing = transfers.find(t=> t.status==='PENDING' && t.toTcId === userId && t.vanId === v.id);
+            const activeTcName = formatTcName(v);
+            let statusLabel = '';
+            if (youAreOn) statusLabel = 'You are online';
+            else if (ownedByYou) statusLabel = 'Assigned to you';
+            else if (v.activeTcId) statusLabel = activeTcName ? `In use by ${activeTcName}` : 'In use';
+            else statusLabel = 'Available';
+            return (
+              <div key={v.id} className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-white/20 px-3 py-2 dark:border-white/10">
+                <div>
+                  <div className="font-medium">{v.name}</div>
+                  <div className="text-xs opacity-70">Capacity {v.capacity || 8} · Status {v.status} · {statusLabel}</div>
+                </div>
+                <div className="flex flex-wrap items-center gap-2">
+                  {youAreOn ? (
+                    <>
+                      <button onClick={goOffline} className="rounded border px-3 py-1 text-xs font-semibold">Go Offline</button>
+                      {wakeSupported && (
+                        <label className="flex items-center gap-2 text-xs">
+                          <input type="checkbox" checked={wakeOn} onChange={(e)=>{ setWakeOn(e.target.checked); if (e.target.checked) requestWake(); else releaseWake(); }} />
+                          Keep screen awake
+                        </label>
+                      )}
+                    </>
+                  ) : (
+                    !youAreOnline && (
+                      (available || ownedByYou) ? (
+                        <button
+                          onClick={()=> goOnline(v.id)}
+                          className="rounded border px-3 py-1 text-xs font-semibold hover:bg-black/5 dark:hover:bg-white/10"
+                        >
+                          {ownedByYou ? 'Resume Van' : 'Take Over'}
+                        </button>
+                      ) : outgoing ? (
+                        <button
+                          onClick={()=> respondTransfer(outgoing.id, 'CANCEL')}
+                          disabled={transferBusy === `${outgoing.id}:CANCEL`}
+                          className="rounded border px-3 py-1 text-xs"
+                        >
+                          Cancel Request
+                        </button>
+                      ) : (
+                        <button
+                          onClick={()=> requestTransfer(v.id)}
+                          disabled={transferBusy === `req:${v.id}`}
+                          className="rounded border px-3 py-1 text-xs"
+                        >
+                          Request Transfer
+                        </button>
+                      )
+                    )
+                  )}
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      </section>
       {(() => {
         const incoming = transfers.filter(t=> t.status==='PENDING' && t.fromTcId === userId);
         const outgoing = transfers.filter(t=> t.status==='PENDING' && t.toTcId === userId);
