@@ -403,7 +403,15 @@ export default function DashboardClient(){
             <div className="grid gap-2">
               <div className="grid grid-cols-2 gap-2">
                 <div className="relative">
-                  <input className="p-2 rounded border bg-white/80 dark:bg-neutral-800 text-sm text-black dark:text-white w-full" placeholder="Caller Name" value={manual.name||''} onChange={(e)=> { setManual({...manual, name:e.target.value}); }} onFocus={()=>{ if (nameOpts.length>0) setNameOpen(true); }} onBlur(()=> setTimeout(()=> setNameOpen(false), 120)} onKeyDown={(e)=>{ if (e.key==='Escape') setNameOpen(false); }} />
+                  <input
+                    className="p-2 rounded border bg-white/80 dark:bg-neutral-800 text-sm text-black dark:text-white w-full"
+                    placeholder="Caller Name"
+                    value={manual.name||''}
+                    onChange={(e)=> { setManual({...manual, name:e.target.value}); }}
+                    onFocus={()=>{ if (nameOpts.length>0) setNameOpen(true); }}
+                    onBlur={()=> setTimeout(()=> setNameOpen(false), 120)}
+                    onKeyDown={(e)=>{ if (e.key==='Escape') setNameOpen(false); }}
+                  />
                   {nameOpen && nameOpts.length>0 && (
                     <div className="absolute z-10 mt-1 w-full max-h-56 overflow-auto rounded-xl popover text-black dark:text-white">
                       {nameOpts.map((u:any)=> (
