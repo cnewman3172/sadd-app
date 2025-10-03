@@ -51,7 +51,7 @@ export default function DrivingClient(){
     const t = setTimeout(async()=>{
       const q = String(walkForm.name||'').trim();
       if (q.length < 2){ setWalkNameOpts([]); setWalkNameOpen(false); return; }
-      try{ const r = await fetch(`/api/admin/users?q=${encodeURIComponent(q)}`, { cache:'no-store' }); const d = await r.json(); setWalkNameOpts(d||[]); setWalkNameOpen(true); }catch{}
+      try{ const r = await fetch(`/api/admin/users?q=${encodeURIComponent(q)}`, { cache:'no-store', credentials:'include' }); const d = await r.json(); setWalkNameOpts(d||[]); setWalkNameOpen(true); }catch{}
     }, 250);
     return ()=> clearTimeout(t);
   }, [walkForm.name]);
@@ -441,7 +441,7 @@ export default function DrivingClient(){
                 {t.status==='EN_ROUTE' && <button onClick={()=>setStatus(t.id,'PICKED_UP')} className="rounded border px-3 py-1 text-sm">Picked Up</button>}
                 {t.status==='PICKED_UP' && <button onClick={()=>setStatus(t.id,'DROPPED')} className="rounded bg-green-600 text-white px-3 py-1 text-sm">Dropped</button>}
                 {(t.status==='ASSIGNED' || t.status==='EN_ROUTE') && (
-                  <button onClick={async()=>{ if (!confirm(`Mark #${t.rideCode} as No Show and cancel?`)) return; await fetch(`/api/rides/${t.id}`, { method:'PUT', body: JSON.stringify({ status:'CANCELED', notes:'No Show' }) }); refreshTasks(); }} className="rounded border px-3 py-1 text-sm border-red-500 text-red-600">No Show</button>
+                  <button onClick={async()=>{ if (!confirm(`Mark #${t.rideCode} as No Show and cancel?`)) return; await fetch(`/api/rides/${t.id}`, { method:'PUT', credentials:'include', body: JSON.stringify({ status:'CANCELED', notes:'No Show' }) }); refreshTasks(); }} className="rounded border px-3 py-1 text-sm border-red-500 text-red-600">No Show</button>
                 )}
                 <button onClick={()=>{ setWalkTaskId(t.id); setWalkSelRider(null); setWalkForm({ riderId:'', name:'', phone:'', pickupAddr:'', pickupLat: undefined, pickupLng: undefined, dropAddr:'', dropLat: undefined, dropLng: undefined }); setWalkOpen(true); }} className="rounded border px-3 py-1 text-sm">Walk On…</button>
               </div>
@@ -490,7 +490,7 @@ export default function DrivingClient(){
                     <button onClick={()=> setWalkOpen(false)} className="rounded border px-3 py-1 text-sm">Cancel</button>
                     <button onClick={async()=>{
                       try{
-                        const res = await fetch('/api/driver/walk-on', { method:'POST', headers:{ 'Content-Type':'application/json' }, body: JSON.stringify({ ...walkForm, taskId: walkTaskId }) });
+                        const res = await fetch('/api/driver/walk-on', { method:'POST', headers:{ 'Content-Type':'application/json' }, credentials:'include', body: JSON.stringify({ ...walkForm, taskId: walkTaskId }) });
                         if (!res.ok){ const d = await res.json().catch(()=>({error:'Failed'})); throw new Error(d.error||'Failed'); }
                         showToast('Walk-on added'); setWalkOpen(false); setWalkTaskId(''); setWalkSelRider(null); setWalkForm({ riderId:'', name:'', phone:'', pickupAddr:'', pickupLat: undefined, pickupLng: undefined, dropAddr:'', dropLat: undefined, dropLng: undefined }); refreshTasks();
                       }catch(e:any){ showToast(e.message||'Failed'); }
