@@ -58,7 +58,9 @@ export async function GET(req: NextRequest){
 export async function POST(req: NextRequest){
   const token = (req.headers.get('cookie')||'').split('; ').find(c=>c.startsWith('sadd_token='))?.split('=')[1];
   const payload = await verifyJwt(token);
-  if (!payload || payload.role !== 'TC') return NextResponse.json({ error:'forbidden' }, { status: 403 });
+  if (!payload || !['TC','ADMIN','DISPATCHER'].includes(payload.role)) {
+    return NextResponse.json({ error:'forbidden' }, { status: 403 });
+  }
   const body = await req.json().catch(()=> ({}));
   const { vanId, note } = createSchema.parse(body);
   const van = await prisma.van.findUnique({ where: { id: vanId } });

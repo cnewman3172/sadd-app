@@ -42,7 +42,7 @@ export default function DrivingClient(){
   const [transferBusy, setTransferBusy] = useState<string|null>(null);
 
   async function refreshVans(){
-    const v = await fetch('/api/vans').then(r=>r.json());
+    const v = await fetch('/api/vans', { credentials:'include' }).then(r=>r.json());
     setVans(v);
   }
 
@@ -56,7 +56,7 @@ export default function DrivingClient(){
     return ()=> clearTimeout(t);
   }, [walkForm.name]);
   async function refreshTasks(){
-    const r = await fetch('/api/driver/tasks').then(r=>r.json());
+    const r = await fetch('/api/driver/tasks', { credentials:'include' }).then(r=>r.json());
     setCurrentVan(r.van);
     setTasks(r.tasks||[]);
   }
