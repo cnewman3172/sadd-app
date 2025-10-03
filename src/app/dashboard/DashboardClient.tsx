@@ -237,12 +237,24 @@ export default function DashboardClient(){
               </button>
             </div>
           </div>
-          <div className="text-sm space-y-1">
-            <div>Active Vans: {activeVans.length}</div>
-            <div>Pickups In Progress: {active.length}</div>
-            <div>Pending Requests: {pending.length}</div>
+          <div className="mt-3 grid grid-cols-1 gap-2 text-sm sm:grid-cols-3">
+            {[{
+              label: 'Active Vans',
+              value: activeVans.length,
+            }, {
+              label: 'Pickups In Progress',
+              value: active.length,
+            }, {
+              label: 'Pending Requests',
+              value: pending.length,
+            }].map(stat => (
+              <div key={stat.label} className="rounded-2xl border border-white/20 bg-white/70 px-4 py-3 text-center shadow-sm backdrop-blur-sm dark:border-white/10 dark:bg-white/10">
+                <div className="text-[11px] font-semibold uppercase tracking-[0.24em] text-zinc-500 dark:text-zinc-400">{stat.label}</div>
+                <div className="mt-1 text-lg font-semibold text-zinc-900 dark:text-white">{stat.value}</div>
+              </div>
+            ))}
           </div>
-          <div className="mt-4">
+          <div className="mt-5">
             <button
               onClick={()=>{
                 setManual({});
@@ -253,7 +265,7 @@ export default function DashboardClient(){
                 setNameOpen(false);
                 setManualOpen(true);
               }}
-              className="inline-flex items-center gap-2 rounded-full border border-black/10 bg-white/70 px-4 py-2 text-sm font-semibold shadow-sm transition hover:border-emerald-300 hover:bg-white dark:border-white/20 dark:bg-white/10 dark:hover:border-emerald-500/40"
+              className="inline-flex items-center gap-2 rounded-full border border-black/10 bg-white/80 px-4 py-2 text-sm font-semibold shadow-sm transition hover:border-emerald-300 hover:bg-white dark:border-white/20 dark:bg-white/10 dark:hover:border-emerald-500/40"
             >
               <span>New Phone Request</span>
               <span aria-hidden className="text-base">＋</span>
