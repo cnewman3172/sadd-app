@@ -5,6 +5,7 @@ import { z } from 'zod';
 import { captureError } from '@/lib/obs';
 import { publish } from '@/lib/events';
 import { logAudit } from '@/lib/audit';
+import { isMissingTableError } from '@/lib/prismaErrors';
 
 export const runtime = 'nodejs';
 
@@ -38,7 +39,11 @@ export async function PUT(req: NextRequest, context: { params: Promise<{ id: str
       }
       const updated = await tx.van.update({ where: { id }, data });
       if (payloadBody.status === 'OFFLINE'){
-        await tx.vanTask.deleteMany({ where: { vanId: id } });
+        try{
+          await tx.vanTask.deleteMany({ where: { vanId: id } });
+        }catch(err){
+          if (!isMissingTableError(err)) throw err;
+        }
         await tx.tcTransfer.updateMany({ where: { vanId: id, status: 'PENDING' }, data: { status: 'CANCELLED', respondedAt: new Date() } });
       }
       return updated;
