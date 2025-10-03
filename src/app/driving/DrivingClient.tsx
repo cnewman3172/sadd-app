@@ -42,6 +42,16 @@ export default function DrivingClient(){
   const [walkPhoneOpts, setWalkPhoneOpts] = useState<any[]>([]);
   const [walkPhoneOpen, setWalkPhoneOpen] = useState(false);
   const [transferBusy, setTransferBusy] = useState<string|null>(null);
+  const resetWalkForm = ()=>{
+    setWalkOpen(false);
+    setWalkTaskId('');
+    setWalkSelRider(null);
+    setWalkForm({ riderId:'', name:'', phone:'', pickupAddr:'', pickupLat: undefined, pickupLng: undefined, dropAddr:'', dropLat: undefined, dropLng: undefined });
+    setWalkNameOpen(false);
+    setWalkNameOpts([]);
+    setWalkPhoneOpen(false);
+    setWalkPhoneOpts([]);
+  };
 
   async function refreshVans(){
     const v = await fetch('/api/vans', { credentials:'include' }).then(r=>r.json());
@@ -459,7 +469,7 @@ export default function DrivingClient(){
                 {(t.status==='ASSIGNED' || t.status==='EN_ROUTE') && (
                   <button onClick={async()=>{ if (!confirm(`Mark #${t.rideCode} as No Show and cancel?`)) return; await fetch(`/api/rides/${t.id}`, { method:'PUT', credentials:'include', body: JSON.stringify({ status:'CANCELED', notes:'No Show' }) }); refreshTasks(); }} className="rounded border px-3 py-1 text-sm border-red-500 text-red-600">No Show</button>
                 )}
-                <button onClick={()=>{ setWalkTaskId(t.id); setWalkSelRider(null); setWalkForm({ riderId:'', name:'', phone:'', pickupAddr:'', pickupLat: undefined, pickupLng: undefined, dropAddr:'', dropLat: undefined, dropLng: undefined }); setWalkOpen(true); }} className="rounded border px-3 py-1 text-sm">Walk On…</button>
+                <button onClick={()=>{ setWalkTaskId(t.id); setWalkSelRider(null); setWalkForm({ riderId:'', name:'', phone:'', pickupAddr:'', pickupLat: undefined, pickupLng: undefined, dropAddr:'', dropLat: undefined, dropLng: undefined }); setWalkNameOpen(false); setWalkNameOpts([]); setWalkPhoneOpen(false); setWalkPhoneOpts([]); setWalkOpen(true); }} className="rounded border px-3 py-1 text-sm">Walk On…</button>
               </div>
             </div>
           ))}
@@ -470,7 +480,7 @@ export default function DrivingClient(){
           <div className="glass w-full max-w-md rounded-[32px] border border-white/20 p-5 shadow-xl dark:border-white/10">
             <div className="flex items-center justify-between mb-2">
               <h3 className="font-semibold">Add Walk-On Passenger</h3>
-              <button onClick={()=> setWalkOpen(false)} aria-label="Close">✕</button>
+              <button onClick={resetWalkForm} aria-label="Close">✕</button>
             </div>
             {(() => {
               const t = tasks.find(x=> x.id===walkTaskId);
@@ -528,12 +538,12 @@ export default function DrivingClient(){
                   </div>
                   <AddressInput label="Drop Off" value={walkForm.dropAddr} onChange={(t)=> setWalkForm((f:any)=> ({ ...f, dropAddr: t }))} onSelect={(o)=> setWalkForm((f:any)=> ({ ...f, dropAddr: o.label, dropLat: o.lat, dropLng: o.lon }))} />
                   <div className="flex justify-end gap-2 mt-2">
-                    <button onClick={()=> setWalkOpen(false)} className="rounded border px-3 py-1 text-sm">Cancel</button>
+                    <button onClick={resetWalkForm} className="rounded border px-3 py-1 text-sm">Cancel</button>
                     <button onClick={async()=>{
                       try{
                         const res = await fetch('/api/driver/walk-on', { method:'POST', headers:{ 'Content-Type':'application/json' }, credentials:'include', body: JSON.stringify({ ...walkForm, taskId: walkTaskId }) });
                         if (!res.ok){ const d = await res.json().catch(()=>({error:'Failed'})); throw new Error(d.error||'Failed'); }
-                        showToast('Walk-on added'); setWalkOpen(false); setWalkTaskId(''); setWalkSelRider(null); setWalkForm({ riderId:'', name:'', phone:'', pickupAddr:'', pickupLat: undefined, pickupLng: undefined, dropAddr:'', dropLat: undefined, dropLng: undefined }); refreshTasks();
+                        showToast('Walk-on added'); resetWalkForm(); refreshTasks();
                       }catch(e:any){ showToast(e.message||'Failed'); }
                     }} className="rounded bg-black text-white px-3 py-1 text-sm">Add</button>
                   </div>
