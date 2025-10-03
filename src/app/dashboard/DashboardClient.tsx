@@ -22,6 +22,8 @@ export default function DashboardClient(){
   const [selRider, setSelRider] = useState<any|null>(null);
   const [nameOpts, setNameOpts] = useState<any[]>([]);
   const [nameOpen, setNameOpen] = useState(false);
+  const [phoneOpts, setPhoneOpts] = useState<any[]>([]);
+  const [phoneOpen, setPhoneOpen] = useState(false);
   const [activeEtas, setActiveEtas] = useState<Record<string, { toPickupSec: number|null; toDropSec: number|null }>>({});
   const lastEtaRef = (typeof window!=='undefined' ? (window as any).__etaRef : null) || { current: 0 } as { current: number };
   const [notifOk, setNotifOk] = useState<boolean>(true);
@@ -38,6 +40,8 @@ export default function DashboardClient(){
     setManualEtaVan('');
     setNameOpen(false);
     setNameOpts([]);
+    setPhoneOpen(false);
+    setPhoneOpts([]);
   };
 
   async function refresh(){
@@ -62,6 +66,20 @@ export default function DashboardClient(){
     }, 250);
     return ()=> clearTimeout(t);
   }, [manual.name]);
+  useEffect(()=>{
+    const t = setTimeout(async()=>{
+      const digits = String(manual.phone||'').replace(/\D+/g,'');
+      if (digits.length < 4){ setPhoneOpts([]); setPhoneOpen(false); return; }
+      try{
+        const r = await fetch(`/api/admin/users?q=${encodeURIComponent(digits)}`, { cache:'no-store', credentials:'include' });
+        const d = await r.json();
+        const matches = Array.isArray(d) ? d.filter((u:any)=> (u.phone||'').replace(/\D+/g,'').includes(digits)) : [];
+        setPhoneOpts(matches);
+        setPhoneOpen(matches.length>0);
+      }catch{}
+    }, 250);
+    return ()=> clearTimeout(t);
+  }, [manual.phone]);
 
   useEffect(()=>{ refresh(); const id = setInterval(refresh, 5000); return ()=>clearInterval(id); },[]);
   useEffect(()=>{
@@ -435,7 +453,32 @@ export default function DashboardClient(){
                     </div>
                   )}
                 </div>
-                <input className="p-2 rounded border bg-white/80 dark:bg-neutral-800 text-sm text-black dark:text-white" placeholder="Phone" value={manual.phone||''} onChange={(e)=> setManual({...manual, phone:e.target.value})} />
+                <div className="relative">
+                  <input className="p-2 rounded border bg-white/80 dark:bg-neutral-800 text-sm text-black dark:text-white w-full" placeholder="Phone" value={manual.phone||''} onChange={(e)=> setManual({...manual, phone:e.target.value})} onFocus={()=>{ if (phoneOpts.length>0) setPhoneOpen(true); }} onBlur={()=> setTimeout(()=> setPhoneOpen(false), 120)} />
+                  {phoneOpen && phoneOpts.length>0 && (
+                    <div className="absolute z-10 mt-1 w-full max-h-56 overflow-auto rounded-xl popover text-black dark:text-white">
+                      {phoneOpts.map((u:any)=> (
+                        <button
+                          key={`phone-${u.id}`}
+                          type="button"
+                          className="block w-full text-left px-3 py-2 hover:bg-black/5 dark:hover:bg-white/10"
+                          onMouseDown={(e)=> e.preventDefault()}
+                          onClick={()=>{
+                            setSelRider(u);
+                            setManual((m:any)=> ({ ...m, riderId: u.id, name: `${u.firstName} ${u.lastName}`.trim(), phone: u.phone || m.phone }));
+                            setPhoneOpen(false);
+                            if (!nameOpts.some((n:any)=> n.id === u.id)){
+                              setNameOpts(prev=> [...prev, u]);
+                            }
+                          }}
+                        >
+                          <div className="text-sm">{u.firstName} {u.lastName} <span className="opacity-60">{u.email}</span></div>
+                          <div className="text-xs opacity-60">{u.rank||'—'} · {u.phone||'no phone'}</div>
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                </div>
               </div>
               {selRider && (
                 <div className="text-xs inline-flex items-center gap-2 rounded-full border px-2 py-1 w-fit">
