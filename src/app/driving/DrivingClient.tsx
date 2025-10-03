@@ -39,6 +39,8 @@ export default function DrivingClient(){
   const [walkSelRider, setWalkSelRider] = useState<any|null>(null);
   const [walkNameOpts, setWalkNameOpts] = useState<any[]>([]);
   const [walkNameOpen, setWalkNameOpen] = useState(false);
+  const [walkPhoneOpts, setWalkPhoneOpts] = useState<any[]>([]);
+  const [walkPhoneOpen, setWalkPhoneOpen] = useState(false);
   const [transferBusy, setTransferBusy] = useState<string|null>(null);
 
   async function refreshVans(){
@@ -55,6 +57,20 @@ export default function DrivingClient(){
     }, 250);
     return ()=> clearTimeout(t);
   }, [walkForm.name]);
+  useEffect(()=>{
+    const t = setTimeout(async()=>{
+      const digits = String(walkForm.phone||'').replace(/\D+/g,'');
+      if (digits.length < 4){ setWalkPhoneOpts([]); setWalkPhoneOpen(false); return; }
+      try{
+        const r = await fetch(`/api/admin/users?q=${encodeURIComponent(digits)}`, { cache:'no-store', credentials:'include' });
+        const d = await r.json();
+        const matches = Array.isArray(d) ? d.filter((u:any)=> (u.phone||'').replace(/\D+/g,'').includes(digits)) : [];
+        setWalkPhoneOpts(matches);
+        setWalkPhoneOpen(matches.length>0);
+      }catch{}
+    }, 250);
+    return ()=> clearTimeout(t);
+  }, [walkForm.phone]);
   async function refreshTasks(){
     const r = await fetch('/api/driver/tasks', { credentials:'include' }).then(r=>r.json());
     setCurrentVan(r.van);
@@ -484,7 +500,32 @@ export default function DrivingClient(){
                       <span className="opacity-60">{walkSelRider.phone || 'no phone'}</span>
                     </div>
                   )}
-                  <input className="p-2 rounded border text-sm" placeholder="Cell Number" value={walkForm.phone} onChange={(e)=> setWalkForm((f:any)=> ({ ...f, phone: e.target.value }))} />
+                  <div className="relative">
+                    <input className="p-2 rounded border text-sm w-full" placeholder="Cell Number" value={walkForm.phone} onChange={(e)=> setWalkForm((f:any)=> ({ ...f, phone: e.target.value }))} onFocus={()=>{ if (walkPhoneOpts.length>0) setWalkPhoneOpen(true); }} onBlur={()=> setTimeout(()=> setWalkPhoneOpen(false), 120)} />
+                    {walkPhoneOpen && walkPhoneOpts.length>0 && (
+                      <div className="absolute z-10 mt-1 w-full max-h-56 overflow-auto rounded border bg-white text-black shadow-lg">
+                        {walkPhoneOpts.map((u:any)=> (
+                          <button
+                            key={`walk-phone-${u.id}`}
+                            type="button"
+                            className="block w-full text-left px-3 py-2 hover:bg-black/5"
+                            onMouseDown={(e)=> e.preventDefault()}
+                            onClick={()=>{
+                              setWalkSelRider(u);
+                              setWalkForm((f:any)=> ({ ...f, riderId: u.id, name: `${u.firstName} ${u.lastName}`, phone: u.phone || f.phone }));
+                              setWalkPhoneOpen(false);
+                              if (!walkNameOpts.some((n:any)=> n.id === u.id)){
+                                setWalkNameOpts(prev=> [...prev, u]);
+                              }
+                            }}
+                          >
+                            <div className="text-sm">{u.firstName} {u.lastName} <span className="opacity-60">{u.email}</span></div>
+                            <div className="text-xs opacity-60">{u.rank||'—'} · {u.phone||'no phone'}</div>
+                          </button>
+                        ))}
+                      </div>
+                    )}
+                  </div>
                   <AddressInput label="Drop Off" value={walkForm.dropAddr} onChange={(t)=> setWalkForm((f:any)=> ({ ...f, dropAddr: t }))} onSelect={(o)=> setWalkForm((f:any)=> ({ ...f, dropAddr: o.label, dropLat: o.lat, dropLng: o.lon }))} />
                   <div className="flex justify-end gap-2 mt-2">
                     <button onClick={()=> setWalkOpen(false)} className="rounded border px-3 py-1 text-sm">Cancel</button>
