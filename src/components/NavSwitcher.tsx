@@ -4,7 +4,8 @@ import TopNav from '@/components/TopNav';
 
 export default function NavSwitcher(){
   const pathname = usePathname();
-  if (pathname === '/') return null;
+  if (pathname === '/' || pathname === '/volunteer' || pathname === '/privacy' || pathname === '/tos') {
+    return null;
+  }
   return <TopNav/>;
 }
-
