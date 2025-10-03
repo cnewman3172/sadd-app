@@ -2,13 +2,34 @@
 import Link from 'next/link';
 import AccountMenuButton from '@/components/AccountMenuButton';
 import useCurrentUser from '@/hooks/useCurrentUser';
+import { usePathname } from 'next/navigation';
+
+type Role = NonNullable<ReturnType<typeof useCurrentUser>['user']> extends { role: infer R }
+  ? NonNullable<R>
+  : never;
+
+const ROLE_DESTINATIONS: Record<Role, { href: string; label: string }> = {
+  ADMIN: { href: '/executives', label: 'Executives' },
+  DISPATCHER: { href: '/dashboard', label: 'Dispatch' },
+  TC: { href: '/driving', label: 'Truck Commanders' },
+  DRIVER: { href: '/shifts', label: 'Driver Shifts' },
+  SAFETY: { href: '/shifts', label: 'Safety Shifts' },
+  RIDER: { href: '/request', label: 'Request a Ride' },
+};
 
 export default function HomeNav() {
   const { user, loading } = useCurrentUser();
+  const pathname = usePathname();
+  const overridePrimary = pathname === '/' || pathname === '/volunteer' || pathname === '/privacy' || pathname === '/tos';
+  const rolePrimaryLink = overridePrimary && user?.role
+    ? ROLE_DESTINATIONS[user.role as Role] ?? null
+    : undefined;
+
   const accountButton = user ? (
     <AccountMenuButton
       user={user}
       buttonClassName="rounded-full px-4 py-2 ring-gradient glass-strong text-zinc-900 dark:text-white font-medium"
+      primaryLink={rolePrimaryLink}
     />
   ) : (
     <Link

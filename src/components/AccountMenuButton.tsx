@@ -4,6 +4,8 @@ import Link from 'next/link';
 import Dropdown, { type AnchorRect } from '@/components/Dropdown';
 import type { CurrentUser } from '@/hooks/useCurrentUser';
 
+type MenuLink = { href: string; label: string };
+
 type AccountMenuButtonProps = {
   user: CurrentUser | null;
   buttonClassName?: string;
@@ -11,6 +13,7 @@ type AccountMenuButtonProps = {
   closeSignal?: number;
   onOpenChange?: (open: boolean) => void;
   fallbackLabel?: string;
+  primaryLink?: MenuLink | null;
 };
 
 export default function AccountMenuButton({
@@ -20,6 +23,7 @@ export default function AccountMenuButton({
   closeSignal,
   onOpenChange,
   fallbackLabel = 'Account',
+  primaryLink,
 }: AccountMenuButtonProps) {
   const [open, setOpen] = useState(false);
   const [anchor, setAnchor] = useState<AnchorRect>(null);
@@ -51,6 +55,10 @@ export default function AccountMenuButton({
   }, [open, onOpenChange]);
 
   const name = user ? [user.firstName, user.lastName].filter(Boolean).join(' ') || fallbackLabel : fallbackLabel;
+  const defaultPrimaryLink: MenuLink | null = user?.role && user.role !== 'RIDER'
+    ? { href: '/training', label: 'Training' }
+    : null;
+  const resolvedPrimary = primaryLink === undefined ? defaultPrimaryLink : primaryLink;
 
   return (
     <div className={containerClassName}>
@@ -63,13 +71,13 @@ export default function AccountMenuButton({
         {name}
       </button>
       <Dropdown open={open} anchor={anchor} onClose={() => setOpen(false)}>
-        {user?.role !== 'RIDER' && (
+        {resolvedPrimary && (
           <Link
-            href="/training"
+            href={resolvedPrimary.href}
             className="block px-3 py-2 text-sm hover:bg-black/5 dark:hover:bg-white/10"
             onClick={() => setOpen(false)}
           >
-            Training
+            {resolvedPrimary.label}
           </Link>
         )}
         <Link
