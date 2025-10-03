@@ -257,17 +257,17 @@ export default function DashboardClient(){
           </div>
           <div className="mt-3 grid grid-cols-1 gap-2 text-sm sm:grid-cols-3">
             {[{
-              label: 'Active Vans',
+              label: 'ACTIVE VANS',
               value: activeVans.length,
             }, {
-              label: 'Rides In Progress',
+              label: 'TRIPS IN PROGRESS',
               value: active.length,
             }, {
-              label: 'Pending Requests',
+              label: 'PENDING REQUESTS',
               value: pending.length,
             }].map(stat => (
               <div key={stat.label} className="flex flex-col items-center justify-center rounded-2xl border border-white/20 bg-white/70 px-4 py-4 text-center shadow-sm backdrop-blur-sm dark:border-white/10 dark:bg-white/10">
-                <div className="text-[11px] font-semibold uppercase tracking-[0.24em] text-zinc-500 dark:text-zinc-400">{stat.label}</div>
+                <div className="text-[14px] font-semibold text-zinc-500 dark:text-zinc-400">{stat.label}</div>
                 <div className="mt-1 text-lg font-semibold text-zinc-900 dark:text-white">{stat.value}</div>
               </div>
             ))}
