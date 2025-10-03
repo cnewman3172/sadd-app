@@ -257,17 +257,17 @@ export default function DashboardClient(){
           </div>
           <div className="mt-3 grid grid-cols-1 gap-2 text-sm sm:grid-cols-3">
             {[{
-              label: 'ACTIVE FLEET',
+              label: 'Active Fleet',
               value: activeVans.length,
             }, {
-              label: 'TRIPS IN PROGRESS',
+              label: 'Rides In Progress',
               value: active.length,
             }, {
-              label: 'PENDING REQUESTS',
+              label: 'Pending Requests',
               value: pending.length,
             }].map(stat => (
               <div key={stat.label} className="flex flex-col items-center justify-center rounded-2xl border border-white/20 bg-white/70 px-4 py-4 text-center shadow-sm backdrop-blur-sm dark:border-white/10 dark:bg-white/10">
-                <div className="text-[14px] font-semibold text-zinc-500 dark:text-zinc-400">{stat.label}</div>
+                <div className="text-[11px] font-semibold uppercase tracking-[0.24em] text-zinc-500 dark:text-zinc-400">{stat.label}</div>
                 <div className="mt-1 text-lg font-semibold text-zinc-900 dark:text-white">{stat.value}</div>
               </div>
             ))}
@@ -293,7 +293,7 @@ export default function DashboardClient(){
         <Card title="Active Fleet">
           <div className="text-sm space-y-2">
 <<<<<<< HEAD
-            {activeVans.length===0 && <div className="opacity-80">No Active Vans</div>}
+            {activeVans.length===0 && <div className="text-sm opacity-80 text-center">No Active Vans</div>}
 =======
             {activeVans.length===0 && <div className="text-sm opacity-80 text-center">No Active Vans</div>}
 >>>>>>> 224e0a3 (Sandbox autosave)
