@@ -1,5 +1,5 @@
 "use client";
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { showToast } from '@/components/Toast';
 
 export type CurrentUser = {
@@ -18,13 +18,17 @@ export type UseCurrentUserResult = {
 export default function useCurrentUser(): UseCurrentUserResult {
   const [user, setUser] = useState<CurrentUser | null>(null);
   const [loading, setLoading] = useState(true);
+  const mountedRef = useRef(true);
 
   const load = useCallback(async () => {
+    if (!mountedRef.current) return;
     setLoading(true);
     try {
       const response = await fetch('/api/me', { cache: 'no-store' });
       const data = response.ok ? await response.json() : null;
-      setUser(data as CurrentUser | null);
+      if (mountedRef.current) {
+        setUser(data as CurrentUser | null);
+      }
       try {
         const prev = window.localStorage.getItem('sadd_role');
         if (data?.role) {
@@ -39,22 +43,21 @@ export default function useCurrentUser(): UseCurrentUserResult {
         // ignore storage errors
       }
     } catch {
-      setUser(null);
+      if (mountedRef.current) {
+        setUser(null);
+      }
     } finally {
-      setLoading(false);
+      if (mountedRef.current) {
+        setLoading(false);
+      }
     }
   }, []);
 
   useEffect(() => {
-    let active = true;
-    (async () => {
-      await load();
-      if (!active) {
-        setLoading(false);
-      }
-    })();
+    mountedRef.current = true;
+    load();
     return () => {
-      active = false;
+      mountedRef.current = false;
     };
   }, [load]);
 
