@@ -143,9 +143,10 @@ function computeRequestDateParts(shift: any, requestLocal: ReturnType<typeof loc
 }
 
 async function findShiftForInstant(instant: Date, role?: 'DISPATCHER'|'TC'|'DRIVER'|'SAFETY'){
+  const where: any = { startsAt: { lte: instant }, endsAt: { gt: instant } };
+  if (role) where.role = role;
   return prisma.shift.findFirst({
-    where: { startsAt: { lte: instant }, endsAt: { gt: instant } },
-    ...(role ? { role } : {}),
+    where,
     orderBy: { startsAt: 'desc' },
     include: {
       signups: {
