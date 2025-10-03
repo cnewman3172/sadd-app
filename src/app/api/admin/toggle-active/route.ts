@@ -6,7 +6,9 @@ import { captureError } from '@/lib/obs';
 export async function POST(req: Request){
   const token = (req.headers.get('cookie')||'').split('; ').find(c=>c.startsWith('sadd_token='))?.split('=')[1];
   const payload = await verifyJwt(token);
-  if (!payload || payload.role !== 'ADMIN') return NextResponse.json({ error:'forbidden' }, { status: 403 });
+  if (!payload || !['ADMIN','DISPATCHER'].includes(payload.role as any)) {
+    return NextResponse.json({ error:'forbidden' }, { status: 403 });
+  }
   try{
     // Ensure row exists
     let s = await prisma.setting.findUnique({ where: { id: 1 } });

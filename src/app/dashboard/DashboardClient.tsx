@@ -345,7 +345,7 @@ export default function DashboardClient(){
         </Card>
       </div>
       {suggestFor && (
-        <div className="fixed inset-0 grid place-items-center bg-black/50 p-4 backdrop-blur" role="dialog" aria-modal="true">
+        <div className="fixed inset-0 z-[2000] grid place-items-center bg-black/50 p-4 backdrop-blur" role="dialog" aria-modal="true">
           <div className="glass w-full max-w-md rounded-[32px] border border-white/20 p-5 shadow-xl dark:border-white/10">
             <div className="flex items-center justify-between mb-2">
               <h3 className="font-semibold">Suggestions for #{suggestFor.rideCode}</h3>
@@ -371,7 +371,7 @@ export default function DashboardClient(){
       )}
 
       {manualOpen && (
-        <div className="fixed inset-0 grid place-items-center bg-black/50 p-4 backdrop-blur" role="dialog" aria-modal="true">
+        <div className="fixed inset-0 z-[2000] grid place-items-center bg-black/50 p-4 backdrop-blur" role="dialog" aria-modal="true">
           <div className="glass w-full max-w-lg rounded-[32px] border border-white/20 p-5 shadow-xl dark:border-white/10">
             <div className="flex items-center justify-between mb-2">
               <h3 className="font-semibold">Manual Ride Request</h3>
@@ -423,7 +423,7 @@ export default function DashboardClient(){
         </div>
       )}
       {autoModal.open && autoModal.ride && autoModal.best && (
-        <div className="fixed inset-0 grid place-items-center bg-black/50 p-4 backdrop-blur" role="dialog" aria-modal="true">
+        <div className="fixed inset-0 z-[2000] grid place-items-center bg-black/50 p-4 backdrop-blur" role="dialog" aria-modal="true">
           <div className="glass w-full max-w-md rounded-[32px] border border-white/20 p-5 shadow-xl dark:border-white/10">
             <div className="flex items-center justify-between mb-2">
               <h3 className="font-semibold">Auto Assign</h3>
