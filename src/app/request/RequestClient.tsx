@@ -69,14 +69,21 @@ export default function RequestClient(){
   }
 
   async function reloadHistory(){
-    const data = await fetch('/api/my-rides?limit=3').then(r=>r.json());
+    const data = await fetch('/api/my-rides?limit=3', { credentials:'include' }).then(r=>r.json());
     setHistory(data);
     const pr = (data||[]).find((r:any)=> r.status==='DROPPED' && (r.rating==null));
     setPendingReview(pr||null);
     setShowForm(!pr);
   }
   useEffect(()=>{ reloadHistory(); },[]);
-  useEffect(()=>{ (async()=>{ try{ const h = await fetch('/api/health', { cache:'no-store' }).then(r=>r.json()); setActive(Boolean(h.active)); }catch{ setActive(null); } })(); },[]);
+  useEffect(()=>{
+    (async()=>{
+      try{
+        const h = await fetch('/api/status', { cache:'no-store' }).then(r=>r.json());
+        setActive(typeof h?.active === 'boolean' ? Boolean(h.active) : null);
+      }catch{ setActive(null); }
+    })();
+  },[]);
   useEffect(()=>{ refreshVans(); const id = setInterval(refreshVans, 5000); return ()=> clearInterval(id); },[]);
   async function refreshVans(){ try{ const v = await fetch('/api/vans', { cache:'no-store' }).then(r=>r.json()); setVans(v||[]); }catch{} }
 
@@ -120,8 +127,18 @@ export default function RequestClient(){
 
   async function submit(e: React.FormEvent){
     e.preventDefault();
-    const res = await fetch('/api/rides/request', { method:'POST', body: JSON.stringify({ ...form, passengers: 1 }) });
-    const data = await res.json();
+    const res = await fetch('/api/rides/request', {
+      method:'POST',
+      credentials:'include',
+      headers:{ 'Content-Type':'application/json' },
+      body: JSON.stringify({ ...form, passengers: 1 })
+    });
+    const data = await res.json().catch(()=>null);
+    if (!res.ok){
+      const message = data?.error || 'Ride request failed. Please try again or contact Dispatch.';
+      alert(message);
+      return;
+    }
     setStatus(data);
     // Refresh recent list to include the new ride
     reloadHistory();
