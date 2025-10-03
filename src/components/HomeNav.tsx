@@ -1,12 +1,10 @@
 "use client";
 import Link from 'next/link';
 import AccountMenuButton from '@/components/AccountMenuButton';
-import useCurrentUser from '@/hooks/useCurrentUser';
+import useCurrentUser, { type CurrentUser } from '@/hooks/useCurrentUser';
 import { usePathname } from 'next/navigation';
 
-type Role = NonNullable<ReturnType<typeof useCurrentUser>['user']> extends { role: infer R }
-  ? NonNullable<R>
-  : never;
+type Role = NonNullable<CurrentUser['role']>;
 
 const ROLE_DESTINATIONS: Record<Role, { href: string; label: string }> = {
   ADMIN: { href: '/executives', label: 'Executives' },

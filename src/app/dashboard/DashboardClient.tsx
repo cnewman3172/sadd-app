@@ -41,14 +41,14 @@ export default function DashboardClient(){
   };
 
   async function refresh(){
-    const [r, v, health] = await Promise.all([
-      fetch('/api/rides?take=100').then(r=>r.json()),
-      fetch('/api/vans').then(r=>r.json()),
-      fetch('/api/health', { cache: 'no-store' }).then(async (r)=> r.ok ? r.json() : null).catch(()=>null),
+    const [r, v, status] = await Promise.all([
+      fetch('/api/rides?take=100', { credentials:'include' }).then(r=>r.json()),
+      fetch('/api/vans', { credentials:'include' }).then(r=>r.json()),
+      fetch('/api/status', { cache: 'no-store' }).then(async (res)=> res.ok ? res.json() : null).catch(()=>null),
     ]);
     setRides(r);
     setVans(v);
-    setSaddActive(health ? Boolean(health.active) : null);
+    setSaddActive(status && typeof status.active === 'boolean' ? Boolean(status.active) : null);
     // Compute ETAs right after data loads
     try{ await computeActiveEtas(r as any, v as any); }catch{}
   }
