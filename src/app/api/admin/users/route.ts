@@ -15,6 +15,8 @@ export async function GET(req: Request){
   try{
     const url = new URL(req.url);
     const q = (url.searchParams.get('q') || '').trim();
+    const qDigits = q.replace(/\D+/g,'');
+    const hasAlpha = /[a-zA-Z]/.test(q);
     const includeDisabled = url.searchParams.get('includeDisabled') === '1';
     const base = includeDisabled ? {} : { disabled: false } as any;
     const where = q ? {
@@ -22,7 +24,8 @@ export async function GET(req: Request){
         OR: [
           { email: { contains: q, mode: 'insensitive' } },
           { firstName: { contains: q, mode: 'insensitive' } },
-          { lastName: { contains: q, mode: 'insensitive' } }
+          { lastName: { contains: q, mode: 'insensitive' } },
+          ...(qDigits.length >= 3 ? [{ phone: { contains: hasAlpha ? q : qDigits, mode: 'insensitive' } }] : []),
         ]
       } ]
     } : base;
@@ -32,7 +35,10 @@ export async function GET(req: Request){
       take: 200,
       select: { id: true, email: true, firstName: true, lastName: true, phone: true, rank: true, role: true, createdAt: true }
     });
-    return NextResponse.json(users);
+    const filtered = (!hasAlpha && qDigits.length >= 3)
+      ? users.filter(u => (u.phone || '').replace(/\D+/g,'').includes(qDigits))
+      : users;
+    return NextResponse.json(filtered);
   }catch(e:any){
     captureError(e, { route: 'admin/users#GET', uid: payload.uid });
     return NextResponse.json({ error:'failed' }, { status: 500 });
