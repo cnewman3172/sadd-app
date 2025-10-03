@@ -1,4 +1,5 @@
 import { prisma } from '@/lib/prisma';
+import { isMissingTableError } from '@/lib/prismaErrors';
 
 type Coord = [number, number]; // [lat,lng]
 
@@ -43,7 +44,15 @@ export async function rebuildPlanForVan(vanId: string){
   if (!van) return;
   const rides = await prisma.ride.findMany({ where:{ vanId, status:{ in:['ASSIGNED','EN_ROUTE','PICKED_UP'] } }, orderBy:{ requestedAt:'asc' } });
   // Clear previous plan
-  await prisma.vanTask.deleteMany({ where:{ vanId } });
+  try{
+    await prisma.vanTask.deleteMany({ where:{ vanId } });
+  }catch(err){
+    if (isMissingTableError(err)){
+      console.warn('VanTask table missing; skipping plan rebuild.');
+      return;
+    }
+    throw err;
+  }
   if (rides.length===0) return;
   const start: Coord = typeof van.currentLat==='number' && typeof van.currentLng==='number'
     ? [van.currentLat, van.currentLng]
@@ -100,18 +109,31 @@ export async function rebuildPlanForVan(vanId: string){
   plan = await relocateImprovePlan(start, plan, cap);
 
   // Persist plan
-  await prisma.$transaction(async(tx)=>{
-    let order = 1;
-    for (const s of plan){
-      await tx.vanTask.create({ data: { vanId, rideId: s.rideId, phase: s.phase as any, order } });
-      order += 1;
+  try{
+    await prisma.$transaction(async(tx)=>{
+      let order = 1;
+      for (const s of plan){
+        await tx.vanTask.create({ data: { vanId, rideId: s.rideId, phase: s.phase as any, order } });
+        order += 1;
+      }
+    });
+  }catch(err){
+    if (isMissingTableError(err)){
+      console.warn('VanTask table missing; skipping plan persistence.');
+      return;
     }
-  });
+    throw err;
+  }
 }
 
 export async function getPlanTasks(vanId: string){
-  const entries = await prisma.vanTask.findMany({ where:{ vanId }, orderBy:{ order:'asc' } });
-  return entries;
+  try{
+    const entries = await prisma.vanTask.findMany({ where:{ vanId }, orderBy:{ order:'asc' } });
+    return entries;
+  }catch(err){
+    if (isMissingTableError(err)) return [];
+    throw err;
+  }
 }
 
 async function localImprovePlan(start: Coord, plan: Array<{rideId:string; phase:'PICKUP'|'DROP'; coord:Coord; pax:number}>, capacity:number){

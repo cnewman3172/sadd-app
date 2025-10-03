@@ -3,6 +3,7 @@ import { prisma } from '@/lib/prisma';
 import { verifyJwt } from '@/lib/jwt';
 import { publish } from '@/lib/events';
 import { logAudit } from '@/lib/audit';
+import { isMissingTableError } from '@/lib/prismaErrors';
 
 export const runtime = 'nodejs';
 
@@ -21,7 +22,11 @@ export async function POST(req: Request){
   await prisma.$transaction(async(tx)=>{
     await tx.van.updateMany({ where:{ activeTcId: payload.uid }, data:{ activeTcId: null, status: 'OFFLINE', passengers: 0 } });
     if (van){
-      await tx.vanTask.deleteMany({ where:{ vanId: van.id } });
+      try{
+        await tx.vanTask.deleteMany({ where:{ vanId: van.id } });
+      }catch(err){
+        if (!isMissingTableError(err)) throw err;
+      }
       await tx.tcTransfer.updateMany({ where:{ vanId: van.id, status: 'PENDING' }, data:{ status: 'CANCELLED', respondedAt: new Date() } });
     }
   });
