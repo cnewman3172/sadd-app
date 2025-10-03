@@ -294,17 +294,7 @@ export default function RequestClient(){
             </div>
           </div>
         )}
-      </div>
-      <aside className="space-y-4 md:sticky md:top-6">
-        {status && (status.status==='EN_ROUTE' || status.status==='PICKED_UP') && (
-          <div className="rounded-xl p-3 border border-white/20 bg-white/70 dark:bg-white/10">
-            <div className="text-sm">Assigned Van: {status.vanId ? `#${status.vanId.slice(0,8)}` : '—'}</div>
-            <div className="text-sm">ETA: {etaSec!=null ? formatEta(etaSec) : '—'}</div>
-          </div>
-        )}
-      </aside>
-      <div className="md:col-span-2">
-        <div className="rounded-xl overflow-hidden border border-white/20">
+        <div className="rounded-xl border border-white/20 overflow-hidden">
           <Map
             height="clamp(280px, 48vh, 480px)"
             vanMarkers={activeVansMarkers()}
@@ -316,6 +306,14 @@ export default function RequestClient(){
           />
         </div>
       </div>
+      <aside className="space-y-4 md:sticky md:top-6">
+        {status && (status.status==='EN_ROUTE' || status.status==='PICKED_UP') && (
+          <div className="rounded-xl p-3 border border-white/20 bg-white/70 dark:bg-white/10">
+            <div className="text-sm">Assigned Van: {status.vanId ? `#${status.vanId.slice(0,8)}` : '—'}</div>
+            <div className="text-sm">ETA: {etaSec!=null ? formatEta(etaSec) : '—'}</div>
+          </div>
+        )}
+      </aside>
       </div>
     </PageShell>
   );
