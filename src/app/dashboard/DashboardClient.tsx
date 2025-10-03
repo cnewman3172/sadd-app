@@ -260,14 +260,14 @@ export default function DashboardClient(){
               label: 'Active Vans',
               value: activeVans.length,
             }, {
-              label: 'Pickups In Progress',
+              label: 'Rides In Progress',
               value: active.length,
             }, {
               label: 'Pending Requests',
               value: pending.length,
             }].map(stat => (
               <div key={stat.label} className="flex flex-col items-center justify-center rounded-2xl border border-white/20 bg-white/70 px-4 py-4 text-center shadow-sm backdrop-blur-sm dark:border-white/10 dark:bg-white/10">
-                <div className="text-[11px] font-semibold uppercase tracking-[0.24em] text-zinc-500 dark:text-zinc-400 whitespace-nowrap">{stat.label}</div>
+                <div className="text-[11px] font-semibold uppercase tracking-[0.24em] text-zinc-500 dark:text-zinc-400">{stat.label}</div>
                 <div className="mt-1 text-lg font-semibold text-zinc-900 dark:text-white">{stat.value}</div>
               </div>
             ))}
